@@ -1,0 +1,11 @@
+              action: call-service
+              service: browser_mod.popup
+              service_data:
+                title: Partir
+                deviceID: this
+                card:
+                  type: entities
+                  entities:
+
+                    - entity: automation.test_leave
+                      name: Désac. l'automation par présence

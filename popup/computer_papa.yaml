@@ -1,0 +1,103 @@
+              action: call-service
+              service: browser_mod.popup
+              service_data:
+                title: Papa ordinateur
+                deviceID: this
+                card:
+                  type: entities
+                  state_color: true
+                  show_header_toggle: false
+                  entities:
+
+                    - entity: switch.computer_papa
+                      name: Papa
+                      secondary_info: last-changed
+
+                    - type: custom:bar-card
+                      width: 55%
+                      height: 2em
+                      decimal: 0
+                      unit_of_measurement: '%'
+                      positions: &pos
+                        icon: outside
+                        indicator: 'off'
+                        name: outside
+                      severity: &sev
+                        - color: '#303435'
+                          from: 0
+                          to: 89
+                        - color: '#6d2525'
+                          from: 90
+                          to: 100
+                      entity_row: true
+                      entities:
+
+                        - entity: sensor.computer_papa_cpu_usage
+                          tap_action:
+                            action: call-service
+                            service: homeassistant.update_entity
+                            service_data:
+                              entity_id: sensor.computer_papa_cpu_usage
+
+                        - entity: sensor.computer_papa_ram_usage
+                          tap_action:
+                            action: call-service
+                            service: homeassistant.update_entity
+                            service_data:
+                              entity_id: sensor.computer_papa_ram_usage
+
+                    - entity: automation.macos_notification_motion_hall
+
+                    - entity: sensor.computer_papa_uptime
+                      name: Uptime
+
+                    - entity: input_boolean.computer_papa_lock
+
+                    - type: custom:bar-card
+                      width: 55%
+                      height: 2em
+                      decimal: 0
+                      unit_of_measurement: '%'
+                      positions: *pos
+                      severity: *sev
+                      entity_row: true
+                      entities:
+
+                        - entity: sensor.computer_papa_disk_c_usage
+                          tap_action:
+                            action: call-service
+                            service: homeassistant.update_entity
+                            service_data:
+                              entity_id: sensor.computer_papa_disk_c_usage
+
+                        - entity: sensor.computer_papa_disk_d_usage
+                          tap_action:
+                            action: call-service
+                            service: homeassistant.update_entity
+                            service_data:
+                              entity_id: sensor.computer_papa_disk_d_usage
+
+                    - type: custom:hui-element
+                      card_type: horizontal-stack
+                      style: |
+                        #root {
+                          justify-content: space-evenly;
+                          margin: 1.4em -0.7em 0.7em 0;
+                        }
+                      cards:
+
+                      - type: custom:button-card
+                        name: >
+                          <ha-icon icon="mdi:power-sleep"></ha-icon> Mettre en veille
+                        tap_action:
+                          action: call-service
+                          service: script.computer_papa_suspend
+                        template: name_action
+
+                      - type: custom:button-card
+                        name: >
+                          <ha-icon icon="mdi:restart"></ha-icon> Redémarrer
+                        tap_action:
+                          action: call-service
+                          service: script.computer_papa_reboot
+                        template: name_action

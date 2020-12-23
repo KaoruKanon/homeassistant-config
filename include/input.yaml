@@ -1,0 +1,177 @@
+
+input_boolean:
+
+  ####################################################
+  #                                                  #
+  #                     BOOLEAN                      #
+  #                                                  #
+  ####################################################
+
+  computer_kaoru:
+    initial: off
+  computer_papa:
+    initial: off
+
+  computer_imac:
+    initial: off
+  sony_bravia:
+    initial: off
+  playstation_4:
+    initial: off
+  sovrum_anslut:
+    initial: off
+  air_purifier:
+    initial: off
+  samsung_tv_remote:
+    initial: off
+
+  krisinformation_visibility:
+  laundry_timer_visibility:
+
+  sovrum_anslut_oscillate:
+    name: Oscillera
+    icon: mdi:arrow-left-right
+
+  computer_kaoru_lock:
+    name: Verrouillage 
+    icon: custom:lock
+
+  computer_papa_lock:
+    name: Verrouillage 
+    icon: custom:lock
+
+  motion_hall:
+    name: hallen
+    initial: off
+  motion_garderob:
+    name: klädkammaren
+    initial: off
+  motion_badrum:
+    name: badrummet
+    initial: off
+
+input_number:
+
+  ####################################################
+  #                                                  #
+  #                      NUMBER                      #
+  #                                                  #
+  ####################################################
+
+  # monitors_volume:
+  #   name: Volym
+  #   icon: mdi:volume-high
+  #   initial: 20
+  #   min: 7
+  #   max: 75
+  #   step: 2
+  #   unit_of_measurement: '%'
+
+  fullykiosk_brightness_slider:
+    name: Luminosité
+    icon: mdi:brightness-6
+    initial: 35
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: '%'
+
+
+# VOLUME AUDIO
+  # computer_kaoru_vol_slider:
+  #   name: Luminosité
+  #   icon: mdi:volume-high
+  #   min: 0
+  #   max: 100
+  #   step: 1
+  #   unit_of_measurement: '%'
+
+
+  # wemo_fan_timer:
+  #   name: Stäng efter
+  #   icon: mdi:timer-outline
+  #   initial: 12
+  #   min: 1
+  #   max: 12
+  #   step: 1
+  #   unit_of_measurement: 'h'
+
+  # sovrum_anslut_timer:
+  #   name: Stäng efter
+  #   icon: mdi:timer-outline
+  #   initial: 12
+  #   min: 1
+  #   max: 12
+  #   step: 1
+  #   unit_of_measurement: 'h'
+
+input_select:
+
+  ####################################################
+  #                                                  #
+  #                      SELECT                      #
+  #                                                  #
+  ####################################################
+
+  # hdmi:
+  #   name: Källa
+  #   options:
+  #     ['HDMI 1', 'HDMI 2/MHL', 'HDMI 3', 'HDMI 4']
+  #   initial: HDMI 1
+  #   icon: custom:hdmi-source
+
+  hdmi2:
+    name: Källa
+    options:
+      ['TV', 'HDMI']
+    initial: HDMI
+    icon: custom:hdmi-source
+
+  # roborock_speed:
+  #   name: Rengöringsläge
+  #   options:
+  #     ['Tyst', 'Standard', 'Medium', 'Turbo']
+  #   icon: mdi:format-list-bulleted
+
+  # sovrum_anslut_speed:
+  #   name: Fläkthastighet
+  #   options:
+  #     ['Tyst', 'Medium', 'Max']
+
+  # roborock_zone:
+  #   initial: Ingen vald
+  #   options:
+  #     ['Ingen vald', 'Hall', 'Kök', 'Vardagsrum', 'Studio', 'Sovrum']
+
+  conditional_media:
+    initial: Senast nedladdat
+    options:
+      ['Senast nedladdat', 'Cuisine', 'Chambre', 'Spotify', 'Bouygues4K']
+
+lock:
+
+  ####################################################
+  #                                                  #
+  #                       LOCK                       #
+  #                                                  #
+  ####################################################
+
+  - platform: template
+    name: kaoru computer lock
+    value_template: "{{ states('input_boolean.computer_kaoru_lock') }}"
+    lock:
+      service: input_boolean.turn_on
+      entity_id: input_boolean.computer_koaru_lock
+    unlock:
+      service: input_boolean.turn_off
+      entity_id: input_boolean.computer_kaoru_lock
+
+  - platform: template
+    name: papa computer lock
+    value_template: "{{ states('input_boolean.computer_kaoru_lock') }}"
+    lock:
+      service: input_boolean.turn_on
+      entity_id: input_boolean.computer_kaoru_lock
+    unlock:
+      service: input_boolean.turn_off
+      entity_id: input_boolean.computer_kaoru_lock

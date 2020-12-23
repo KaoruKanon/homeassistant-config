@@ -1,0 +1,135 @@
+
+homeassistant:
+  customize:
+
+    ####################################################
+    #                                                  #
+    #                    CUSTOMIZE                     #
+    #                                                  #
+    ####################################################
+
+
+    binary_sensor.rpi_internet_access:
+      icon: mdi:web
+      friendly_name: Internet
+
+    binary_sensor.plex_availability:
+      icon: mdi:plex
+
+    sensor.synology_maximum_disk_temp_volume_1:
+      friendly_name: Disktemperatur
+
+    sensor.hall_temperature:
+      friendly_name: Température
+
+    sensor.processor_temperature:
+      icon: mdi:thermometer  
+
+    sensor.processor_use:
+      icon: mdi:chip
+
+    sensor.aktuellt_spotpris:
+      icon: mdi:home-currency-usd
+
+    sensor.fullykiosk:
+      icon: mdi:tablet-dashboard
+
+    sensor.docker_cpu:
+      friendly_name: Processeur
+      icon: mdi:chip
+
+    sensor.docker_uptime:
+      friendly_name: Dernier rédémarrage
+      icon: mdi:update
+
+    sensor.last_boot:
+      icon: mdi:calendar-clock
+
+    ### William computer ###
+    sensor.computer_kaoru_uptime:
+      icon: mdi:calendar-clock
+
+    sensor.computer_kaoru_disk_c_usage:
+      friendly_name: System SSD
+      icon: custom:imac-ssd
+
+    sensor.computer_kaoru_disk_d_usage:
+      friendly_name: HDD
+      icon: mdi:harddisk
+
+    sensor.computer_kaoru_cpu_usage:
+      friendly_name: Processeur
+      icon: mdi:chip
+
+    sensor.computer_kaoru_ram_usage:
+      friendly_name: Mémoire
+      icon: mdi:memory
+
+    ### Papa computer ###
+    sensor.computer_papa_uptime:
+      icon: mdi:calendar-clock
+
+    sensor.computer_papa_disk_c_usage:
+      friendly_name: System SSD
+      icon: custom:imac-ssd
+
+    sensor.computer_papa_disk_d_usage:
+      friendly_name: HDD
+      icon: mdi:harddisk
+
+    sensor.computer_papa_cpu_usage:
+      friendly_name: Processeur
+      icon: mdi:chip
+
+    sensor.computer_papa_ram_usage:
+      friendly_name: Mémoire
+      icon: mdi:memory
+
+
+    sensor.monitors_volume:
+      icon: mdi:volume-high
+
+    sensor.home_assistant_v2_db:
+      friendly_name: Base de données 
+      icon: mdi:database
+
+    sensor.home_assistant_log:
+      friendly_name: Fichier journal
+      icon: mdi:file-document
+
+    media_player.samsung_tv_remote:
+      friendly_name: "TV"
+      device_class: tv
+      source_list: ['TV', 'HDMI1', 'HDMI2', 'HDMI3']
+
+    #person 
+
+    person.kaoru:
+      entity_picture: '/local/kaoru.jpg'
+
+    person.papa:
+      entity_picture: '/local/papa.jpg'
+
+    #light
+
+  name: Taklampa 2
+
+
+    #switch
+
+    switch.watchtower:
+      icon: custom:docker-watchtower
+
+    switch.fullykiosk_screen:
+      icon: mdi:tablet
+
+    #fan
+
+    #automation
+
+    automation.macos_notification_motion_hall:
+      friendly_name: Mottag notiser
+      icon: mdi:bell
+
+    #device_tracker
+

@@ -1,0 +1,35 @@
+              action: call-service
+              service: browser_mod.popup
+              service_data:
+                title: Thermomètre Salle de Bain
+                deviceID: this
+                card:
+                  type: custom:stack-in-card
+                  cards:
+                    - type: entities
+                      state_color: true
+                      entities:
+
+                        - entity: sensor.temperature_salle_de_bain
+                        - entity: sensor.humidity_salle_de_bain
+                        - entity: sensor.battery_salle_de_bain
+
+                    - type: custom:mini-graph-card
+                      entities:
+                        - color: '#385581'
+                          entity: sensor.temperature_salle_de_bain
+                        - color: green
+                          entity: sensor.humidity_salle_de_bain
+                          y_axis: secondary
+                      align_state: left
+                      line_width: 3
+                      height: 200
+                      group: false
+                      points_per_hour: 10
+                      hour24: true
+                      hours_to_show: 24
+                      show:
+                        {fill: fade, icon: false, name: false, state: true, 
+                        name_adaptive_color: true, labels: true, legend: true, average: true, extrema: true, points: false}
+                      tap_action:
+                        action: none

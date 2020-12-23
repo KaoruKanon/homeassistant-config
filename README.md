@@ -1,0 +1,1 @@
+# homeassitant-config

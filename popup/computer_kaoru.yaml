@@ -1,0 +1,120 @@
+              action: call-service
+              service: browser_mod.popup
+              service_data:
+                title: Kaoru Ordinateur
+                deviceID: this
+                card:
+                  type: entities
+                  state_color: true
+                  show_header_toggle: false
+                  entities:
+
+                    - entity: switch.computer_kaoru
+                      name: Kaoru
+                      secondary_info: last-changed
+
+                    - type: custom:bar-card
+                      width: 55%
+                      height: 2em
+                      decimal: 0
+                      unit_of_measurement: '%'
+                      positions: &pos
+                        icon: outside
+                        indicator: 'off'
+                        name: outside
+                      severity: &sev
+                        - color: '#303435'
+                          from: 0
+                          to: 89
+                        - color: '#6d2525'
+                          from: 90
+                          to: 100
+                      entity_row: true
+                      entities:
+
+                        - entity: sensor.computer_kaoru_cpu_usage
+                          tap_action:
+                            action: call-service
+                            service: homeassistant.update_entity
+                            service_data:
+                              entity_id: sensor.computer_kaoru_cpu_usage
+
+                        - entity: sensor.computer_kaoru_ram_usage
+                          tap_action:
+                            action: call-service
+                            service: homeassistant.update_entity
+                            service_data:
+                              entity_id: sensor.computer_kaoru_ram_usage
+
+                    # - type: custom:slider-entity-row
+                    #   entity: input_number.computer_kaoru_vol_slider
+                    #   hide_state: false
+
+
+                    # - entity: automation.macos_notification_motion_hall
+
+                    - entity: sensor.computer_kaoru_uptime
+                      name: Uptime
+
+                    # - entity: sensor.imac_vpn
+                    #   tap_action:
+                    #     action: call-service
+                    #     service: homeassistant.update_entity
+                    #     service_data:
+                    #       entity_id: sensor.imac_ip
+                    #   style: |
+                    #     :host {
+                    #       --paper-item-icon-color: 
+                    #         {{ '#9e9e9e' if is_state(config.entity, 'Ansluten') else 'red' }};
+                    #       }
+
+                    - entity: input_boolean.computer_kaoru_lock
+
+                    - type: custom:bar-card
+                      width: 55%
+                      height: 2em
+                      decimal: 0
+                      unit_of_measurement: '%'
+                      positions: *pos
+                      severity: *sev
+                      entity_row: true
+                      entities:
+
+                        - entity: sensor.computer_kaoru_disk_c_usage
+                          tap_action:
+                            action: call-service
+                            service: homeassistant.update_entity
+                            service_data:
+                              entity_id: sensor.computer_kaoru_disk_c_usage
+
+                        - entity: sensor.computer_kaoru_disk_d_usage
+                          tap_action:
+                            action: call-service
+                            service: homeassistant.update_entity
+                            service_data:
+                              entity_id: sensor.computer_kaoru_disk_d_usage
+
+                    - type: custom:hui-element
+                      card_type: horizontal-stack
+                      style: |
+                        #root {
+                          justify-content: space-evenly;
+                          margin: 1.4em -0.7em 0.7em 0;
+                        }
+                      cards:
+
+                      - type: custom:button-card
+                        name: >
+                          <ha-icon icon="mdi:power-sleep"></ha-icon> Mettre en veille
+                        tap_action:
+                          action: call-service
+                          service: script.computer_kaoru_suspend
+                        template: name_action
+
+                      - type: custom:button-card
+                        name: >
+                          <ha-icon icon="mdi:restart"></ha-icon> Redémarrer
+                        tap_action:
+                          action: call-service
+                          service: script.computer_kaoru_reboot
+                        template: name_action
