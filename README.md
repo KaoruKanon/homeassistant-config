@@ -6,7 +6,7 @@
 
 Bienvenue sur le repo github de ma configuration d'home assistant. Cette configuration est basée sur celle de matt8707 [ [github](https://github.com/matt8707/hass-config) / [forum anglais](https://community.home-assistant.io/t/a-different-take-on-designing-a-lovelace-ui/162594) ] 
 
-Mon Home assistant tourne sous un raspberry pi 3B+, avec lequel j'utilise une tablette Lenovo wall mounted, avec un chageur magnétique. Tout comme matt87087, j'utilise [applicationize](https://applicationize.me/) pour crée une webapp sous chrome en mode kiosk.
+Mon Home assistant tourne sous un raspberry pi 3B+, avec lequel j'utilise une tablette Lenovo wall mounted, avec un chageur magnétique. Tout comme matt87087, j'utilise [applicationize](https://applicationize.me/) pour créer une webapp sous chrome en mode kiosk.
 
 N'hésitez à mettre une ⭐ sur mon repo. 
 * [![Twitter](https://img.shields.io/twitter/follow/kaorussh?style=social)](https://twitter.com/kaorussh) 
