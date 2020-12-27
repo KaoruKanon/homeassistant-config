@@ -8,7 +8,7 @@ Bienvenue sur le repo github de ma configuration d'home assistant. Cette configu
 
 Mon Home assistant tourne sous un raspberry pi 3B+, avec lequel j'utilise une tablette Lenovo wall mounted, avec un chageur magnétique. Tout comme matt87087, j'utilise [applicationize](https://applicationize.me/) pour créer une webapp sous chrome en mode kiosk.
 
-N'hésitez à mettre une ⭐ sur mon repo. 
+N'hésitez pas à mettre une ⭐ sur mon repo. 
 * [![Twitter](https://img.shields.io/twitter/follow/kaorussh?style=social)](https://twitter.com/kaorussh) 
 * [Profil HACF](https://forum.hacf.fr/u/kaoru)
 * [Topic de mon dashboard sur HACF](https://forum.hacf.fr/t/mon-dashboard-kaoru/1022)
