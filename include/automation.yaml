@@ -383,6 +383,24 @@ automation:
       entity_id: light.salon_2
       domain: light
 
+  - alias: turn_off_gps_papa_absence
+    trigger:
+      - platform: state
+        entity_id: person.papa
+        from: home
+        to: not_home
+    condition:
+      - condition: state
+        entity_id: person.papa
+        state: not_home
+      - condition: state
+        state: 'on'
+        entity_id: switch.computer_papa
+    action:
+      - service: script.computer_papa_shutdown
+        data: {}
+
+
     ####################################################
     #                                                  #
     #                  NOTIFICATIONS                   #

@@ -8,4 +8,7 @@
                   entities:
 
                     - entity: automation.turn_off_gps_home_absence
-                      name: Désac. l'automation par présence
+                      name: Automation home présence
+
+                    - entity: automation.turn_off_gps_papa_absence
+                      name: Automation ordinateur papa
