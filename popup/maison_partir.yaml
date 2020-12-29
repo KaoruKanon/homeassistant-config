@@ -7,5 +7,5 @@
                   type: entities
                   entities:
 
-                    - entity: automation.test_leave
+                    - entity: automation.turn_off_gps_home_absence
                       name: Désac. l'automation par présence
