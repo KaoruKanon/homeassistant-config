@@ -142,7 +142,6 @@ automation:
     ####################################################
 
   - alias: toggle_bureau
-    description: ''
     trigger:
       - platform: event
         event_type: xiaomi_aqara.click
@@ -172,7 +171,6 @@ automation:
     mode: single
 
   - alias: toggle_plafond
-    description: ''
     trigger:
       - platform: event
         event_type: xiaomi_aqara.click
@@ -202,7 +200,6 @@ automation:
     mode: single
 
   - alias: allumer_chambre
-    description: ''
     trigger:
       - platform: event
         event_type: xiaomi_aqara.click
@@ -262,7 +259,6 @@ automation:
     mode: single
 
   - alias: eteindre_chambre
-    description: ''
     trigger:
       - platform: event
         event_type: xiaomi_aqara.click
@@ -321,8 +317,7 @@ automation:
         domain: light
     mode: single
 
-
-      #webhook pour google home #
+  #webhook pour google home #
   - alias: webhook_wol_computer_kaoru
     trigger:
     - platform: webhook
@@ -343,11 +338,90 @@ automation:
       data: {}
       entity_id: switch.computer_kaoru_shutdown
 
+  - alias: turn_off_gps_home_absence
+    trigger:
+    - platform: state
+      entity_id: person.kaoru
+      from: 'home '
+      to: not_home
+    - platform: state
+      entity_id: person.papa
+      from: home
+      to: not_home
+    condition:
+    - condition: and
+      conditions:
+      - condition: state
+        entity_id: person.kaoru
+        state: not_home
+      - condition: state
+        entity_id: person.papa
+        state: not_home
+    action:
+    - type: turn_off
+      device_id: 8cda3d2c1da24ec8238bc9d454cdc172
+      entity_id: light.yeelight_stripe
+      domain: light
+    - type: turn_off
+      device_id: faad3116c2e75034b43c6f1bcf3adb3a
+      entity_id: light.lampe_japonaise
+      domain: light
+    - type: turn_off
+      device_id: 69ba9f289ac3e2853905c24a4dc3ce16
+      entity_id: light.plafond_1
+      domain: light
+    - type: turn_off
+      device_id: 1c5afbe389434f52cf1184503b61096d
+      entity_id: light.plafond_2
+      domain: light
+    - type: turn_off
+      device_id: 227c406d791ae230c40220b8f44dd05a
+      entity_id: light.salon_1
+      domain: light
+    - type: turn_off
+      device_id: edb4be04b0d44a91b2cf5949b421aa10
+      entity_id: light.salon_2
+      domain: light
+
     ####################################################
     #                                                  #
     #                  NOTIFICATIONS                   #
     #                                                  #
     ####################################################
+
+  # - alias: toast
+  #   initial_state: true
+  #   trigger:
+  #     - platform: state
+  #       entity_id:
+  #         ['input_boolean.motion_garderob', 'input_boolean.motion_badrum', 
+  #         'binary_sensor.wemo_motion']
+  #       from: 'off'
+  #       to: 'on'
+  #   action:
+  #     - service: browser_mod.toast
+  #       data:
+  #         duration: 8000
+  #         message: >
+  #           Rörelse detekterat i {{ trigger.to_state.name }}
+  #     - service: input_boolean.turn_off
+  #       data:
+  #         entity_id: >
+  #           {{ trigger.entity_id }}
+
+  # - alias: macos_notification_motion_hall
+  #   initial_state: false
+  #   trigger:
+  #     - platform: state
+  #       entity_id: input_boolean.motion_hall
+  #       from: 'off'
+  #       to: 'on'
+  #   condition:
+  #     - condition: state
+  #       entity_id: switch.computer_imac
+  #       state: 'on'
+  #   action:
+  #     - service: shell_command.imac_notify_motion_hallway
 
   - alias: notify_hass_rc
     initial_state: true
@@ -388,6 +462,83 @@ automation:
           data:
             data:
               clickAction: https://www.home-assistant.io/latest-release-notes/
+
+  # - alias: notify_hass_update_action
+  #   initial_state: true
+  #   trigger:
+  #     - platform: event
+  #       event_type: ios.notification_action_fired
+  #       event_data:
+  #         actionName: START_WATCHTOWER
+  #   action:
+  #     - service: switch.turn_on
+  #       entity_id: switch.watchtower
+
+
+    ####################################################
+    #                                                  #
+    #                     MONITORS                     #
+    #                                                  #
+    ####################################################
+
+  # COMPUTER WILLIAM #
+  # - alias: computer_kaoru_volume_slider
+  #   initial_state: true
+  #   trigger:
+  #     - platform: state
+  #       entity_id: input_number.computer_kaoru_vol_slider
+  #   condition:
+  #     - condition: state
+  #       entity_id: switch.computer_kaoru
+  #       state: 'on'
+  #   action:
+  #     - service: shell_command.monitors_volume_slider
+  #     - service: homeassistant.update_entity
+  #       entity_id: binary_sensor.monitors_mute_check
+  #     - service: homeassistant.update_entity
+  #       entity_id: sensor.monitors_volume
+
+  # - alias: monitors_volume_slider
+  #   initial_state: true
+  #   trigger:
+  #     - platform: state
+  #       entity_id: input_number.monitors_volume
+  #   condition:
+  #     - condition: state
+  #       entity_id: switch.computer_imac
+  #       state: 'on'
+  #   action:
+  #     - service: shell_command.monitors_volume_slider
+  #     - service: homeassistant.update_entity
+  #       entity_id: binary_sensor.monitors_mute_check
+  #     - service: homeassistant.update_entity
+  #       entity_id: sensor.monitors_volume
+
+  # - alias: monitors_volume_update
+  #   initial_state: true
+  #   trigger:
+  #     - platform: state
+  #       entity_id: sensor.monitors_volume
+  #   condition:
+  #     - condition: state
+  #       entity_id: switch.computer_imac
+  #       state: 'on'
+  #   action:
+  #     - service: homeassistant.update_entity
+  #       entity_id: binary_sensor.monitors_mute_check
+  #     - service: input_number.set_value
+  #       data:
+  #         entity_id: input_number.monitors_volume
+  #         value: >
+  #           {% set max_volume = 75 %} {% set min_volume = 7 %}
+  #           {% if states(trigger.entity_id) | int > max_volume %}
+  #             {{ max_volume }}
+  #           {% elif states(trigger.entity_id) | int < min_volume %}
+  #             {{ min_volume }}
+  #           {% else %}
+  #             {{ states(trigger.entity_id) }}
+  #           {% endif %}
+
 
     ####################################################
     #                                                  #
@@ -489,6 +640,18 @@ automation:
     #                                                  #
     ####################################################
 
+  # - alias: hdmi_input_select
+  #   initial_state: true
+  #   trigger:
+  #     - platform: state
+  #       entity_id: input_select.hdmi
+  #   action:
+  #     - service: media_player.select_source
+  #       data:
+  #         entity_id: media_player.sony_bravia
+  #         source: >
+  #           {{ states(trigger.entity_id) }}
+
   - alias: hdmi2_input_select
     initial_state: true
     trigger:
@@ -542,6 +705,40 @@ automation:
         data:
           entity_id: remote.sovrum
           command: menu
+
+    ####################################################
+    #                                                  #
+    #                  LAUNDRY TIMER                   #
+    #                                                  #
+    ####################################################
+
+    #     event_type: timer.finished
+    #     event_data:
+    #       entity_id: timer.laundry
+    # action:
+    #   - service: media_player.play_media
+    #     data:
+    #       entity_id: media_player.tablet
+    #       media_content_id: /local/sound/timer.mp3
+    #       media_content_type: music
+    #   - delay:
+    #       seconds: 2
+    #   - service: media_player.play_media
+    #     data:
+    #       entity_id: media_player.tablet
+    #       media_content_id: >
+    #         {{ ['/local/sound/tts_custom/timer_tvatten_ar_fardig.mp3',
+    #             '/local/sound/tts_custom/timer_tvatten_ar_klar.mp3',
+    #             '/local/sound/tts_custom/timer_dags_att_ga_ner.mp3'] | random }}
+    #       media_content_type: music
+    #   - service: notify.mobile_app_iphone
+    #     data:
+    #       message: >
+    #         {{'\U0001F9FA'}} {{ ['Tvätten är färdig', 'Tvätten är klar', 'Dags att gå ner'] | random }}
+    #   - service: shell_command.imac_notify_laundry
+    #   - delay:
+    #       seconds: 3
+
 
       ####################################################
       #                                                  #
