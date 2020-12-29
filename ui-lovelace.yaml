@@ -127,6 +127,24 @@ views:
 
           #################################################
           #                                               #
+          #              QR CODE WIFI BUTTON              #
+          #                                               #
+          #################################################
+          
+          - type: icon
+            icon: custom:qr-code
+            title: Code Wifi
+            style:
+              top: 87.41%
+              left: 4.8%
+              color: rgb(255, 255, 255)
+              opacity: 0.1
+              padding: 0.8vw
+              --mdc-icon-size: 4vw
+            tap_action: !include popup/sidebar_qr_wifi.yaml
+
+          #################################################
+          #                                               #
           #                  INFO BUTTON                  #
           #                                               #
           #################################################
@@ -136,7 +154,7 @@ views:
             title: Information
             style:
               top: 87.41%
-              left: 7.74%
+              left: 10.7%
               color: rgb(255, 255, 255)
               opacity: 0.1
               padding: 0.8vw
@@ -154,7 +172,7 @@ views:
             title: Update
             style:
               top: 87.41%
-              left: 13.64%
+              left: 16.55%
               color: rgb(255, 255, 255)
               opacity: 0.1
               padding: 0.8vw
@@ -1233,5 +1251,47 @@ views:
 
 
 
+
+
+          # #################################################
+          # #                                               #
+          # #                      TV2                      #
+          # #                                               #
+          # #################################################
+
+          # - type: custom:button-card
+          #   entity: media_player.samsung_tv_remote
+          #   triggers_update:
+          #     ['media_player.samsung_tv_remote', 'input_boolean.samsung_tv_remote']
+          #   style:
+          #     top: 75.9%
+          #     left: 65.05%
+          #     width: 10%
+          #   tap_action: &tv_tap_action
+          #     services: |
+          #       [[[ if (entity.state === 'off') {
+          #       hass.callService('input_boolean', 'turn_on', {entity_id: entity.entity_id.replace(entity.entity_id.split('.')[0], 'input_boolean')});
+          #       hass.callService('media_player', 'turn_on', {entity_id: entity.entity_id}); }
+          #       if (entity.state === 'on') {
+          #       hass.callService('input_boolean', 'turn_on', {entity_id: entity.entity_id.replace(entity.entity_id.split('.')[0], 'input_boolean')});
+          #       hass.callService('media_player', 'turn_off', {entity_id: entity.entity_id});
+          #       hass.callService('media_player', 'turn_off', {entity_id: entity.entity_id.replace('sony_bravia', 'vardagsrum').replace('samsung_tv_remote', 'sovrum')}); } ]]]
+          #   hold_action: !include popup/sovrum_tv2.yaml
+          #   custom_fields:
+          #     icon_tv: &icon_tv >
+          #       [[[ const boolean = states[entity.entity_id.replace(entity.entity_id.split('.')[0], 'input_boolean')].state;
+          #       const style = '<style>@keyframes animate_on{from{transform: scaleY(0);}to{transform: scaleY(1);}}.animate_on{animation: animate_on 1s; transform-origin: -100% 46%; animation-fill-mode: forwards;}@keyframes animate_off{from{transform: scaleY(1);}to{transform: scaleY(0);}}.animate_off{animation: animate_off 1s; transform-origin: -100% 46%; animation-fill-mode: forwards;}</style>';
+          #       const path = '<path d="M46 9.2v27.5H4.1V9.2H46m2.4-2.4H1.6v32.3h46.7c.1 0 .1-32.3.1-32.3zM11.9 43.2h26.3c.6 0 1.1-.4 1.1-1v-.3c0-.6-.4-1.1-1-1.1H11.9c-.6 0-1.1.4-1.1 1v.3a1.11 1.11 0 0 0 1.1 1.1z"/>';
+          #       const gradient = '<linearGradient id="A" gradientUnits="userSpaceOnUse" x1="5.401" y1="34.714" x2="43.817" y2="11.74"><stop offset="0" stop-color="#64acb7"/><stop offset="1" stop-color="#7fdbe9"/></linearGradient>';
+          #       if (entity.state === 'off' && boolean === 'off') { return `<svg viewBox="0 0 50 50"> ${style} ${gradient} <path class="animate_off" d="M2.9,8h44.3v29.9H2.9V8z" fill="url(#A)"/> ${path} </svg>`; }
+          #       if (entity.state === 'on' && boolean === 'off') { return `<svg viewBox="0 0 50 50"> ${style} ${gradient} <path d="M2.9,8h44.3v29.9H2.9V8z" fill="#20262890"/><path class="animate_on" d="M2.9,8h44.3v29.9H2.9V8z" fill="url(#A)"/> ${path} </svg>`; }
+          #       if (entity.state === 'on' && boolean === 'on') { return `<svg viewBox="0 0 50 50"> ${gradient} <path d="M2.9,8h44.3v29.9H2.9V8z" fill="url(#A)"/> ${path} </svg>`; }
+          #       else if (entity.state === 'off' && boolean === 'on') { return `<svg viewBox="0 0 50 50"> ${path} </svg>`; } ]]]
+          #   styles: &icon_tv_styles
+          #     custom_fields:
+          #       icon_tv:
+          #         [fill: "[[[ return entity.state === 'on' ? '#616161' : '#9da0a2'; ]]]", 
+          #         top: 7%, left: 10.7%, width: 3.5vw, position: absolute]
+          #   template: ['base', 'loader']
 
 

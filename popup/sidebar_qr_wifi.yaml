@@ -1,0 +1,33 @@
+              action: call-service
+              service: browser_mod.popup
+              service_data:
+                title: Wifi
+                deviceID: this
+                style:
+                  .: |
+                    :host .content {
+                      width: calc(400px);
+                    }
+                card:
+                  type: custom:layout-card
+                  column_num: 1
+                  column_width: [400]
+                  layout: vertical
+                  cards:
+                    - type: picture-elements
+                      image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 25' /%3E"
+
+                      elements:
+                        - type: image
+                          image: /local/qr_wifi.jpg
+                          style:
+                            width: 50%
+                            top: 50%
+                            left: 50%
+
+                    - type: custom:hui-element
+                      card_type: markdown
+                      content: >
+                        <span> Réseau caché => SSID: </span>
+
+                        <span> password: </span>
