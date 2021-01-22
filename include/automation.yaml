@@ -318,7 +318,7 @@ automation:
     mode: single
 
   #webhook pour google home #
-  - alias: webhook_wol_computer_kaoru
+  - alias: webhook_wol_computer_rig_kaoru
     trigger:
     - platform: webhook
       webhook_id: WOLKAORU
@@ -328,7 +328,7 @@ automation:
       data: {}
       entity_id: switch.wol_kaoru
 
-  - alias: webhook_wol_turnoff_computer_kaoru
+  - alias: webhook_wol_turnoff_computer_rig_kaoru
     trigger:
     - platform: webhook
       webhook_id: TURNOFFKAORU
@@ -336,7 +336,7 @@ automation:
     action:
     - service: switch.turn_on
       data: {}
-      entity_id: switch.computer_kaoru_shutdown
+      entity_id: switch.computer_rig_kaoru_shutdown
 
   - alias: turn_off_gps_home_absence
     trigger:
@@ -628,7 +628,7 @@ automation:
     trigger:
       - platform: state
         entity_id:
-          ['media_player.samsung_tv_remote', 'switch.computer_kaoru', 'switch.computer_papa',
+          ['media_player.samsung_tv_remote', 'switch.computer_rig_kaoru', 'switch.computer_papa',
           'switch.playstation_4', 'fan.sovrum_anslut', 'switch.air_purifier']
     action:
       - service: input_boolean.turn_off
@@ -641,7 +641,7 @@ automation:
     trigger:
       - platform: state
         entity_id:
-          ['input_boolean.samsung_tv_remote', 'input_boolean.computer_kaoru', 'input_boolean.computer_papa',
+          ['input_boolean.samsung_tv_remote', 'input_boolean.computer_rig_kaoru', 'input_boolean.computer_papa',
           'input_boolean.playstation_4', 'input_boolean.sovrum_anslut', 'input_boolean.air_purifier']
         to: 'on'
         for:

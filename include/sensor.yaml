@@ -27,8 +27,8 @@ binary_sensor:
     host: 8.8.8.8
 
   - platform: mqtt
-    name: computer_kaoru_connected
-    state_topic: "iotlink/workgroup/kaoru/lwt"
+    name: computer_rig_kaoru_connected
+    state_topic: "iotlink/workgroup/rig-kaoru/lwt"
     value_template: "{{ value }}"
     payload_on: "ON"
     payload_off: "OFF"
@@ -70,67 +70,78 @@ sensor:
 
   ### KAORU COMPUTER ###
   - platform: mqtt
-    name: computer_kaoru_cpu_usage
-    state_topic: "iotlink/workgroup/kaoru/windows-monitor/stats/cpu/usage"
+    name: computer_rig_kaoru_cpu_usage
+    state_topic: "iotlink/workgroup/rig-kaoru/windows-monitor/stats/cpu/usage"
     unit_of_measurement: '%'
     icon: mdi:speedometer
     value_template: "{{ value }}"
-    availability_topic: "iotlink/workgroup/kaoru/lwt"
+    availability_topic: "iotlink/workgroup/rig-kaoru/lwt"
     payload_available: "ON"
     payload_not_available: "OFF"
     qos: 1
 
   - platform: mqtt
-    name: computer_kaoru_ram_usage
-    state_topic: "iotlink/workgroup/kaoru/windows-monitor/stats/memory/usage"
+    name: computer_rig_kaoru_ram_usage
+    state_topic: "iotlink/workgroup/rig-kaoru/windows-monitor/stats/memory/usage"
     unit_of_measurement: '%'
     icon: mdi:memory
     value_template: "{{ value }}"
-    availability_topic: "iotlink/workgroup/kaoru/lwt"
+    availability_topic: "iotlink/workgroup/rig-kaoru/lwt"
     payload_available: "ON"
     payload_not_available: "OFF"
     qos: 1
 
   - platform: mqtt
-    name: computer_kaoru_ram_total
-    state_topic: "iotlink/workgroup/kaoru/windows-monitor/stats/memory/total"
+    name: computer_rig_kaoru_ram_total
+    state_topic: "iotlink/workgroup/rig-kaoru/windows-monitor/stats/memory/total"
     unit_of_measurement: 'MB'
     icon: mdi:memory
     value_template: "{{ value }}"
-    availability_topic: "iotlink/workgroup/kaoru/lwt"
+    availability_topic: "iotlink/workgroup/rig-kaoru/lwt"
     payload_available: "ON"
     payload_not_available: "OFF"
     qos: 1
 
   - platform: mqtt
-    name: computer_kaoru_uptime
-    state_topic: "iotlink/workgroup/kaoru/windows-monitor/stats/system/uptime"
+    name: computer_rig_kaoru_uptime
+    state_topic: "iotlink/workgroup/rig-kaoru/windows-monitor/stats/system/uptime"
     unit_of_measurement: 'seconds'
     icon: mdi:timer
     value_template: "{{ value }}"
-    availability_topic: "iotlink/workgroup/kaoru/lwt"
+    availability_topic: "iotlink/workgroup/rig-kaoru/lwt"
     payload_available: "ON"
     payload_not_available: "OFF"
     qos: 1
 
   - platform: mqtt
-    name: "computer_kaoru_disk_c_usage"
-    state_topic: "iotlink/workgroup/kaoru/windows-monitor/stats/hard-drive/c/drive-usage"
+    name: "computer_rig_kaoru_disk_c_usage"
+    state_topic: "iotlink/workgroup/rig-kaoru/windows-monitor/stats/hard-drive/c/drive-usage"
     unit_of_measurement: '%'
     icon: mdi:chart-donut
     value_template: "{{ value }}"
-    availability_topic: "iotlink/workgroup/kaoru/lwt"
+    availability_topic: "iotlink/workgroup/rig-kaoru/lwt"
     payload_available: "ON"
     payload_not_available: "OFF"
     qos: 1
 
   - platform: mqtt
-    name: "computer_kaoru_disk_d_usage"
-    state_topic: "iotlink/workgroup/kaoru/windows-monitor/stats/hard-drive/d/drive-usage"
+    name: "computer_rig_kaoru_disk_d_usage"
+    state_topic: "iotlink/workgroup/rig-kaoru/windows-monitor/stats/hard-drive/d/drive-usage"
     unit_of_measurement: '%'
     icon: mdi:chart-donut
     value_template: "{{ value }}"
-    availability_topic: "iotlink/workgroup/kaoru/lwt"
+    availability_topic: "iotlink/workgroup/rig-kaoru/lwt"
+    payload_available: "ON"
+    payload_not_available: "OFF"
+    qos: 1
+
+  - platform: mqtt
+    name: "computer_rig_kaoru_disk_g_usage"
+    state_topic: "iotlink/workgroup/rig-kaoru/windows-monitor/stats/hard-drive/g/drive-usage"
+    unit_of_measurement: '%'
+    icon: mdi:chart-donut
+    value_template: "{{ value }}"
+    availability_topic: "iotlink/workgroup/rig-kaoru/lwt"
     payload_available: "ON"
     payload_not_available: "OFF"
     qos: 1
@@ -394,7 +405,7 @@ sensor:
           {% set lights_on = lights | selectattr('state','eq','on') | list %}
           {% set lights_name = lights | selectattr('state','eq','on') | map(attribute='name') | join(', ') %}
 
-          {% set switches = [states.switch.computer_kaoru, states.switch.computer_papa, states.switch.tv_samsung, 
+          {% set switches = [states.switch.computer_rig_kaoru, states.switch.computer_papa, states.switch.tv_samsung, 
           states.switch.playstation_4] %}
           {% set switches_on = switches | selectattr('state','eq','on') | list %} 
           {% set switches_name = switches | selectattr('state','eq','on') | map(attribute='name') | join(', ') %}
@@ -474,6 +485,15 @@ sensor:
       placeholder:
         value_template: ' '
       
+      # problème lié a docker       
+      # dockermon_mem:
+      #   friendly_name: Mémoire
+      #   icon_template: mdi:memory
+      #   value_template: >
+      #     {% set entity_id = 'sensor.docker_cpu' %}
+      #     {{ (state_attr(entity_id, 'memory_stats')['usage'] / 
+      #     state_attr(entity_id, 'memory_stats')['limit'] * 100) | round(1) | default(0) }}
+
       hass_version:
         icon_template: mdi:home-assistant
         friendly_name_template: >
@@ -639,7 +659,38 @@ sensor:
           {% set months = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin', 
           'Julliet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'] %}
           {{ strptime(states('sensor.date'), '%Y-%m-%d').day }} {{ months[now().month-1] }}
-           
+      
+      # mathem_countdown:
+      #   friendly_name: Mathem
+      #   icon_template: mdi:calendar
+      #   value_template: >
+      #     {% set start_time = state_attr('calendar.mathem', 'start_time') %}
+      #     {% set end_time = state_attr('calendar.mathem', 'end_time') %}
+      #     {% if start_time != None %}
+      #       {% set time = as_timestamp(start_time) | timestamp_custom('%H:%M') %}
+      #       {% set time_end = as_timestamp(end_time) | timestamp_custom('%H:%M') %}
+      #       {% set hours = as_timestamp(start_time) | timestamp_custom('%H') | int / 24 %}
+      #       {% set count = (as_timestamp(start_time) - as_timestamp(now())) / 86400 - hours %}
+      #       {% set day = strptime(start_time, '%Y-%m-%d %H:%M:%S').strftime('%A') 
+      #       | replace('Monday', 'Lundi')
+      #       | replace('Tuesday', 'Mardi')
+      #       | replace('Wednesday', 'Mercredi')
+      #       | replace('Thursday', 'Jeudi')
+      #       | replace('Friday', 'Vendredi')
+      #       | replace('Saturday', 'Samedi')
+      #       | replace('Sunday', 'Dimanche') %}
+          
+      #       {% if count <= 0.0 %}
+      #         {{'\U0001F6D2'}} Mathem idag mellan {{ time }}-{{ time_end }}
+      #       {% elif count <= 1.0 %}
+      #         Mathem imorgon mellan {{ time }}-{{ time_end }}
+      #       {% elif count <= 2.0 %}
+      #         Mathem i övermorgon mellan {{ time }}-{{ time_end }}
+      #       {% else %}
+      #         Mathem om {{ (count + hours) | round }} dagar på {{ day }} entre {{ time }}-{{ time_end }}
+      #       {% endif %}
+      #     {% endif %}
+      
       hass_uptime:
         friendly_name: Dernier redémarrage 
         icon_template: mdi:update

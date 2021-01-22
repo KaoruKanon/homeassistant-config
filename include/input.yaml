@@ -7,7 +7,7 @@ input_boolean:
   #                                                  #
   ####################################################
 
-  computer_kaoru:
+  computer_rig_kaoru:
     initial: off
   computer_papa:
     initial: off
@@ -32,7 +32,7 @@ input_boolean:
     name: Oscillera
     icon: mdi:arrow-left-right
 
-  computer_kaoru_lock:
+  computer_rig_kaoru_lock:
     name: Verrouillage 
     icon: custom:lock
 
@@ -157,21 +157,21 @@ lock:
   ####################################################
 
   - platform: template
-    name: kaoru computer lock
-    value_template: "{{ states('input_boolean.computer_kaoru_lock') }}"
+    name: rig kaoru computer lock
+    value_template: "{{ states('input_boolean.computer_rig_kaoru_lock') }}"
     lock:
       service: input_boolean.turn_on
-      entity_id: input_boolean.computer_koaru_lock
+      entity_id: input_boolean.computer_rig_kaoru_lock
     unlock:
       service: input_boolean.turn_off
-      entity_id: input_boolean.computer_kaoru_lock
+      entity_id: input_boolean.computer_rig_kaoru_lock
 
   - platform: template
     name: papa computer lock
-    value_template: "{{ states('input_boolean.computer_kaoru_lock') }}"
+    value_template: "{{ states('input_boolean.computer_papa_lock') }}"
     lock:
       service: input_boolean.turn_on
-      entity_id: input_boolean.computer_kaoru_lock
+      entity_id: input_boolean.computer_papa_lock
     unlock:
       service: input_boolean.turn_off
-      entity_id: input_boolean.computer_kaoru_lock
+      entity_id: input_boolean.computer_papa_lock

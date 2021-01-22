@@ -9,7 +9,7 @@
                   show_header_toggle: false
                   entities:
 
-                    - entity: switch.computer_kaoru
+                    - entity: switch.computer_rig_kaoru
                       name: Kaoru
                       secondary_info: last-changed
 
@@ -32,28 +32,28 @@
                       entity_row: true
                       entities:
 
-                        - entity: sensor.computer_kaoru_cpu_usage
+                        - entity: sensor.computer_rig_kaoru_cpu_usage
                           tap_action:
                             action: call-service
                             service: homeassistant.update_entity
                             service_data:
-                              entity_id: sensor.computer_kaoru_cpu_usage
+                              entity_id: sensor.computer_rig_kaoru_cpu_usage
 
-                        - entity: sensor.computer_kaoru_ram_usage
+                        - entity: sensor.computer_rig_kaoru_ram_usage
                           tap_action:
                             action: call-service
                             service: homeassistant.update_entity
                             service_data:
-                              entity_id: sensor.computer_kaoru_ram_usage
+                              entity_id: sensor.computer_rig_kaoru_ram_usage
 
                     # - type: custom:slider-entity-row
-                    #   entity: input_number.computer_kaoru_vol_slider
+                    #   entity: input_number.computer_rig_kaoru_vol_slider
                     #   hide_state: false
 
 
                     # - entity: automation.macos_notification_motion_hall
 
-                    - entity: sensor.computer_kaoru_uptime
+                    - entity: sensor.computer_rig_kaoru_uptime
                       name: Uptime
 
                     # - entity: sensor.imac_vpn
@@ -68,7 +68,7 @@
                     #         {{ '#9e9e9e' if is_state(config.entity, 'Ansluten') else 'red' }};
                     #       }
 
-                    - entity: input_boolean.computer_kaoru_lock
+                    - entity: input_boolean.computer_rig_kaoru_lock
 
                     - type: custom:bar-card
                       width: 55%
@@ -80,19 +80,26 @@
                       entity_row: true
                       entities:
 
-                        - entity: sensor.computer_kaoru_disk_c_usage
+                        - entity: sensor.computer_rig_kaoru_disk_c_usage
                           tap_action:
                             action: call-service
                             service: homeassistant.update_entity
                             service_data:
-                              entity_id: sensor.computer_kaoru_disk_c_usage
+                              entity_id: sensor.computer_rig_kaoru_disk_c_usage
 
-                        - entity: sensor.computer_kaoru_disk_d_usage
+                        - entity: sensor.computer_rig_kaoru_disk_d_usage
                           tap_action:
                             action: call-service
                             service: homeassistant.update_entity
                             service_data:
-                              entity_id: sensor.computer_kaoru_disk_d_usage
+                              entity_id: sensor.computer_rig_kaoru_disk_d_usage
+
+                        - entity: sensor.computer_rig_kaoru_disk_g_usage
+                          tap_action:
+                            action: call-service
+                            service: homeassistant.update_entity
+                            service_data:
+                              entity_id: sensor.computer_rig_kaoru_disk_g_usage
 
                     - type: custom:hui-element
                       card_type: horizontal-stack
@@ -108,7 +115,7 @@
                           <ha-icon icon="mdi:power-sleep"></ha-icon> Mettre en veille
                         tap_action:
                           action: call-service
-                          service: script.computer_kaoru_suspend
+                          service: script.computer_rig_kaoru_suspend
                         template: name_action
 
                       - type: custom:button-card
@@ -116,5 +123,5 @@
                           <ha-icon icon="mdi:restart"></ha-icon> Redémarrer
                         tap_action:
                           action: call-service
-                          service: script.computer_kaoru_reboot
+                          service: script.computer_rig_kaoru_reboot
                         template: name_action

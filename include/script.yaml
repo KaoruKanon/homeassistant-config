@@ -8,85 +8,85 @@ script:
 
   ### COMPUTER KAORU ###
 
-  computer_kaoru_shutdown:
+  computer_rig_kaoru_shutdown:
     alias: "Kaoru computer - Shutdown"
     sequence:
       - service: mqtt.publish
         data:
-          topic: "iotlink/workgroup/kaoru/commands/shutdown"
+          topic: "iotlink/workgroup/rig-kaoru/commands/shutdown"
           payload: ""
 
-  computer_kaoru_suspend:
+  computer_rig_kaoru_suspend:
     alias: "Kaoru computer - Suspend"
     sequence:
       - service: mqtt.publish
         data:
-          topic: "iotlink/workgroup/kaoru/commands/suspend"
+          topic: "iotlink/workgroup/rig-kaoru/commands/suspend"
           payload: ""
 
-  computer_kaoru_hibernate:
+  computer_rig_kaoru_hibernate:
     alias: "Kaoru computer - Hibernate"
     sequence:
       - service: mqtt.publish
         data:
-          topic: "iotlink/workgroup/kaoru/commands/hibernate"
+          topic: "iotlink/workgroup/rig-kaoru/commands/hibernate"
           payload: ""
 
-  computer_kaoru_reboot:
+  computer_rig_kaoru_reboot:
     alias: "Kaoru computer- Reboot"
     sequence:
       - service: mqtt.publish
         data:
-          topic: "iotlink/workgroup/kaoru/commands/reboot"
+          topic: "iotlink/workgroup/rig-kaoru/commands/reboot"
           payload: ""
 
-  computer_kaoru_lock:
+  computer_rig_kaoru_lock:
     alias: "Kaoru computer - Lock"
     sequence:
       - service: mqtt.publish
         data:
-          topic: "iotlink/workgroup/kaoru/commands/lock"
+          topic: "iotlink/workgroup/rig-kaoru/commands/lock"
           payload: ""
 
-  computer_kaoru_logoff:
+  computer_rig_kaoru_logoff:
     alias: "Kaoru computer - Logoff"
     sequence:
       - service: mqtt.publish
         data:
-          topic: "iotlink/workgroup/kaoru/commands/logoff"
+          topic: "iotlink/workgroup/rig-kaoru/commands/logoff"
           payload: ""
 
-  computer_kaoru_vol_mute:
+  computer_rig_kaoru_vol_mute:
     alias: "Kaoru computer - Toggle Mute"
     sequence:
       - service: mqtt.publish
         data:
-          topic: "iotlink/workgroup/kaoru/commands/volume/mute"
+          topic: "iotlink/workgroup/rig-kaoru/commands/volume/mute"
           payload: ""
 
-  computer_kaoru_vol_max:
+  computer_rig_kaoru_vol_max:
     alias: "Kaoru computer - Vol Max"
     sequence:
       - service: mqtt.publish
         data:
-          topic: "iotlink/workgroup/kaoru/commands/volume/set"
+          topic: "iotlink/workgroup/rig-kaoru/commands/volume/set"
           payload: "100"
 
-  computer_kaoru_refresh:
+  computer_rig_kaoru_refresh:
     alias: "Kaoru computer - Refresh"
     sequence:
       - service: mqtt.publish
         data:
-          topic: "iotlink/workgroup/kaoru/refresh"
+          topic: "iotlink/workgroup/rig-kaoru/refresh"
           payload: ""
 
-  # computer_kaoru_change_vol:
+  # computer_rig_kaoru_change_vol:
   #     alias: "Kaoru computer - Change Vol"
   #     sequence:
   #       - service: mqtt.publish
   #         data:
-  #         topic: "iotlink/workgroup/kaoru/commands/volume/set"
-  #         payload: " {{ states('input_number.computer_kaoru_vol_slider') | int }}"
+  #         topic: "iotlink/workgroup/rig-kaoru/commands/volume/set"
+  #         payload: " {{ states('input_number.computer_rig_kaoru_vol_slider') | int }}"
 
 
   ### COMPUTER PAPA ###
@@ -153,6 +153,15 @@ script:
         data:
           topic: "iotlink/workgroup/bruno/commands/volume/set"
           payload: "100"
+
+  # update_enedis_boutton:
+  #   sequence:
+  #     - service: homeassistant.update_entity
+  #       entity_id: sensor.myenedis
+  #     - delay:
+  #         seconds: 500
+
+
 
   ####################################################
   #                                                  #

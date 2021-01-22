@@ -8,7 +8,7 @@ switch:
     ####################################################
 
   - platform: wake_on_lan
-    name: wol_kaoru
+    name: wol_rig_kaoru
     mac: !secret wake_on_lan_kaoru_mac
     host: !secret wake_on_lan_kaoru_host
     broadcast_address: "192.168.1.255"
@@ -50,20 +50,20 @@ switch:
 
   - platform: template
     switches:
-      computer_kaoru:
+      computer_rig_kaoru:
         friendly_name: Kaoru
         icon_template: custom:imac-alternative
-        value_template: "{{ is_state('switch.wol_kaoru', 'on') }}"
+        value_template: "{{ is_state('switch.wol_rig_kaoru', 'on') }}"
         turn_on:
           - service: input_boolean.turn_on
-            entity_id: input_boolean.computer_kaoru
+            entity_id: input_boolean.computer_rig_kaoru
           - service: switch.turn_on
-            entity_id: switch.wol_kaoru
+            entity_id: switch.wol_rig_kaoru
         turn_off:
           - choose:
             - conditions:
                 - condition: state
-                  entity_id: input_boolean.computer_kaoru_lock
+                  entity_id: input_boolean.computer_rig_kaoru_lock
                   state: 'on'
               sequence:
                 - service: browser_mod.toast
@@ -72,8 +72,8 @@ switch:
                     message: L'ordinateur est verrouillé...
             default:
               - service: input_boolean.turn_on
-                entity_id: input_boolean.computer_kaoru
-              - service: script.computer_kaoru_shutdown
+                entity_id: input_boolean.computer_rig_kaoru
+              - service: script.computer_rig_kaoru_shutdown
 
       computer_papa:
         friendly_name: Papa
@@ -100,6 +100,33 @@ switch:
                 entity_id: input_boolean.computer_papa
               - service: script.computer_papa_shutdown
 
+
+      # computer_imac:
+      #   friendly_name: Dator
+      #   icon_template: custom:imac-alternative
+      #   value_template: "{{ is_state('switch.wol_imac', 'on') }}"
+      #   turn_on:
+      #     - service: input_boolean.turn_on
+      #       entity_id: input_boolean.computer_imac
+      #     - service: shell_command.imac_switchbot_rpi
+      #     - service: light.turn_on
+      #       entity_id: light.datorlampa
+      #   turn_off:
+      #     - choose:
+      #       - conditions:
+      #           - condition: state
+      #             entity_id: input_boolean.computer_lock
+      #             state: 'on'
+      #         sequence:
+      #           - service: browser_mod.toast
+      #             data:
+      #               duration: 8000
+      #               message: Dator är låst från att stängas av...
+      #       default:
+      #         - service: input_boolean.turn_on
+      #           entity_id: input_boolean.computer_imac
+      #         - service: shell_command.imac_off
+
       tv_samsung:
         friendly_name: "TV"
         icon_template: custom:tv
@@ -116,6 +143,21 @@ switch:
             entity_id: input_boolean.samsung_tv_remote
           - service: media_player.turn_off
             entity_id: media_player.samsung_tv_remote
+
+      # playstation_4:
+      #   friendly_name: Playstation
+      #   icon_template: mdi:sony-playstation
+      #   value_template: "{{ is_state('binary_sensor.playstation_4', 'on') }}"
+      #   turn_on:
+      #     - service: input_boolean.turn_on
+      #       entity_id: input_boolean.playstation_4
+      #     - service: media_player.turn_on
+      #       entity_id: media_player.playstation_4
+      #   turn_off:
+      #     - service: input_boolean.turn_on
+      #       entity_id: input_boolean.playstation_4
+      #     - service: media_player.turn_off
+      #       entity_id: media_player.playstation_4
 
       fullykiosk_screensaver:
         friendly_name: Ecran de veille
