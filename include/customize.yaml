@@ -23,7 +23,7 @@ homeassistant:
       friendly_name: Température
 
     sensor.processor_temperature:
-      icon: mdi:thermometer  
+      icon: mdi:thermometer
 
     sensor.processor_use:
       icon: mdi:chip
@@ -93,12 +93,30 @@ homeassistant:
       icon: mdi:volume-high
 
     sensor.home_assistant_v2_db:
-      friendly_name: Base de données 
+      friendly_name: Base de données
       icon: mdi:database
 
     sensor.home_assistant_log:
       friendly_name: Fichier journal
       icon: mdi:file-document
+
+
+    #fullykiosk integration
+
+    light.lenovotab_screen:
+      friendly_name: Écran
+      icon: mdi:tablet
+
+    switch.lenovotab_screensaver:
+      friendly_name: Économiseur d'écran
+      icon: mdi:power-sleep
+
+    sensor.lenovotab_battery_level:
+      friendly_name: Batterie
+
+    binary_sensor.lenovotab_plugged_in:
+      friendly_name: Source de courant
+      icon: mdi:power-plug
 
 
     #media_player
@@ -171,10 +189,6 @@ homeassistant:
 
     switch.watchtower:
       icon: custom:docker-watchtower
-
-    switch.fullykiosk_screen:
-      icon: mdi:tablet
-
 
     #fan
 
