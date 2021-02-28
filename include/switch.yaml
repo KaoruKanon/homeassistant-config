@@ -32,15 +32,6 @@ switch:
     body_off: '{"state": "stop"}'
     is_on_template: '{{ value_json is not none and value_json.state == "running" }}'
 
-  - platform: command_line
-    switches:
-      fullykiosk_screen:
-        friendly_name: Ecran
-        command_on: !secret fullykiosk_screen_on
-        command_off: !secret fullykiosk_screen_off
-        command_state: !secret fullykiosk_screen_state
-        value_template: "{{ value == 'on' }}"
-
 
     ####################################################
     #                                                  #
@@ -167,5 +158,3 @@ switch:
           - service: shell_command.fullykiosk_screensaver_on
         turn_off:
           - service: shell_command.fullykiosk_screensaver_off
-
-      
