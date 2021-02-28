@@ -1,8 +1,12 @@
-              action: call-service
-              service: browser_mod.popup
-              service_data:
+              action: fire-dom-event
+              browser_mod:
+                command: popup
                 title: Papa
-                deviceID: this
+                style:
+                  .: |
+                    :host .content {
+                      height: 675px;
+                    }
                 card:
                   type: custom:stack-in-card
                   cards:
@@ -23,15 +27,21 @@
                         - type: custom:hui-element
                           card_type: glance
                           show_state: false
+                          style:
+                            .: |
+                              ha-card {
+                                background: none;
+                                box-shadow: none;
+                              }
+                            "ha-card>div>div:nth-child(1)":
+                              $:
+                                "state-badge":
+                                  $: |
+                                    ha-icon {
+                                      color: {{ '#3182b7' if is_state('device_tracker.samsung_s10e', 'home') else '#FFFFFF20' }};
+                                    }
+
                           entities:
-
-                            - entity: binary_sensor.samsung_s10e_etat_du_wi_fi
-                              name: Router
-                              icon: mdi:wifi
-
-                            # - entity: device_tracker.sanja_bluetooth
-                            #   name: Bluetooth
-                            #   icon: mdi:bluetooth
 
                             - entity: device_tracker.samsung_s10e
                               name: Position
@@ -48,10 +58,10 @@
 
                           - type: custom:button-card
                             name: >
-                              <ha-icon icon="mdi:volume-high"></ha-icon> Trouver mon Samsung s10e
+                              <ha-icon icon="mdi:volume-high"></ha-icon> Faire sonner mon Samsung S10e
                             tap_action:
                               action: call-service
-                              service: script.papa_find_my_iphone
+                              service: script. script.papa_find_my_iphone
                             template: name_action
                             styles:
                               card:
@@ -60,6 +70,5 @@
                     - type: custom:hui-element
                       card_type: map
                       class: map
-                      entities: [device_tracker.samsung_s10e]
+                      entities: [device_tracker.oneplus_8_pro]
                       default_zoom: 15
-
