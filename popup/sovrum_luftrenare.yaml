@@ -1,0 +1,20 @@
+              action: fire-dom-event
+              browser_mod:
+                command: popup
+                title: Luftrenare
+                card:
+                  type: entities
+                  state_color: true
+                  show_header_toggle: false
+                  entities:
+
+                    - entity: fan.air_purifier
+                      icon: mdi:air-purifier
+                      secondary_info: last-changed
+
+                    - entity: input_select.air_purifier_speed
+
+                    - type: divider
+                      style: {height: 15px, opacity: 0}
+
+                    - entity: switch.strombrytare_2
