@@ -221,7 +221,7 @@ script:
           delay_secs: 1.5
           device: samsung_tv
           command:
-            ['exit_15', 'settings_1', 'down_2', 'down_2' , 'down_2', 'enter_5', 'down_2', 'down_2', 'down_2', 
+            ['exit_15', 'settings_1', 'down_2', 'down_2' , 'down_2', 'enter_5', 'down_2', 'down_2', 'down_2',
             'down_2', 'enter_5', 'enter_5', 'down_2', 'down_2', 'enter_5', 'exit_15', 'exit_15']
 
   kaoru_find_my_iphone:
@@ -231,7 +231,7 @@ script:
           sequence:
             - service: notify.mobile_app_oneplus_8_pro
               data:
-                title: Trouver mon téléphone 
+                title: Trouver mon téléphone
                 message: TTS
                 data:
                   ttl: 0
@@ -247,7 +247,7 @@ script:
           sequence:
             - service: notify.mobile_app_samsung_s10e
               data:
-                title: Trouver mon téléphone 
+                title: Trouver mon téléphone
                 message: Je suis ici
                 data:
                   push:
@@ -278,19 +278,19 @@ script:
       - choose:
         - conditions:
             - condition: state
-              entity_id: switch.fullykiosk_screen
+              entity_id: light.lenovotab_screen
               state: 'on'
             - condition: state
-              entity_id: switch.fullykiosk_screensaver
+              entity_id: switch.lenovotab_screensaver
               state: 'off'
           sequence:
             - service: media_player.play_media
               data:
                 entity_id: media_player.tablet
                 media_content_id: >
-                  {{ ['/local/sound/tts_custom/french/bien_bonjour.mp3', 
-                  '/local/sound/tts_custom/french/bienvenue_maison.mp3', 
-                  '/local/sound/tts_custom/french/bonjour.mp3', 
+                  {{ ['/local/sound/tts_custom/french/bien_bonjour.mp3',
+                  '/local/sound/tts_custom/french/bienvenue_maison.mp3',
+                  '/local/sound/tts_custom/french/bonjour.mp3',
                   '/local/sound/tts_custom/french/salut.mp3',
                   '/local/sound/tts_custom/french/wesh.mp3'] | random }}
                 media_content_type: music #Petit délire avec le wesh
@@ -316,10 +316,10 @@ script:
       - choose:
         - conditions:
             - condition: state
-              entity_id: switch.fullykiosk_screen
+              entity_id: switch.lenovotab_screen
               state: 'on'
             - condition: state
-              entity_id: switch.fullykiosk_screensaver
+              entity_id: switch.lenovotab_screensaver
               state: 'off'
           sequence:
             - service: media_player.play_media
