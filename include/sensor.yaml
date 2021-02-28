@@ -14,14 +14,6 @@ binary_sensor:
     payload_on: 'on'
     payload_off: 'off'
 
-  - platform: template
-    sensors:
-      fullykiosk_motion:
-        friendly_name: Caméra
-        icon_template: mdi:camera
-        value_template: >
-          {{ not is_state_attr('sensor.fullykiosk', 'motionDetectorStatus', 0) }}
-  
   - platform: ping
     name: rpi_internet_access
     host: 8.8.8.8
@@ -248,17 +240,16 @@ sensor:
         arg: eth0
       - type: throughput_network_out
         arg: eth0
-      - type: processor_temperature  
+      - type: processor_temperature
 
   - platform: rest
     name: fullykiosk
     json_attributes:
-      ['batteryLevel', 'screenBrightness', 'plugged', 'motionDetectorStatus', 
-      'lastAppStart', 'internalStorageFreeSpace', 'internalStorageTotalSpace', 
-      'ramFreeMemory', 'ramTotalMemory', 'isInScreensaver']
+      ['internalStorageFreeSpace', 'internalStorageTotalSpace',
+      'ramFreeMemory', 'ramTotalMemory']
     resource: !secret fullykiosk_rest_resource
     value_template: '{{ value_json.screenOn }}'
-    scan_interval: 10
+    scan_interval: 900
 
   - platform: rest
     name: hass_release_notes
@@ -273,7 +264,7 @@ sensor:
     value_template: '{{ value_json[0].name }}'
     json_attributes: [body]
     scan_interval: 21600
-    
+
   - platform: rest
     name: docker_cpu
     resource: !secret ha_dockermon_cpu
@@ -288,8 +279,8 @@ sensor:
     name: docker_uptime
     resource: !secret ha_dockermon_uptime
     value_template: >
-      {{ 'Depuis'  + value_json.status.split(' ')[1:] | join(' ') | replace ('environ une minute', '1 minute') 
-      | replace ('About an hour', 'une heure')  | replace ('seconds', 'secondes') | replace ('minutes', 'minutes') 
+      {{ 'Depuis'  + value_json.status.split(' ')[1:] | join(' ') | replace ('environ une minute', '1 minute')
+      | replace ('About an hour', 'une heure')  | replace ('seconds', 'secondes') | replace ('minutes', 'minutes')
       | replace ('hours', 'heures') | replace ('days', 'jours')}}
 
 
@@ -305,7 +296,7 @@ sensor:
   - platform: myEnedis
     token: !secret enedis_token
     code: !secret enedis_usage_point_id
-    scan_interval: 3600  
+    scan_interval: 3600
 
 
     ####################################################
@@ -350,7 +341,7 @@ sensor:
         friendly_name: Next timer
         icon_template: 'mdi:alarm'
 
- 
+
     ####################################################
     #                                                  #
     #                     TEMPLATE                     #
@@ -359,7 +350,7 @@ sensor:
 
   - platform: template
     sensors:
- 
+
       rpi_net_down:
         value_template: ' '
         icon_template: mdi:arrow-down-bold
@@ -396,24 +387,24 @@ sensor:
           {% elif time <= 23 %} Bonsoir {{'\U0001F974'}}
           {% else %} Bonsoir {{'\U0001F974'}}
           {% endif %}
-      
+
       sidebar_active:
         value_template: >
-          {% set lights = [states.light.salon_1, states.light.salon_2, states.light.plafond_1, states.light.plafond_2, 
-          states.light.yeelight_stripe, states.light.lampe_japonaise] %}          
+          {% set lights = [states.light.salon_1, states.light.salon_2, states.light.plafond_1, states.light.plafond_2,
+          states.light.yeelight_stripe, states.light.lampe_japonaise] %}
 
           {% set lights_on = lights | selectattr('state','eq','on') | list %}
           {% set lights_name = lights | selectattr('state','eq','on') | map(attribute='name') | join(', ') %}
 
-          {% set switches = [states.switch.computer_rig_kaoru, states.switch.computer_papa, states.switch.tv_samsung, 
+          {% set switches = [states.switch.computer_rig_kaoru, states.switch.computer_papa, states.switch.tv_samsung,
           states.switch.playstation_4] %}
-          {% set switches_on = switches | selectattr('state','eq','on') | list %} 
+          {% set switches_on = switches | selectattr('state','eq','on') | list %}
           {% set switches_name = switches | selectattr('state','eq','on') | map(attribute='name') | join(', ') %}
 
-          {% if (lights_on | length == 0) and (switches_on | length > 1) %} 
+          {% if (lights_on | length == 0) and (switches_on | length > 1) %}
           {{ switches_name | regex_replace(',([^,]*)$',' et\\1') }} sont allumés
 
-          {% elif (lights_on | length == 0) and (switches_on | length == 1) %} 
+          {% elif (lights_on | length == 0) and (switches_on | length == 1) %}
           {{ switches_name | regex_replace(',([^,]*)$',' et\\1') }} est allumé
 
           {% elif (lights_on | length == 1) and (switches_on | length == 1) %}
@@ -434,10 +425,10 @@ sensor:
           {% elif (lights_on | length > 1) and (switches_on | length == 0) %}
           {{ lights_on | length}} lampes allumées
 
-          {% else %} 
-          <font color='#6a7377'>Tout est éteint</font> 
+          {% else %}
+          <font color='#6a7377'>Tout est éteint</font>
           {% endif %}
-      
+
       # sidebar_vacuum:
       #   value_template: >
       #     {% set entity_id = 'vacuum.xiaomi_vacuum_cleaner' %}
@@ -445,21 +436,21 @@ sensor:
       #     {% elif is_state(entity_id, 'returning') %} Morty är färdig
       #     {% endif %}
 
-      
+
       sidebar_weather:
         value_template: >
           {% set temperature = state_attr('weather.villeneuve_d_ascq', 'temperature') %}
           {% set precip = states('sensor.villeneuve_d_ascq_rain_chance') | round %}
           {% set snow = states('sensor.villeneuve_d_ascq_snow_chance') | round %}
-          {% set weather_state = states('weather.villeneuve_d_ascq') 
+          {% set weather_state = states('weather.villeneuve_d_ascq')
             | replace('rainy', 'Pluvieux')
             | replace('partlycloudy', 'Partiellement nuageux')
             | replace('cloudy', 'Nuageux')
             | replace('clear-night', 'Nuit claire')
-            | replace('fog', 'Brumeux') 
+            | replace('fog', 'Brumeux')
             | replace('hail', 'Grêleux')
             | replace('lightning-rainy', 'Orageux')
-            | replace('lightning', 'Orageux') 
+            | replace('lightning', 'Orageux')
             | replace('pourring', 'Pluie intense')
             | replace('snowy-rainy', 'Neigeux')
             | replace('snowy', 'Neigeux')
@@ -467,31 +458,31 @@ sensor:
             | replace('windy-variant', 'Variblement venteux')
             | replace('windy', 'Venteux')
             | replace('exceptional', 'Exceptionel') %}
-          
+
           {% if not state_attr('weather.villeneuve_d_ascq', 'temperature') == 'unknow' %}
             {% if temperature | float <= 0.0 %}
               {{ weather_state }}, il fait {{ temperature }}° avec {{ snow }}% de risque de neige {{'\u2744\uFE0F'}}
-            {% elif temperature | float > 0.0 %} 
+            {% elif temperature | float > 0.0 %}
               {{ weather_state }}, il fait {{ temperature }}° avec {{ precip }}% de risque de pluie {{ '\u2614\uFE0F' if precip > 30 }}
             {% endif %}
           {% else %}
             Pas d'information métérologique...
           {% endif %}
-      
+
 
       public_ip:
         value_template: !secret public_ip
 
       placeholder:
         value_template: ' '
-      
-      # problème lié a docker       
+
+      # problème lié a docker
       # dockermon_mem:
       #   friendly_name: Mémoire
       #   icon_template: mdi:memory
       #   value_template: >
       #     {% set entity_id = 'sensor.docker_cpu' %}
-      #     {{ (state_attr(entity_id, 'memory_stats')['usage'] / 
+      #     {{ (state_attr(entity_id, 'memory_stats')['usage'] /
       #     state_attr(entity_id, 'memory_stats')['limit'] * 100) | round(1) | default(0) }}
 
       hass_version:
@@ -499,20 +490,20 @@ sensor:
         friendly_name_template: >
           version {{ states('sensor.hass_version_installed') }}
         value_template: >
-          {{ 'Latest' if states('sensor.hass_version_installed') == 
+          {{ 'Latest' if states('sensor.hass_version_installed') ==
           states('sensor.hass_version_latest') else states('sensor.hass_version_latest') }}
-      
+
       hass_dev_release:
         icon_template: mdi:dev-to
         friendly_name_template: >
-          {% if ((as_timestamp(state_attr('calendar.home_assistant_devs', 
+          {% if ((as_timestamp(state_attr('calendar.home_assistant_devs',
           'start_time')) - as_timestamp(now())) / 86400) > 20 %}
             Beta planifiée
           {% else %}
             {{ state_attr('calendar.home_assistant_devs','message') }}
           {% endif %}
         value_template: >
-          {% set dev = ((as_timestamp(state_attr('calendar.home_assistant_devs', 
+          {% set dev = ((as_timestamp(state_attr('calendar.home_assistant_devs',
           'start_time')) - as_timestamp(now())) / 86400) %}
           {% if dev < -1 %} release
           {% elif dev < 0 %} Aujourd'hui
@@ -600,15 +591,8 @@ sensor:
     #                                                  #
     ####################################################
 
-      fullykiosk_plugged:
-        friendly_name: En rechargement
-        value_template: >
-          {{ 'Oui' if is_state_attr('sensor.fullykiosk', 'plugged', true) else 'Non' }}
-        icon_template: >
-          mdi:power-plug{{ '-off' if is_state_attr('sensor.fullykiosk', 'plugged', false) }}
-      
       fullykiosk_storage:
-        friendly_name: Espace de stockage
+        friendly_name: Stockage
         icon_template: mdi:sd
         unit_of_measurement: '%'
         value_template: >
@@ -618,7 +602,6 @@ sensor:
           {% if not (FreeSpace == None or TotalSpace == None) %}
             {{ 100 - (FreeSpace / TotalSpace * 100) | int }}
           {% endif %}
-      
       fullykiosk_memory:
         friendly_name: Mémoire
         icon_template: mdi:memory
@@ -630,16 +613,12 @@ sensor:
           {% if not (FreeMemory == None or TotalMemory == None) %}
             {{ 100 - (FreeMemory / TotalMemory * 100) | int }}
           {% endif %}
-      
-      fullykiosk_battery:
-        friendly_name: Batterie
-        unit_of_measurement: '%'
+      fullykiosk_last_app_start:
+        friendly_name: Dernier redémarrage
+        icon_template: mdi:update
+        device_class: timestamp
         value_template: >
-          {{ state_attr('sensor.fullykiosk', 'batteryLevel') }}
-        icon_template: >
-          {% set battery = (state_attr('sensor.fullykiosk', 'batteryLevel') | int / 10) | int * 10 | default(0) %}
-            mdi:battery{% if battery == 100 %}{% elif battery > 0 %}-{{ battery }}{% else %}-alert
-          {% endif %}
+          {{ states('sensor.lenovotab_last_app_start') | replace(' ','T') }}
 
     ####################################################
     #                                                  #
@@ -652,14 +631,14 @@ sensor:
         value_template: >
           {% set days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'] %}
           {{ days[now().weekday()] }}
-      
+
       sidebar_date:
         icon_template: mdi:calendar
         value_template: >
-          {% set months = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin', 
+          {% set months = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin',
           'Julliet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'] %}
           {{ strptime(states('sensor.date'), '%Y-%m-%d').day }} {{ months[now().month-1] }}
-      
+
       # mathem_countdown:
       #   friendly_name: Mathem
       #   icon_template: mdi:calendar
@@ -671,7 +650,7 @@ sensor:
       #       {% set time_end = as_timestamp(end_time) | timestamp_custom('%H:%M') %}
       #       {% set hours = as_timestamp(start_time) | timestamp_custom('%H') | int / 24 %}
       #       {% set count = (as_timestamp(start_time) - as_timestamp(now())) / 86400 - hours %}
-      #       {% set day = strptime(start_time, '%Y-%m-%d %H:%M:%S').strftime('%A') 
+      #       {% set day = strptime(start_time, '%Y-%m-%d %H:%M:%S').strftime('%A')
       #       | replace('Monday', 'Lundi')
       #       | replace('Tuesday', 'Mardi')
       #       | replace('Wednesday', 'Mercredi')
@@ -679,7 +658,7 @@ sensor:
       #       | replace('Friday', 'Vendredi')
       #       | replace('Saturday', 'Samedi')
       #       | replace('Sunday', 'Dimanche') %}
-          
+
       #       {% if count <= 0.0 %}
       #         {{'\U0001F6D2'}} Mathem idag mellan {{ time }}-{{ time_end }}
       #       {% elif count <= 1.0 %}
@@ -690,9 +669,9 @@ sensor:
       #         Mathem om {{ (count + hours) | round }} dagar på {{ day }} entre {{ time }}-{{ time_end }}
       #       {% endif %}
       #     {% endif %}
-      
+
       hass_uptime:
-        friendly_name: Dernier redémarrage 
+        friendly_name: Dernier redémarrage
         icon_template: mdi:update
         value_template: >
           {% set uptime = states('sensor.uptime') | float %}
@@ -703,12 +682,12 @@ sensor:
             {% elif uptime | int / 60 == 24 %} {{ (uptime | int / 60 / 24) | int }} Depuis un jour
             {% elif uptime | int / 60 >= 24 %} Depuis {{ (uptime | int / 60 / 24) | int }} jours
             {% elif uptime | int >= 60 and uptime | int < 120 %} {{ (uptime | int / 60) | int }} Depuis une heure
-            {% elif uptime | int >= 120 %} Depuis {{ (uptime | int / 60) | int }}  heures 
+            {% elif uptime | int >= 120 %} Depuis {{ (uptime | int / 60) | int }}  heures
             {% endif %}
           {% endif %}
 
 
-  
+
 
 
 
@@ -729,73 +708,73 @@ sensor:
 
       enedis_kwh_1:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[0].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[0].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[0].split(' ')[2] | int }}"
 
       enedis_kwh_2:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[1].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[1].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') | replace('b','v') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[1].split(' ')[2] | int }}"
 
       enedis_kwh_3:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[2].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[2].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[2].split(' ')[2] | int }}"
 
       enedis_kwh_4:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[3].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[3].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') | replace('p','v') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[3].split(' ')[2] | int }}"
 
       enedis_kwh_5:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[4].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[4].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') | replace('y','i') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[4].split(' ')[2] | int }}"
 
       enedis_kwh_6:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[5].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[5].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[5].split(' ')[2] | int }}"
 
       enedis_kwh_7:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[6].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[6].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[6].split(' ')[2] | int }}"
 
       enedis_kwh_8:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[7].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[7].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') | replace('ug','ou') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[7].split(' ')[2] | int }}"
 
       enedis_kwh_9:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[8].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[8].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[8].split(' ')[2] | int }}"
 
       enedis_kwh_10:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[9].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[9].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[9].split(' ')[2] | int }}"
 
       enedis_kwh_11:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[10].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[10].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[10].split(' ')[2] | int }}"
 
       enedis_kwh_12:
         friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[11].split(' ')[1], 
+          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[11].split(' ')[1],
           '%Y-%m-%d')) | timestamp_custom('%b') }}
         value_template: "{{ states('sensor.enedis_kwh').split(',')[11].split(' ')[2] | int }}"
 
@@ -814,33 +793,33 @@ sensor:
         friendly_name_template: >
           {% set entity_id = 'sensor.enedis_kwh' %}
           {% if now().month-1 == 0 %}
-            Estimé en {{ as_timestamp(strptime(states(entity_id).split(',')[11].split(' ')[1], '%Y-%m-%d')) | 
-            timestamp_custom('%B')  
+            Estimé en {{ as_timestamp(strptime(states(entity_id).split(',')[11].split(' ')[1], '%Y-%m-%d')) |
+            timestamp_custom('%B')
             | replace('January', 'Janvier')
-            | replace('February', 'Février') 
-            | replace('March', 'Mars') 
-            | replace('May', 'Mai') 
-            | replace('June', 'Juin') 
-            | replace('July', 'Juillet') 
-            | replace('August', 'Août') 
+            | replace('February', 'Février')
+            | replace('March', 'Mars')
+            | replace('May', 'Mai')
+            | replace('June', 'Juin')
+            | replace('July', 'Juillet')
+            | replace('August', 'Août')
             | replace('September', 'Septembre')
-            | replace('October', 'Octobre') 
+            | replace('October', 'Octobre')
             | replace('November', 'Novembre')
             | replace('December', 'Décembre') }}
           {% else %}
             {% for month in range(12) %}
               {% if now().month-1 == (states(entity_id).split(',')[month].split(' ')[0]|join|string).lstrip('0')|int %}
-                Estimé en {{ as_timestamp(strptime(states(entity_id).split(',')[month].split(' ')[1], '%Y-%m-%d')) | 
+                Estimé en {{ as_timestamp(strptime(states(entity_id).split(',')[month].split(' ')[1], '%Y-%m-%d')) |
                 timestamp_custom('%B')
                 | replace('January', 'Janvier')
-                | replace('February', 'Février') 
-                | replace('March', 'Mars') 
-                | replace('May', 'Mai') 
-                | replace('June', 'Juin') 
-                | replace('July', 'Juillet') 
-                | replace('August', 'Août') 
+                | replace('February', 'Février')
+                | replace('March', 'Mars')
+                | replace('May', 'Mai')
+                | replace('June', 'Juin')
+                | replace('July', 'Juillet')
+                | replace('August', 'Août')
                 | replace('September', 'Septembre')
-                | replace('October', 'Octobre') 
+                | replace('October', 'Octobre')
                 | replace('November', 'Novembre')
                 | replace('December', 'Décembre') }}
               {% endif %}
