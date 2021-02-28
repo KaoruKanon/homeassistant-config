@@ -105,10 +105,6 @@ frontend:
       mini-media-player-artwork-opacity: '1'
       mini-media-player-progress-height: '5px'
       mini-media-player-scale: '1.14'
-      # popup-backdrop-filter
-      iron-overlay-backdrop-filter: 'blur(15px)'
-      iron-overlay-backdrop-background-color: 'rgba(0,0,0,.6)'
-      iron-overlay-backdrop-opacity: '1'
       # barcard
       bar-card-border-radius: '0.3em'
 
@@ -123,7 +119,7 @@ frontend:
       card-header: rgba(48,52,52,0.8)
 
       card-mod-root: |
-        ha-app-layout {
+        hui-panel-view {
           background: url('/local/background.png') !important;
           background-size: cover !important;
         }
@@ -158,6 +154,11 @@ frontend:
                   letter-spacing: -0.05vw;
                 }
 
+                ha-markdown-element>p>span>span {
+                  position: relative;
+                  top: -.09em;
+                }
+
         "#root>hui-state-label-element":
           $: |
             div {
@@ -181,20 +182,8 @@ frontend:
           }
 
           #root>hui-icon-element:nth-child(10) {
-            {% if states('sensor.hass_version_installed') | regex_search('b') %}
-              {% if states('sensor.hass_version_installed') != states('sensor.hass_version_latest_beta') and 
-              not is_state('sensor.hass_version_latest', 'unknown') or 
-              not is_state('sensor.hacs', '0') and 
-              not is_state('sensor.hacs', 'unknown') %}
+            {% if is_state('binary_sensor.update_color', 'on') %}
                 color: rgb(35,78,106) !important; opacity: 1 !important;
-              {% endif %}
-            {% else %}
-              {% if states('sensor.hass_version_installed') != states('sensor.hass_version_latest') and 
-              not is_state('sensor.hass_version_latest', 'unknown') or 
-              not is_state('sensor.hacs', '0') and 
-              not is_state('sensor.hacs', 'unknown') %}
-                color: rgb(35,78,106) !important; opacity: 1 !important;
-              {% endif %}
             {% endif %}
             }
 
@@ -381,6 +370,7 @@ frontend:
         $: |
           .mdc-dialog__scrim {
             backdrop-filter: blur(20px) brightness(70%);
+            -webkit-backdrop-filter: blur(20px) brightness(70%);
           }
           .mdc-dialog .mdc-dialog__container .mdc-dialog__surface {
             background: var(--card-color);
@@ -409,7 +399,7 @@ frontend:
 
                 #brightnessValue {
                   color: rgba(255, 255, 255, 0.8);
-                  margin: -1.9em 0 0 0;
+                  margin: 4em 0 0 0;
                   font-size: 2em;
                   font-weight: 400;
                   position: absolute;
@@ -425,21 +415,7 @@ frontend:
 
                 #popup>div.range-holder>input[type=range]::-webkit-slider-thumb {
                   border: 0;
-                  eight: 0;
+                  height: 0;
                   width: 0;
                   cursor: grabbing;
-                }
-
-                #popup>div.action-holder>div>div {
-                  margin: 0.8em 0.5em -0.8em 0.5em;
-                }
-
-                #popup>div.action-holder>div:last-child>div:last-child>.color {
-                  background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 80%), 
-                    conic-gradient(rgb(120, 39, 230), rgb(230, 34, 231), rgb(228, 5, 136), rgb(228, 25, 25), 
-                    rgb(229, 105, 30), rgb(232, 226, 46), rgb(125, 230, 41), rgb(52, 232, 40), rgb(51, 231, 92), 
-                    rgb(52, 232, 224), rgb(32, 125, 229), rgb(18, 39, 229), rgb(120, 39, 230));
-                  border-width: 2px;
-                  border-color: #e6e6e6;
-                  --size: 4.4em !important;
                 }
