@@ -1,8 +1,7 @@
-              action: call-service
-              service: browser_mod.popup
-              service_data:
-                title: La consommation d'électricité kWh
-                deviceID: this
+              action: fire-dom-event
+              browser_mod:
+                command: popup
+                title: "La consommation électrique en kWh"
                 style: ':host .content {width: 38em;}'
                 card:
                   type: custom:stack-in-card
@@ -51,7 +50,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[0].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[0].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -62,7 +61,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -96,7 +95,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[1].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[1].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -107,7 +106,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -141,7 +140,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[2].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[2].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -152,7 +151,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -186,7 +185,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[3].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[3].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -197,7 +196,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -231,7 +230,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[4].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[4].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -242,7 +241,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -276,7 +275,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[5].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[5].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -287,7 +286,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -321,7 +320,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[6].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[6].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -332,7 +331,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -366,7 +365,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[7].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[7].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -377,7 +376,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -411,7 +410,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[8].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[8].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -422,7 +421,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -456,7 +455,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[9].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[9].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -467,7 +466,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -501,7 +500,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[10].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[10].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -512,7 +511,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -546,7 +545,7 @@
                             width: 1.8em
                             style: |
                               :host {
-                                {% if strptime(states('sensor.enedis_kwh').split(',')[11].split(' ')[1], '%Y').split('-')[0] | 
+                                {% if strptime(states('sensor.enedis_kwh').split(',')[11].split(' ')[1], '%Y').split('-')[0] |
                                 int >= strptime(states('sensor.date').split(',')[0].split(' ')[0], '%Y').split('-')[0] | int %}
                                 --kwh_bar: #405914;
                                 {% else %}
@@ -557,7 +556,7 @@
                               bar-card-name, bar-card-iconbar {
                                 padding-left: 0 !important;
                               }
-                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar, 
+                              bar-card-bar, bar-card-chargebar, bar-card-indicatorbar,
                               bar-card-indicatorcontainer, bar-card-indicator {
                                 border-radius: .3em;
                               }
@@ -633,7 +632,7 @@
 
                     - type: conditional
                       conditions:
-                        - entity: switch.computer_kaoru
+                        - entity: switch.computer_rig_kaoru
                           state: 'on'
                       card:
                         type: entities
@@ -650,7 +649,7 @@
 
                             - type: custom:button-card
                               name: >
-                                [[[ return 
+                                [[[ return
                                 '<ha-icon icon="mdi:refresh">
                                 </ha-icon> Mettre à jour la consommation'; ]]]
                               tap_action:
