@@ -1,9 +1,8 @@
-              action: call-service
-              service: browser_mod.popup
-              service_data:
+              action: fire-dom-event
+              browser_mod:
+                command: popup
                 title: Information
                 hide_header: true
-                deviceID: this
                 style:
                   .: |
                     :host .content {
@@ -100,24 +99,43 @@
                     - break
 
                     - type: entities
-                      title: Tablette
+                      title: Lenovo Tab
                       class: add_header
                       show_header_toggle: false
                       entities:
 
-                        - entity: switch.fullykiosk_screen
+                        - entity: switch.lenovotab_screensaver
+
+                        - entity: light.lenovotab_screen
 
                         - type: custom:slider-entity-row
-                          entity: input_number.fullykiosk_brightness_slider
+                          entity: light.lenovotab_screen
+                          name: Luminosité
+                          icon: mdi:brightness-6
                           hide_state: false
 
-                        - entity: switch.fullykiosk_screensaver
+                        - entity: binary_sensor.lenovotab_plugged_in
 
-                        - entity: sensor.fullykiosk_battery
+                        - entity: sensor.fullykiosk_last_app_start
 
-                        - entity: sensor.fullykiosk_plugged
+                        - type: custom:bar-card
+                          width: 55%
+                          height: 2em
+                          decimal: 0
+                          unit_of_measurement: '%'
+                          positions: *bar_card_positions
+                          severity:
+                            - color: '#6d2525'
+                              from: 0
+                              to: 89
+                            - color: '#303435'
+                              from: 90
+                              to: 100
+                          entity_row: true
+                          entities:
 
-                        - entity: binary_sensor.fullykiosk_motion
+                            - entity: sensor.lenovotab_battery_level
+                              icon: mdi:battery
 
                         - type: custom:bar-card
                           width: 55%
@@ -137,7 +155,7 @@
                                 service: homeassistant.update_entity
                                 service_data:
                                   entity_id: sensor.fullykiosk_memory
-                            
+
                             - entity: sensor.fullykiosk_storage
                               name: Stockage - 64GB
                               icon: mdi:sd
@@ -156,16 +174,16 @@
                             name: '<ha-icon icon="mdi:reload"></ha-icon> Accueil'
                             tap_action:
                               services: |
-                                [[[ hass.callService('browser_mod', 'toast', {message: "Rechargement de la page d\x27accueil..."});
-                                hass.callService('shell_command', 'fullykiosk_load_start_url'); ]]]
+                                [[[ hass.callService('browser_mod', 'toast', {message: 'Rechargement de la page d\x27accueil...'});
+                                hass.callService('fullykiosk', 'load_start_url', {entity_id: 'media_player.lenovotab_media_player'}); ]]]
                             template: name_action
 
                           - type: custom:button-card
                             name: '<ha-icon icon="mdi:reload"></ha-icon> Fully Kiosk'
                             tap_action:
                               services: |
-                                [[[ hass.callService('browser_mod', 'toast', {message: 'Redémarrage de Fully Kiosk Browser...'});
-                                hass.callService('shell_command', 'fullykiosk_restart_app'); ]]]
+                                [[[ hass.callService('browser_mod', 'toast', {message: 'Rechargement de Fully Kiosk Browser...'});
+                                hass.callService('fullykiosk', 'restart', {entity_id: 'media_player.lenovotab_media_player'}); ]]]
                             template: name_action
 
                     - break
@@ -253,7 +271,7 @@
                           hour24: true
                           hours_to_show: 1.5
                           show:
-                            {fill: fade, icon: false, name: false, state: false, 
+                            {fill: fade, icon: false, name: false, state: false,
                             name_adaptive_color: true, labels: hover, legend: false}
                           tap_action:
                             action: none
