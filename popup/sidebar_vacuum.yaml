@@ -1,9 +1,8 @@
-              action: call-service
-              service: browser_mod.popup
-              service_data:
+              action: fire-dom-event
+              browser_mod:
+                command: popup
                 title: Dammsugare
                 hide_header: true
-                deviceID: this
                 style:
                   .: |
                     :host .content {
@@ -27,9 +26,9 @@
                           class: add_header
                           entities:
 
-                          - entity: sensor.roborock_state
-
-                          - entity: sensor.roborock_battery
+                          - entity: vacuum.robot
+                            name: Roborock S5
+                            icon: custom:roborock-vacuum
 
                           - entity: sensor.roborock_last_clean
 
@@ -52,33 +51,18 @@
                             entity_row: true
                             entities:
 
+                              - entity: vacuum.robot
+                                attribute: battery_level
+                                name: Batteri
+                                icon: mdi:battery
+
                               - entity: sensor.roborock_filter
-                                tap_action:
-                                  action: call-service
-                                  service: homeassistant.update_entity
-                                  service_data:
-                                    entity_id: sensor.roborock_filter
 
                               - entity: sensor.roborock_mainbrush
-                                tap_action:
-                                  action: call-service
-                                  service: homeassistant.update_entity
-                                  service_data:
-                                    entity_id: sensor.roborock_mainbrush
 
                               - entity: sensor.roborock_sidebrush
-                                tap_action:
-                                  action: call-service
-                                  service: homeassistant.update_entity
-                                  service_data:
-                                    entity_id: sensor.roborock_sidebrush
 
                               - entity: sensor.roborock_sensors
-                                tap_action:
-                                  action: call-service
-                                  service: homeassistant.update_entity
-                                  service_data:
-                                    entity_id: sensor.roborock_sensors
 
                           - entity: input_select.roborock_speed
 
@@ -94,16 +78,16 @@
                             - type: custom:button-card
                               icon: mdi:play-pause
                               triggers_update:
-                                ['vacuum.xiaomi_vacuum_cleaner']
+                                ['vacuum.robot']
                               tap_action:
                                 action: call-service
                                 service: >
-                                  [[[ if (states['vacuum.xiaomi_vacuum_cleaner'].state === 'docked' || 
-                                  states['vacuum.xiaomi_vacuum_cleaner'].state === 'paused') 
+                                  [[[ if (states['vacuum.robot'].state === 'docked' ||
+                                  states['vacuum.robot'].state === 'paused')
                                   return 'vacuum.start';
                                   else return 'vacuum.pause'; ]]]
                                 service_data:
-                                  entity_id: vacuum.xiaomi_vacuum_cleaner
+                                  entity_id: vacuum.robot
                               styles:
                                 icon:
                                   [width: 1.8em]
@@ -118,7 +102,7 @@
                                 action: call-service
                                 service: vacuum.return_to_base
                                 service_data:
-                                  entity_id: vacuum.xiaomi_vacuum_cleaner
+                                  entity_id: vacuum.robot
                               template: icon_action
 
                             - type: custom:button-card
@@ -128,7 +112,7 @@
                                 action: call-service
                                 service: vacuum.locate
                                 service_data:
-                                  entity_id: vacuum.xiaomi_vacuum_cleaner
+                                  entity_id: vacuum.robot
                               template: icon_action
 
                     - break
@@ -138,26 +122,36 @@
                       image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 49.57' /%3E"
                       class: add_header
                       style: |
+                        #root {
+                          animation: fade 1s both;
+                        }
                         .card-header {
                           margin: -0.05em 0 0 0.75em;
                         }
+                        @keyframes fade {
+                          0% {
+                            opacity: 0;
+                          }
+                          50% {
+                            opacity: 0;
+                          }
+                          100% {
+                            opacity: 1;
+                          }
+                        }
                       elements:
 
-                        # revert to 42dbceb
                         - type: custom:valetudo-map-card
-                          entity: sensor.xiaomi_map
                           title: null
+                          entity: camera.map
                           rotate: 0
                           crop:
-                            top: 0
-                            bottom: 80
-                            left: 165
-                            right: 100
+                            top: 40
+                            bottom: 60
+                            left: 67
+                            right: 20
                           min_height: 0
-                          map_scale: 1.95
-                          floor_color: '#2e3233'
-                          obstacle_weak_color: '#191e1e50'
-                          obstacle_strong_color: '#191e1e'
+                          map_scale: 2
                           no_go_area_color: '#ff000015'
                           virtual_wall_color: '#ff000020'
                           virtual_wall_width: 5
@@ -165,10 +159,14 @@
                           path_width: 1.5
                           vacuum_icon: 'custom:roborock-vacuum-map'
                           vacuum_color: '#e0e0e0'
+                          icon_scale: 1.1
+                          show_segments: false
+                          floor_color: '#2e3233'
+                          wall_color: '#191e1e90'
                           style:
-                            top: 35%
-                            left: 47.5%
-                            width: 90%
+                            top: 46%
+                            left: 50%
+                            width: 100%
 
                         - type: image
                           tap_action:
@@ -199,11 +197,11 @@
                             card:
                               [padding: 3em]
                             name:
-                              [font-size: 0.9em, letter-spacing: 0.003em, color: '#aeb0b0', background: '#191c1d80', 
+                              [font-size: 0.9em, letter-spacing: 0.003em, color: '#aeb0b0', background: '#191c1d80',
                               padding: 0.48em 0.78em 0.48em 0.78em, border-radius: 0.6em, overflow: visible]
                           style:
                             top: 18%
-                            left: 74%
+                            left: 77%
 
 
                         - type: custom:button-card
@@ -218,8 +216,8 @@
                           show_icon: false
                           styles: *button-card-styles
                           style:
-                            top: 20.5%
-                            left: 40.5%
+                            top: 21%
+                            left: 38%
 
                         - type: custom:button-card
                           name: Hall
@@ -234,7 +232,7 @@
                           styles: *button-card-styles
                           style:
                             top: 48%
-                            left: 60.5%
+                            left: 58%
 
                         - type: custom:button-card
                           name: Kök
@@ -248,8 +246,8 @@
                           show_icon: false
                           styles: *button-card-styles
                           style:
-                            top: 51%
-                            left: 18.5%
+                            top: 53%
+                            left: 17%
 
                         - type: custom:button-card
                           name: Sovrum
@@ -263,8 +261,8 @@
                           show_icon: false
                           styles: *button-card-styles
                           style:
-                            top: 75.5%
-                            left: 23.5%
+                            top: 76%
+                            left: 22%
 
                         - type: custom:button-card
                           entity: input_select.roborock_zone
@@ -283,8 +281,8 @@
                             name:
                               [font-size: 0.75em, color: '#FFFFFF40', margin-bottom: 0.2em]
                             label:
-                              [font-size: 1.05em, padding: 0 0.8em 0.65em 0.8em, 
-                              color: "[[[ if (states['input_select.roborock_zone'].state == 'Ingen vald') 
+                              [font-size: 1.05em, padding: 0 0.8em 0.65em 0.8em,
+                              color: "[[[ if (states['input_select.roborock_zone'].state == 'Ingen vald')
                               return '#e0e1e170'; return '#e0e1e1';]]]"]
                           style:
                             left: 80%

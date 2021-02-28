@@ -1,8 +1,7 @@
-              action: call-service
-              service: browser_mod.popup
-              service_data:
-                title: Wifi
-                deviceID: this
+              action: fire-dom-event
+              browser_mod:
+                command: popup
+                title: "WiFi"
                 style:
                   .: |
                     :host .content {
@@ -28,6 +27,6 @@
                     - type: custom:hui-element
                       card_type: markdown
                       content: >
-                        <span> Réseau caché => SSID: </span>
+                        <span> Réseau caché => SSID: apt </span>
 
-                        <span> password: </span>
+                        <span> password: passwd4WiFiaccess </span>

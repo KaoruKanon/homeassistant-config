@@ -1,8 +1,7 @@
-              action: call-service
-              service: browser_mod.popup
-              service_data:
-                title: Kaoru Ordinateur
-                deviceID: this
+              action: fire-dom-event
+              browser_mod:
+                command: popup
+                title: "Kaoru Ordinateur"
                 card:
                   type: entities
                   state_color: true
@@ -64,7 +63,7 @@
                     #       entity_id: sensor.imac_ip
                     #   style: |
                     #     :host {
-                    #       --paper-item-icon-color: 
+                    #       --paper-item-icon-color:
                     #         {{ '#9e9e9e' if is_state(config.entity, 'Ansluten') else 'red' }};
                     #       }
 

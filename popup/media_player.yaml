@@ -1,8 +1,7 @@
-              action: call-service
-              service: browser_mod.popup
-              service_data:
-                title: Spotify
-                deviceID: this
+              action: fire-dom-event
+              browser_mod:
+                command: popup
+                title: "Media player"
                 card:
                   type: entities
                   entities:

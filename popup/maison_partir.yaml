@@ -1,8 +1,7 @@
-              action: call-service
-              service: browser_mod.popup
-              service_data:
-                title: Partir
-                deviceID: this
+              action: fire-dom-event
+              browser_mod:
+                command: popup
+                title: "Partir"
                 card:
                   type: entities
                   entities:

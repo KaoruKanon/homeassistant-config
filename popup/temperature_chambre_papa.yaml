@@ -1,8 +1,7 @@
-              action: call-service
-              service: browser_mod.popup
-              service_data:
-                title: Thermomètre Chambre Papa
-                deviceID: this
+              action: fire-dom-event
+              browser_mod:
+                command: popup
+                title: Thermomètre chambre Papa
                 card:
                   type: custom:stack-in-card
                   cards:
@@ -10,7 +9,7 @@
                       state_color: true
                       entities:
 
-                        - entity: sensor.temperature_chambre_papa 
+                        - entity: sensor.temperature_chambre_papa
                         - entity: sensor.humidity_chambre_papa
                         - entity: sensor.battery_chambre_papa
 
@@ -29,7 +28,7 @@
                       hour24: true
                       hours_to_show: 24
                       show:
-                        {fill: fade, icon: false, name: false, state: true, 
+                        {fill: fade, icon: false, name: false, state: true,
                         name_adaptive_color: true, labels: true, legend: true, average: true, extrema: true, points: false}
                       tap_action:
                         action: none
