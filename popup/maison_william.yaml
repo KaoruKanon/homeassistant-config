@@ -5,7 +5,7 @@
                 style:
                   .: |
                     :host .content {
-                      height: 675px;
+                      height: 730px;
                     }
                 card:
                   type: custom:stack-in-card
@@ -27,25 +27,16 @@
                         - type: custom:hui-element
                           card_type: glance
                           show_state: false
-                          style:
-                            .: |
-                              ha-card {
-                                background: none;
-                                box-shadow: none;
-                              }
-                            "ha-card>div>div:nth-child(1)":
-                              $:
-                                "state-badge":
-                                  $: |
-                                    ha-icon {
-                                      color: {{ '#3182b7' if is_state('device_tracker.oneplus_8_pro', 'home') else '#FFFFFF20' }};
-                                    }
-
                           entities:
 
                             - entity: device_tracker.oneplus_8_pro
                               name: Position
                               icon: custom:iphone-modern
+                              card_mod: &style
+                                style: |
+                                  state-badge {
+                                    color: {{ '#3182b7' if is_state(config.entity, 'home') else '#3c3f3f' }};
+                                  }
 
                         - type: custom:hui-element
                           card_type: horizontal-stack
@@ -57,15 +48,13 @@
                           cards:
 
                           - type: custom:button-card
-                            name: >
-                              <ha-icon icon="mdi:volume-high"></ha-icon> Faire sonner mon OnePlus 8 Pro
+                            name: Faire sonner mon OnePlus 8 Pro
+                            icon: mdi:volume-high
                             tap_action:
                               action: call-service
                               service: script.kaoru_find_my_iphone
-                            template: name_action
-                            styles:
-                              card:
-                                [background: none, border-radius: none]
+                            template: icon_name
+
 
                     - type: custom:hui-element
                       card_type: map
