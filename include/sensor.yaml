@@ -846,16 +846,8 @@ sensor:
             {% endif %}
           {% endset %}
           {% set kwh = states('sensor.enedis_kwh_last_month_kwh') | float %}
-            {% set eon_solkraft = states('sensor.enedis_kwh_last_month_kwh') | float * 0.05 %}
-            {% set eon_arsavgift = 480 / 366 * dagar | float %}
-              {% set spotpris = states('sensor.aktuellt_spotpris') | float / 100 %}
-            {% set ore_abonnemang = 1020 / 366 * dagar | float %}
-            {% set ore_elöverföring = kwh * 0.1400 %}
-            {% set ore_energiskatt = kwh * 0.3530 %}
-              {% set eon = (eon_solkraft + eon_arsavgift + (0.2373 * kwh * 1.25)) | round(2) %}
-              {% set ore = ((ore_abonnemang + ore_elöverföring + ore_energiskatt) * 1.25) | round(2) %}
-          {{ (eon + ore) | round }}
-        unit_of_measurement: 'kr'
+          {{ (kwh * 0.1765 ) | round }}
+        unit_of_measurement: '€'
 
       enedis_kwh_total_year_kwh:
         icon_template: mdi:poll-box
