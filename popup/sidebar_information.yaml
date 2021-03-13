@@ -8,20 +8,20 @@
                     :host .content {
                       width: calc(385px + 385px + 385px);
                       max-width: 90vw;
+                      height: 569px;
                     }
                   $: |
                     .mdc-dialog .mdc-dialog__container .mdc-dialog__surface {
-                      background: none !important;
+                      background: none;
                     }
                 card:
-                  type: custom:layout-card
-                  column_num: 3
-                  column_width: [385, 385, 385]
-                  layout: vertical
+                  type: grid
+                  columns: 3
                   cards:
                     - type: entities
                       title: Home Assistant
-                      class: add_header
+                      card_mod:
+                        class: add-header
                       show_header_toggle: false
                       entities:
 
@@ -72,35 +72,45 @@
 
                         - type: custom:hui-element
                           card_type: horizontal-stack
-                          style: &horizontal-style |
-                            #root {
-                              justify-content: space-evenly;
-                              margin: 1.4em -0.7em 0.7em 0;
-                            }
+                          card_mod:
+                            style: &horizontal-style |
+                              #root {
+                                justify-content: space-evenly;
+                                margin: 1.7em -0.7em 0 0;
+                              }
                           cards:
 
                           - type: custom:button-card
-                            name: '<ha-icon icon="mdi:reload"></ha-icon> Home Assistant'
+                            name: Home Assistant
+                            icon: mdi:reload
                             tap_action:
                               services: |
-                                [[[ hass.callService('browser_mod', 'toast', {message: 'Redémarrage de Home Assistant...'});
-                                hass.callService('homeassistant', 'restart'); ]]]
-                            template: name_action
+                                [[[
+                                  hass.callService('browser_mod', 'toast', {
+                                    message: 'Redémarrage de Home Assistant...'
+                                  });
+                                  hass.callService('homeassistant', 'restart');
+                                ]]]
+                            template: icon_name
 
                           - type: custom:button-card
-                            name: '<ha-icon icon="mdi:reload"></ha-icon> Container'
+                            name: Container
+                            icon: mdi:reload
                             tap_action:
                               action: call-service
                               service: script.turn_on
                               service_data:
                                 entity_id: script.homeassistant_restart
-                            template: name_action
+                            template: icon_name
 
-                    - break
+
+                    ################################################################
+
 
                     - type: entities
                       title: Lenovo Tab
-                      class: add_header
+                      card_mod:
+                        class: add-header
                       show_header_toggle: false
                       entities:
 
@@ -167,35 +177,57 @@
 
                         - type: custom:hui-element
                           card_type: horizontal-stack
-                          style: *horizontal-style
+                          card_mod:
+                            style: *horizontal-style
                           cards:
 
                           - type: custom:button-card
-                            name: '<ha-icon icon="mdi:reload"></ha-icon> Accueil'
+                            name: Fullykiosk
+                            icon: mdi:reload
                             tap_action:
                               services: |
-                                [[[ hass.callService('browser_mod', 'toast', {message: 'Rechargement de la page d\x27accueil...'});
-                                hass.callService('fullykiosk', 'load_start_url', {entity_id: 'media_player.lenovotab_media_player'}); ]]]
-                            template: name_action
+                                [[[
+                                  hass.callService('browser_mod', 'toast', {
+                                    message: 'Rechargement de la page d\x27accueil...'
+                                  });
+                                  hass.callService('fullykiosk', 'load_start_url', {
+                                    entity_id: 'media_player.lenovotab_media_player'
+                                  });
+                                ]]]
+                            template: icon_name
 
                           - type: custom:button-card
-                            name: '<ha-icon icon="mdi:reload"></ha-icon> Fully Kiosk'
+                            name: Accueil
+                            icon: mdi:reload
                             tap_action:
                               services: |
-                                [[[ hass.callService('browser_mod', 'toast', {message: 'Rechargement de Fully Kiosk Browser...'});
-                                hass.callService('fullykiosk', 'restart', {entity_id: 'media_player.lenovotab_media_player'}); ]]]
-                            template: name_action
+                                [[[
+                                  hass.callService('browser_mod', 'toast', {
+                                    message: 'Redémarrage de Fully Kiosk Browser...'
+                                  });
+                                  hass.callService('fullykiosk', 'restart', {
+                                    entity_id: 'media_player.lenovotab_media_player'
+                                  });
+                                ]]]
+                            template: icon_name
 
-                    - break
+
+                    ################################################################
+
 
                     - type: entities
-                      title: Raspberry Pi 3B+
-                      class: add_header
+                      title: Synology NAS
                       show_header_toggle: false
-                      style: |
-                        #states > div > mini-graph-card {
-                          margin: -22.7px -34px -21px -23px;
-                        }
+                      card_mod:
+                        class: add-header
+                        style: |
+                          mini-graph-card {
+                            margin: -22.7px -18px -6px -7px;
+                          }
+                          .footer {
+                            overflow: visible !important;
+                          }
+
                       entities:
 
                         - entity: binary_sensor.rpi_internet_access
@@ -245,33 +277,42 @@
                           cards:
 
                             - type: entities
-                              class: information_network
+                              card_mod:
+                                class: information_network
                               entities:
                                 - entity: sensor.rpi_net_down
-                                  style: ':host {--paper-item-icon-color: green;}'
+                                  card_mod:
+                                    style: >
+                                      :host {
+                                        --paper-item-icon-color: green;
+                                      }
 
                             - type: entities
-                              class: information_network
+                              card_mod:
+                                class: information_network
                               entities:
                                 - entity: sensor.rpi_net_up
-                                  style: ':host {--paper-item-icon-color: #385581;}'
+                                  card_mod:
+                                    style: >
+                                      :host {
+                                        --paper-item-icon-color: #385581;
+                                      }
 
-                        - type: custom:mini-graph-card
-                          entities:
-                            - color: '#385581'
-                              entity: sensor.network_throughput_in_eth0
-                              show_state: true
-                            - color: green
-                              entity: sensor.network_throughput_out_eth0
-                              show_state: true
-                          align_state: left
-                          group: false
-                          points_per_hour: 15
-                          line_width: 3
-                          hour24: true
-                          hours_to_show: 1.5
-                          show:
-                            {fill: fade, icon: false, name: false, state: false,
-                            name_adaptive_color: true, labels: hover, legend: false}
-                          tap_action:
-                            action: none
+                      footer:
+                        type: custom:mini-graph-card
+                        entities:
+                          - color: '#385581'
+                            entity: sensor.network_throughput_in_eth0
+                          - color: green
+                            entity: sensor.network_throughput_out_eth0
+                        align_state: left
+                        group: false
+                        points_per_hour: 15
+                        line_width: 3
+                        hour24: true
+                        hours_to_show: 1.5
+                        show:
+                          {fill: fade, icon: false, name: false, state: false,
+                          name_adaptive_color: true, labels: hover, legend: false}
+                        tap_action:
+                          action: none
