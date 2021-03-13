@@ -475,6 +475,13 @@ sensor:
 
       placeholder:
         value_template: ' '
+        attribute_templates:
+          salon: Salon
+          temperature: Température
+          william: William
+          media: Media
+          autre: Autre
+          maison: Maison
 
       # problème lié a docker
       # dockermon_mem:
