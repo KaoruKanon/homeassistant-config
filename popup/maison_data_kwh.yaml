@@ -630,31 +630,69 @@
                               margin-top: -2.5em;
                             }
 
-                    - type: conditional
-                      conditions:
-                        - entity: switch.computer_rig_kaoru
-                          state: 'on'
-                      card:
-                        type: entities
-                        entities:
 
-                          - type: custom:hui-element
-                            card_type: horizontal-stack
-                            style: |
-                              #root {
-                                justify-content: space-evenly;
-                                margin: 1em 0 1em 0;
-                              }
-                            cards:
+                    - type: custom:hui-element
+                      card_type: horizontal-stack
+                      card_mod:
+                        style: |
+                          #root {
+                            justify-content: space-evenly;
+                            margin: -1em 0 0 0;
+                          }
+                      cards:
 
-                            - type: custom:button-card
-                              name: >
-                                [[[ return
-                                '<ha-icon icon="mdi:refresh">
-                                </ha-icon> Mettre à jour la consommation'; ]]]
-                              tap_action:
-                                - service: homeassistant.update_entity
-                                  entity_id: sensor.myenedis
-                                - service: homeassistant.shell_command
-                                  entity_id: enedis_update_data
-                              template: name_action
+                      - type: custom:button-card
+                        name: Mettre à jour la consommation
+                        icon: mdi:refresh
+                        style: |
+                          ha-card {
+                            margin-top: -1em;
+                            margin-left: 50%;
+                            margin-bottom: 1em;
+                            background: #2e3333 !important;
+                            border-radius: 0.6em !important;
+                          }
+                        tap_action:
+                          - services: |
+                                [[[
+                                  hass.callService('browser_mod', 'toast', {
+                                    message: 'Rafraîchissement de la consommation...'
+                                  });
+                                ]]]
+                          - service: homeassistant.update_entity
+                            entity_id: sensor.myenedis
+                          - service: homeassistant.shell_command
+                            entity_id: enedis_update_data
+
+                        template: icon_name
+
+
+
+                    # - type: conditional
+                    #   conditions:
+                    #     - entity: switch.computer_rig_kaoru
+                    #       state: 'on'
+                    #   card:
+                    #     type: entities
+                    #     entities:
+                    #
+                    #       - type: custom:hui-element
+                    #         card_type: horizontal-stack
+                    #         style: |
+                    #           #root {
+                    #             justify-content: space-evenly;
+                    #             margin: 1em 0 1em 0;
+                    #           }
+                    #         cards:
+                    #
+                    #         - type: custom:button-card
+                    #           name: >
+                    #             [[[ return
+                    #             '<ha-icon icon="mdi:refresh">
+                    #             </ha-icon> Mettre à jour la consommation'; ]]]
+                    #           tap_action:
+                    #             - service: homeassistant.update_entity
+                    #               entity_id: sensor.myenedis
+                    #             - service: homeassistant.shell_command
+                    #               entity_id: enedis_update_data
+                    #           template: name_action
