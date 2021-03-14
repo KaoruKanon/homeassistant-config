@@ -104,13 +104,11 @@
                                 ]]]
                         tap_action:
                           services: |
-                            [[[
+                            [[[ 
                               hass.callService('browser_mod', 'toast', {
-                                message: 'Startar watchtower...'
+                                message: 'Mise à jour en cours...'
                               });
-                              hass.callService('switch', 'turn_on', {
-                                entity_id: 'switch.watchtower'
-                              });
+                              hass.callService('shell_command', 'ha_update'); 
                             ]]]
                         template: icon_name
 
