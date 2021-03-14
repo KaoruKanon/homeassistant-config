@@ -335,17 +335,17 @@ automation:
     action:
     - service: switch.turn_on
       data: {}
-      entity_id: switch.wol_kaoru
+      entity_id: switch.computer_rig_kaoru
 
-  - alias: webhook_wol_turnoff_computer_rig_kaoru
+  - alias: webhook_turnoff_computer_rig_kaoru
     trigger:
     - platform: webhook
       webhook_id: TURNOFFKAORU
     condition: []
     action:
-    - service: switch.turn_on
+    - service: switch.turn_off
       data: {}
-      entity_id: switch.computer_rig_kaoru_shutdown
+      entity_id: switch.computer_rig_kaoru
 
   - alias: turn_off_gps_home_absence
     trigger:
