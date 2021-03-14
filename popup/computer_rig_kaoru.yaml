@@ -110,17 +110,17 @@
                       cards:
 
                       - type: custom:button-card
-                        name: >
-                          <ha-icon icon="mdi:power-sleep"></ha-icon> Mettre en veille
+                        name: Mettre en veille
+                        icon: mdi:power-sleep
                         tap_action:
                           action: call-service
                           service: script.computer_rig_kaoru_suspend
-                        template: name_action
+                        template: icon_name
 
                       - type: custom:button-card
-                        name: >
-                          <ha-icon icon="mdi:restart"></ha-icon> Redémarrer
+                        name: Redémarrer
+                        icon: mdi:restart
                         tap_action:
                           action: call-service
                           service: script.computer_rig_kaoru_reboot
-                        template: name_action
+                        template: icon_name

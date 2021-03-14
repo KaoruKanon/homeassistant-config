@@ -45,7 +45,7 @@
                             service_data:
                               entity_id: sensor.computer_papa_ram_usage
 
-                    - entity: automation.macos_notification_motion_hall
+                    #- entity: automation.macos_notification_motion_hall
 
                     - entity: sensor.computer_papa_uptime
                       name: Uptime
@@ -86,17 +86,17 @@
                       cards:
 
                       - type: custom:button-card
-                        name: >
-                          <ha-icon icon="mdi:power-sleep"></ha-icon> Mettre en veille
+                        name: Mettre en veille
+                        icon: mdi:power-sleep
                         tap_action:
                           action: call-service
                           service: script.computer_papa_suspend
-                        template: name_action
+                        template: icon_name
 
                       - type: custom:button-card
-                        name: >
-                          <ha-icon icon="mdi:restart"></ha-icon> Redémarrer
+                        name: Redémarrer
+                        icon: mdi:restart
                         tap_action:
                           action: call-service
                           service: script.computer_papa_reboot
-                        template: name_action
+                        template: icon_name
