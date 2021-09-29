@@ -2,13 +2,10 @@
               browser_mod:
                 command: popup
                 title: "WiFi"
-                style:
-                  .: |
-                    :host .content {
-                      width: calc(400px);
-                    }
                 card:
                   type: custom:layout-card
+                  state_color: true
+                  show_header_toggle: false
                   column_num: 1
                   column_width: [400]
                   layout: vertical
@@ -24,9 +21,13 @@
                             top: 50%
                             left: 50%
 
-                    - type: custom:hui-element
-                      card_type: markdown
-                      content: >
-                        <span> Réseau caché => SSID: apt </span>
-
-                        <span> password: passwd4WiFiaccess </span>
+                    - type: markdown
+                      content: |
+                        Réseau caché :
+                        - SSID: apt
+                        - password: passwd4WiFiaccess
+                      style: |
+                        ha-card {
+                          margin-left: 40px;
+                          font-family: SF Display;
+                        }

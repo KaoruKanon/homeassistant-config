@@ -11,7 +11,7 @@
 
                         - entity: sensor.temperature_chambre_william
                         - entity: sensor.humidity_chambre_william
-                        - entity: sensor.battery_chambre_william
+                        - entity: sensor.battery_thermometre_chambre_william
 
                     - type: custom:mini-graph-card
                       entities:
@@ -21,10 +21,10 @@
                           entity: sensor.humidity_chambre_william
                           y_axis: secondary
                       align_state: left
-                      line_width: 3
+                      line_width: 4
                       height: 200
                       group: false
-                      points_per_hour: 10
+                      points_per_hour: 2
                       hour24: true
                       hours_to_show: 24
                       show:

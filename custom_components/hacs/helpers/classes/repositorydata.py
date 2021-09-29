@@ -1,8 +1,10 @@
 """Repository data."""
 from datetime import datetime
-from typing import List
+import json
+from typing import List, Optional
 
 import attr
+from homeassistant.helpers.json import JSONEncoder
 
 
 @attr.s(auto_attribs=True)
@@ -20,6 +22,7 @@ class RepositoryData:
     domain: str = ""
     domains: List[str] = []
     downloads: int = 0
+    etag_repository: str = None
     file_name: str = ""
     filename: str = ""
     first_install: bool = False
@@ -50,6 +53,7 @@ class RepositoryData:
     stargazers_count: int = 0
     topics: List[str] = []
     zip_release: bool = False
+    _storage_data: Optional[dict] = None
 
     @property
     def stars(self):
@@ -65,64 +69,78 @@ class RepositoryData:
 
     def to_json(self):
         """Export to json."""
-        return attr.asdict(self)
+        return attr.asdict(self, filter=lambda attr, _: attr.name != "_storage_data")
+
+    def memorize_storage(self, data) -> None:
+        """Memorize the storage data."""
+        self._storage_data = data
+
+    def export_data(self) -> Optional[dict]:
+        """Export to json if the data has changed.
+
+        Returns the data to export if the data needs
+        to be written.
+
+        Returns None if the data has not changed.
+        """
+        export = json.loads(json.dumps(self.to_json(), cls=JSONEncoder))
+        return None if self._storage_data == export else export
 
     @staticmethod
     def create_from_dict(source: dict):
         """Set attributes from dicts."""
         data = RepositoryData()
         for key in source:
-            print(key)
-            if key in data.__dict__:
-                if key == "pushed_at":
-                    if source[key] == "":
-                        continue
-                    if "Z" in source[key]:
-                        setattr(
-                            data,
-                            key,
-                            datetime.strptime(source[key], "%Y-%m-%dT%H:%M:%SZ"),
-                        )
-                    else:
-                        setattr(
-                            data,
-                            key,
-                            datetime.strptime(source[key], "%Y-%m-%dT%H:%M:%S"),
-                        )
-                elif key == "id":
-                    setattr(data, key, str(source[key]))
-                elif key == "country":
-                    if isinstance(source[key], str):
-                        setattr(data, key, [source[key]])
-                    else:
-                        setattr(data, key, source[key])
+            if key not in data.__dict__:
+                continue
+            if key == "pushed_at":
+                if source[key] == "":
+                    continue
+                if "Z" in source[key]:
+                    setattr(
+                        data,
+                        key,
+                        datetime.strptime(source[key], "%Y-%m-%dT%H:%M:%SZ"),
+                    )
+                else:
+                    setattr(
+                        data,
+                        key,
+                        datetime.strptime(source[key], "%Y-%m-%dT%H:%M:%S"),
+                    )
+            elif key == "id":
+                setattr(data, key, str(source[key]))
+            elif key == "country":
+                if isinstance(source[key], str):
+                    setattr(data, key, [source[key]])
                 else:
                     setattr(data, key, source[key])
+            else:
+                setattr(data, key, source[key])
         return data
 
     def update_data(self, data: dict):
         """Update data of the repository."""
         for key in data:
-            if key in self.__dict__:
-                if key == "pushed_at":
-                    if data[key] == "":
-                        continue
-                    if "Z" in data[key]:
-                        setattr(
-                            self,
-                            key,
-                            datetime.strptime(data[key], "%Y-%m-%dT%H:%M:%SZ"),
-                        )
-                    else:
-                        setattr(
-                            self, key, datetime.strptime(data[key], "%Y-%m-%dT%H:%M:%S")
-                        )
-                elif key == "id":
-                    setattr(self, key, str(data[key]))
-                elif key == "country":
-                    if isinstance(data[key], str):
-                        setattr(self, key, [data[key]])
-                    else:
-                        setattr(self, key, data[key])
+            if key not in self.__dict__:
+                continue
+            if key == "pushed_at":
+                if data[key] == "":
+                    continue
+                if "Z" in data[key]:
+                    setattr(
+                        self,
+                        key,
+                        datetime.strptime(data[key], "%Y-%m-%dT%H:%M:%SZ"),
+                    )
+                else:
+                    setattr(self, key, datetime.strptime(data[key], "%Y-%m-%dT%H:%M:%S"))
+            elif key == "id":
+                setattr(self, key, str(data[key]))
+            elif key == "country":
+                if isinstance(data[key], str):
+                    setattr(self, key, [data[key]])
                 else:
                     setattr(self, key, data[key])
+            else:
+                setattr(self, key, data[key])

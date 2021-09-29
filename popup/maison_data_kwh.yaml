@@ -33,7 +33,7 @@
                         ha-card {
                           padding: 0em 3em 0em 1.2em;
                           margin-top: -1em;
-                          margin-bottom: 1em;
+                          margin-bottom: -1.5em;
                         }
                       card:
                         type: horizontal-stack
@@ -581,45 +581,15 @@
 
                     - type: horizontal-stack
                       cards:
-                        - type: custom:mini-graph-card
-                          hour24: true
-                          hours_to_show: 12
-                          points_per_hour: 1
-                          line_color: '#405914'
-                          align_icon: left
-                          show:
-                            fill: fade
-                            icon: true
-                            name: true
-                            state: true
-                            name_adaptive_color: false
-                            labels: hover
-                            legend: false
-                          entities: ['sensor.aktuellt_spotpris']
+                        - type: entities
+                          entities:
+                            - entity: sensor.enedis_kwh_last_month_last_year_kwh
+                            - entity: sensor.enedis_kwh_diff_last_month_and_last_year
                           style: |
-                            .name>span {
-                              font-size: 14px !important;
-                              font-weight: 400 !important;
-                              opacity: 1 !important;
-                              margin-left: -9.3em !important;
-                            }
-                            .state>span {
-                              transform: scale(.8, .8);
-                              margin-left: -.7em;
-                            }
-                            .icon {
-                              margin-left: -1.35em !important;
-                            }
                             ha-card {
-                              border-radius: .35em;
-                              background: none;
-                              box-shadow: none;
-                              margin-left: .65em;
-                              height: 10em;
-                              max-width: 13.5em;
-                              margin-left: 3em;
-                              margin-top: -1.95em;
+                              margin-bottom: 1.5em
                             }
+
 
                         - type: entities
                           entities:
@@ -627,7 +597,7 @@
                             - entity: sensor.enedis_kwh_total_year_kwh
                           style: |
                             ha-card {
-                              margin-top: -2.5em;
+                              margin-bottom: 1.5em
                             }
 
 
@@ -637,62 +607,28 @@
                         style: |
                           #root {
                             justify-content: space-evenly;
-                            margin: -1em 0 0 0;
+                            margin: 1em 0 1em 0;
                           }
                       cards:
 
                       - type: custom:button-card
                         name: Mettre à jour la consommation
                         icon: mdi:refresh
+                        tap_action:
+                          action: call-service
+                          service: script.refresh_kwh_consumption
+
+                          # - service: homeassistant.update_entity
+                          #   entity_id: sensor.myenedis_01134587449350
+                          # - service: homeassistant.shell_command
+                          #   entity_id: enedis_update_data
                         style: |
                           ha-card {
                             margin-top: -1em;
-                            margin-left: 50%;
+                            margin-left: 45%;
                             margin-bottom: 1em;
                             background: #2e3333 !important;
                             border-radius: 0.6em !important;
                           }
-                        tap_action:
-                          - services: |
-                                [[[
-                                  hass.callService('browser_mod', 'toast', {
-                                    message: 'Rafraîchissement de la consommation...'
-                                  });
-                                ]]]
-                          - service: homeassistant.update_entity
-                            entity_id: sensor.myenedis
-                          - service: homeassistant.shell_command
-                            entity_id: enedis_update_data
-
-                        template: icon_name
-
-
-
-                    # - type: conditional
-                    #   conditions:
-                    #     - entity: switch.computer_rig_kaoru
-                    #       state: 'on'
-                    #   card:
-                    #     type: entities
-                    #     entities:
-                    #
-                    #       - type: custom:hui-element
-                    #         card_type: horizontal-stack
-                    #         style: |
-                    #           #root {
-                    #             justify-content: space-evenly;
-                    #             margin: 1em 0 1em 0;
-                    #           }
-                    #         cards:
-                    #
-                    #         - type: custom:button-card
-                    #           name: >
-                    #             [[[ return
-                    #             '<ha-icon icon="mdi:refresh">
-                    #             </ha-icon> Mettre à jour la consommation'; ]]]
-                    #           tap_action:
-                    #             - service: homeassistant.update_entity
-                    #               entity_id: sensor.myenedis
-                    #             - service: homeassistant.shell_command
-                    #               entity_id: enedis_update_data
-                    #           template: name_action
+                        template:
+                          - icon_name

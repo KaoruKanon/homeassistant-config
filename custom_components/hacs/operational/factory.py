@@ -3,14 +3,15 @@ import asyncio
 
 from aiogithubapi import AIOGitHubAPIException
 
-from custom_components.hacs.helpers.classes.exceptions import (
+from custom_components.hacs.exceptions import (
     HacsException,
+    HacsNotModifiedException,
     HacsRepositoryArchivedException,
 )
-from custom_components.hacs.helpers.functions.logger import getLogger
 from custom_components.hacs.helpers.functions.register_repository import (
     register_repository,
 )
+from custom_components.hacs.utils.logger import getLogger
 
 max_concurrent_tasks = asyncio.Semaphore(15)
 sleeper = 5
@@ -27,6 +28,8 @@ class HacsTaskFactory:
         async with max_concurrent_tasks:
             try:
                 await repository.common_update()
+            except HacsNotModifiedException:
+                pass
             except (AIOGitHubAPIException, HacsException) as exception:
                 _LOGGER.error("%s - %s", repository.data.full_name, exception)
 
@@ -37,6 +40,8 @@ class HacsTaskFactory:
         async with max_concurrent_tasks:
             try:
                 await repository.update_repository()
+            except HacsNotModifiedException:
+                pass
             except HacsRepositoryArchivedException as exception:
                 _LOGGER.warning("%s - %s", repository.data.full_name, exception)
             except (AIOGitHubAPIException, HacsException) as exception:

@@ -1,4 +1,4 @@
-#  Copyright (c) 2019-2020, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Copyright (c) 2019-2021, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
@@ -12,22 +12,24 @@ import datetime
 import logging
 import math
 import numbers
-from typing import Any, Dict, Optional, Union
+from typing import Any, Mapping, Optional
 
 import homeassistant.util.dt as dt_util
 import voluptuous as vol
 from _sha1 import sha1
-from homeassistant.components import history
 from homeassistant.components.climate import DOMAIN as CLIMATE_DOMAIN
 from homeassistant.components.group import expand_entity_ids
-from homeassistant.components.history import LazyState
+from homeassistant.components.sensor import STATE_CLASS_MEASUREMENT, SensorEntity
 from homeassistant.components.water_heater import DOMAIN as WATER_HEATER_DOMAIN
 from homeassistant.components.weather import DOMAIN as WEATHER_DOMAIN
 from homeassistant.const import (
+    ATTR_DEVICE_CLASS,
     ATTR_ICON,
     ATTR_UNIT_OF_MEASUREMENT,
     CONF_ENTITIES,
     CONF_NAME,
+    CONF_UNIQUE_ID,
+    DEVICE_CLASS_TEMPERATURE,
     EVENT_HOMEASSISTANT_START,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
@@ -36,8 +38,8 @@ from homeassistant.core import HomeAssistant, callback, split_entity_id
 from homeassistant.exceptions import TemplateError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.config_validation import PLATFORM_SCHEMA
-from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.event import async_track_state_change
+from homeassistant.helpers.typing import StateType
 from homeassistant.util import Throttle
 from homeassistant.util.temperature import convert as convert_temperature
 from homeassistant.util.unit_system import TEMPERATURE_UNITS
@@ -55,6 +57,16 @@ from .const import (
     STARTUP_MESSAGE,
     UPDATE_MIN_TIME,
 )
+
+try:  # pragma: no cover
+    # HA version >=2021.6
+    from homeassistant.components.recorder import history
+    from homeassistant.components.recorder.models import LazyState
+except ImportError:  # pragma: no cover
+    # HA version <=2021.5
+    from homeassistant.components import history
+    from homeassistant.components.history import LazyState
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,6 +88,7 @@ PLATFORM_SCHEMA = vol.All(
     PLATFORM_SCHEMA.extend(
         {
             vol.Required(CONF_ENTITIES): cv.entity_ids,
+            vol.Optional(CONF_UNIQUE_ID): cv.string,
             vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
             vol.Optional(CONF_START): cv.template,
             vol.Optional(CONF_END): cv.template,
@@ -96,31 +109,39 @@ async def async_setup_platform(
     # Print startup message
     _LOGGER.info(STARTUP_MESSAGE)
 
-    name = config.get(CONF_NAME)
     start = config.get(CONF_START)
     end = config.get(CONF_END)
-    duration = config.get(CONF_DURATION)
-    entities = config.get(CONF_ENTITIES)
-    precision = config.get(CONF_PRECISION)
-    undef = config.get(CONF_PROCESS_UNDEF_AS)
 
     for template in [start, end]:
         if template is not None:
             template.hass = hass
 
     async_add_entities(
-        [AverageSensor(hass, name, start, end, duration, entities, precision, undef)]
+        [
+            AverageSensor(
+                hass,
+                config.get(CONF_UNIQUE_ID),
+                config.get(CONF_NAME),
+                start,
+                end,
+                config.get(CONF_DURATION),
+                config.get(CONF_ENTITIES),
+                config.get(CONF_PRECISION),
+                config.get(CONF_PROCESS_UNDEF_AS),
+            )
+        ]
     )
 
 
 # pylint: disable=r0902
-class AverageSensor(Entity):
+class AverageSensor(SensorEntity):
     """Implementation of an Average sensor."""
 
     # pylint: disable=r0913
     def __init__(
         self,
         hass: HomeAssistant,
+        unique_id: Optional[str],
         name: str,
         start,
         end,
@@ -130,17 +151,12 @@ class AverageSensor(Entity):
         undef,
     ):
         """Initialize the sensor."""
-        self._hass = hass
-        self._name = name
         self._start_template = start
         self._end_template = end
         self._duration = duration
         self._period = self.start = self.end = None
         self._precision = precision
         self._undef = undef
-        self._state = None
-        self._unit_of_measurement = None
-        self._icon = None
         self._temperature_mode = None
 
         self.sources = expand_entity_ids(hass, entity_ids)
@@ -149,18 +165,24 @@ class AverageSensor(Entity):
         self.count = 0
         self.min_value = self.max_value = None
 
-        self._unique_id = str(
-            sha1(
-                ";".join(
-                    [str(start), str(duration), str(end), ",".join(self.sources)]
-                ).encode("utf-8")
-            ).hexdigest()
+        self._attr_name = name
+        self._attr_state = None
+        self._attr_unit_of_measurement = None
+        self._attr_icon = None
+        self._attr_state_class = STATE_CLASS_MEASUREMENT
+        self._attr_device_class = None
+        #
+        self._attr_unique_id = (
+            str(
+                sha1(
+                    ";".join(
+                        [str(start), str(duration), str(end), ",".join(self.sources)]
+                    ).encode("utf-8")
+                ).hexdigest()
+            )
+            if unique_id == "__legacy__"
+            else unique_id
         )
-
-    @property
-    def unique_id(self):
-        """Return a unique ID to use for this entity."""
-        return self._unique_id
 
     @property
     def _has_period(self) -> bool:
@@ -177,33 +199,18 @@ class AverageSensor(Entity):
         return self._has_period
 
     @property
-    def name(self) -> Optional[str]:
-        """Return the name of the sensor."""
-        return self._name
-
-    @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.available_sources > 0 and self._has_state(self._state)
+        return self.available_sources > 0 and self._has_state(self._attr_state)
 
     @property
-    def state(self) -> Union[None, str, int, float]:
+    def state(self) -> StateType:
         """Return the state of the sensor."""
-        return self._state if self.available else STATE_UNAVAILABLE
+        return self._attr_state if self.available else STATE_UNAVAILABLE
 
     @property
-    def unit_of_measurement(self) -> Optional[str]:
-        """Return the unit of measurement of this entity."""
-        return self._unit_of_measurement
-
-    @property
-    def icon(self) -> Optional[str]:
-        """Return the icon to use in the frontend."""
-        return self._icon
-
-    @property
-    def device_state_attributes(self) -> Optional[Dict[str, Any]]:
-        """Return the state attributes."""
+    def extra_state_attributes(self) -> Optional[Mapping[str, Any]]:
+        """Return entity specific state attributes."""
         state_attr = {
             attr: getattr(self, attr)
             for attr in ATTR_TO_PROPERTY
@@ -218,9 +225,9 @@ class AverageSensor(Entity):
         @callback
         def sensor_state_listener(entity, old_state, new_state):
             """Handle device state changes."""
-            last_state = self._state
+            last_state = self._attr_state
             self._update_state()
-            if last_state != self._state:
+            if last_state != self._attr_state:
                 self.async_schedule_update_ha_state(True)
 
         # pylint: disable=unused-argument
@@ -230,12 +237,10 @@ class AverageSensor(Entity):
             if self._has_period:
                 self.async_schedule_update_ha_state(True)
             else:
-                async_track_state_change(
-                    self._hass, self.sources, sensor_state_listener
-                )
+                async_track_state_change(self.hass, self.sources, sensor_state_listener)
                 sensor_state_listener(None, None, None)
 
-        self._hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, sensor_startup)
+        self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, sensor_startup)
 
     @staticmethod
     def _has_state(state) -> bool:
@@ -249,7 +254,7 @@ class AverageSensor(Entity):
 
     def _get_temperature(self, state: LazyState) -> Optional[float]:
         """Get temperature value from entity."""
-        ha_unit = self._hass.config.units.temperature_unit
+        ha_unit = self.hass.config.units.temperature_unit
         domain = split_entity_id(state.entity_id)[0]
         if domain == WEATHER_DOMAIN:
             temperature = state.attributes.get("temperature")
@@ -266,8 +271,8 @@ class AverageSensor(Entity):
 
         try:
             temperature = convert_temperature(float(temperature), entity_unit, ha_unit)
-        except ValueError:
-            _LOGGER.error('Could not convert value "%s" to float', state)
+        except ValueError as exc:
+            _LOGGER.error('Could not convert value "%s" to float: %s', state, exc)
             return None
 
         return temperature
@@ -280,8 +285,8 @@ class AverageSensor(Entity):
 
         try:
             state = float(state)
-        except ValueError:
-            _LOGGER.error('Could not convert value "%s" to float', state)
+        except ValueError as exc:
+            _LOGGER.error('Could not convert value "%s" to float: %s', state, exc)
             return None
 
         self.count += 1
@@ -300,14 +305,16 @@ class AverageSensor(Entity):
             self._update_state()
 
     @staticmethod
-    def handle_template_exception(ex, field):
+    def handle_template_exception(exc, field):
         """Log an error nicely if the template cannot be interpreted."""
-        if ex.args and ex.args[0].startswith("UndefinedError: 'None' has no attribute"):
+        if exc.args and exc.args[0].startswith(
+            "UndefinedError: 'None' has no attribute"
+        ):
             # Common during HA startup - so just a warning
-            _LOGGER.warning(ex)
-            return
-        _LOGGER.error("Error parsing template for field %s", field)
-        _LOGGER.error(ex)
+            _LOGGER.warning(exc)
+
+        else:
+            _LOGGER.error('Error parsing template for field "%s": %s', field, exc)
 
     def _update_period(self):  # pylint: disable=r0912
         """Parse the templates and calculate a datetime tuples."""
@@ -315,8 +322,8 @@ class AverageSensor(Entity):
         now = dt_util.now()
 
         # Parse start
-        _LOGGER.debug("Process start template: %s", self._start_template)
         if self._start_template is not None:
+            _LOGGER.debug("Process start template: %s", self._start_template)
             try:
                 start_rendered = self._start_template.render()
             except (TemplateError, TypeError) as ex:
@@ -331,13 +338,13 @@ class AverageSensor(Entity):
                     )
                 except ValueError:
                     _LOGGER.error(
-                        "Parsing error: start must be a datetime" "or a timestamp"
+                        'Parsing error: field "start" must be a datetime or a timestamp'
                     )
                     return
 
         # Parse end
-        _LOGGER.debug("Process end template: %s", self._end_template)
         if self._end_template is not None:
+            _LOGGER.debug("Process end template: %s", self._end_template)
             try:
                 end_rendered = self._end_template.render()
             except (TemplateError, TypeError) as ex:
@@ -352,13 +359,13 @@ class AverageSensor(Entity):
                     )
                 except ValueError:
                     _LOGGER.error(
-                        "Parsing error: end must be a datetime " "or a timestamp"
+                        'Parsing error: field "end" must be a datetime or a timestamp'
                     )
                     return
 
         # Calculate start or end using the duration
-        _LOGGER.debug("Process duration: %s", self._duration)
         if self._duration is not None:
+            _LOGGER.debug("Process duration: %s", self._duration)
             if start is None:
                 if end is None:
                     end = now
@@ -366,9 +373,12 @@ class AverageSensor(Entity):
             else:
                 end = start + self._duration
 
-        _LOGGER.debug("Start: %s, End: %s", start, end)
+        _LOGGER.debug("Calculation period: start=%s, end=%s", start, end)
         if start is None or end is None:
             return
+
+        if start > end:
+            start, end = end, start
 
         if start > now:
             # History hasn't been written yet for this period
@@ -380,6 +390,27 @@ class AverageSensor(Entity):
         self._period = start, end
         self.start = start.replace(microsecond=0).isoformat()
         self.end = end.replace(microsecond=0).isoformat()
+
+    def _init_mode(self, state: LazyState):
+        """Initialize sensor mode."""
+        if self._temperature_mode is not None:
+            return
+
+        domain = split_entity_id(state.entity_id)[0]
+        self._attr_device_class = state.attributes.get(ATTR_DEVICE_CLASS)
+        self._attr_unit_of_measurement = state.attributes.get(ATTR_UNIT_OF_MEASUREMENT)
+        self._temperature_mode = (
+            self._attr_device_class == DEVICE_CLASS_TEMPERATURE
+            or domain in (WEATHER_DOMAIN, CLIMATE_DOMAIN, WATER_HEATER_DOMAIN)
+            or self._attr_unit_of_measurement in TEMPERATURE_UNITS
+        )
+        if self._temperature_mode:
+            _LOGGER.debug("%s is a temperature entity.", state.entity_id)
+            self._attr_device_class = DEVICE_CLASS_TEMPERATURE
+            self._attr_unit_of_measurement = self.hass.config.units.temperature_unit
+        else:
+            _LOGGER.debug("%s is NOT a temperature entity.", state.entity_id)
+            self._attr_icon = state.attributes.get(ATTR_ICON)
 
     def _update_state(self):  # pylint: disable=r0914,r0912,r0915
         """Update the sensor state."""
@@ -425,29 +456,13 @@ class AverageSensor(Entity):
         for entity_id in self.sources:
             _LOGGER.debug('Processing entity "%s"', entity_id)
 
-            state = self._hass.states.get(entity_id)  # type: LazyState
+            state = self.hass.states.get(entity_id)  # type: LazyState
 
             if state is None:
                 _LOGGER.error('Unable to find an entity "%s"', entity_id)
                 continue
 
-            if self._temperature_mode is None:
-                domain = split_entity_id(state.entity_id)[0]
-                self._temperature_mode = (
-                    domain in (WEATHER_DOMAIN, CLIMATE_DOMAIN, WATER_HEATER_DOMAIN)
-                    or state.attributes.get(ATTR_UNIT_OF_MEASUREMENT)
-                    in TEMPERATURE_UNITS
-                )
-                if self._temperature_mode:
-                    _LOGGER.debug("%s is a temperature entity.", entity_id)
-                    self._unit_of_measurement = self._hass.config.units.temperature_unit
-                    self._icon = "mdi:thermometer"
-                else:
-                    _LOGGER.debug("%s is NOT a temperature entity.", entity_id)
-                    self._unit_of_measurement = state.attributes.get(
-                        ATTR_UNIT_OF_MEASUREMENT
-                    )
-                    self._icon = state.attributes.get(ATTR_ICON)
+            self._init_mode(state)
 
             value = 0
             elapsed = 0
@@ -509,7 +524,9 @@ class AverageSensor(Entity):
                 self.available_sources += 1
 
         if values:
-            self._state = round(sum(values) / len(values), self._precision)
+            self._attr_state = round(sum(values) / len(values), self._precision)
+            if self._precision < 1:
+                self._attr_state = int(self._attr_state)
         else:
-            self._state = None
-        _LOGGER.debug("Total average state: %s", self._state)
+            self._attr_state = None
+        _LOGGER.debug("Total average state: %s", self._attr_state)

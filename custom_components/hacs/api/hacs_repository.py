@@ -1,11 +1,11 @@
 """API Handler for hacs_repository"""
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
 from aiogithubapi import AIOGitHubAPIException
 from homeassistant.components import websocket_api
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 
-from custom_components.hacs.helpers.functions.logger import getLogger
 from custom_components.hacs.share import get_hacs
+from custom_components.hacs.utils.logger import getLogger
 
 
 @websocket_api.async_response
@@ -33,7 +33,7 @@ async def hacs_repository(hass, connection, msg):
         logger.debug(f"Running {action} for {repository.data.full_name}")
 
         if action == "update":
-            await repository.update_repository(True)
+            await repository.update_repository(ignore_issues=True, force=True)
             repository.status.updated_info = True
 
         elif action == "install":

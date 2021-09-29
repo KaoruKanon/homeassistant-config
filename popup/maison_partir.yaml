@@ -10,4 +10,7 @@
                       name: Automation home présence
 
                     - entity: automation.turn_off_gps_papa_absence
-                      name: Automation ordinateur papa
+                      name: Automation Ordinateur Abscence papa
+
+                    - entity: automation.turn_off_gps_william_absence
+                      name: Automation Abscence William

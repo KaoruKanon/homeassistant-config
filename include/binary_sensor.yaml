@@ -1,0 +1,84 @@
+binary_sensor:
+
+    ####################################################
+    #                                                  #
+    #                      BINARY                      #
+    #                                                  #
+    ###################################################
+
+
+  - platform: command_line
+    name: plex_availability
+    command: !secret plex_availability
+    scan_interval: 300
+    payload_on: 'on'
+    payload_off: 'off'
+
+  - platform: command_line
+    name: deluge_availability
+    command: !secret deluge_availability
+    scan_interval: 300
+    payload_on: 'on'
+    payload_off: 'off'
+
+  - platform: command_line
+    name: nextcloud_availability
+    command: !secret nextcloud_availability
+    scan_interval: 300
+    payload_on: 'on'
+    payload_off: 'off'
+
+  - platform: command_line
+    name: grafana_availability
+    command: !secret grafana_availability
+    scan_interval: 300
+    payload_on: 'on'
+    payload_off: 'off'
+
+  - platform: ping
+    name: rpi_internet_access
+    host: 8.8.8.8
+
+  - platform: ping
+    name: ping_gateway
+    host: 192.168.1.100
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_oneplus_8_pro
+    host: 192.168.1.115
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_samsung_s10e
+    host: 192.168.1.150
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_shiro
+    host: 192.168.1.200
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_dlink_wifi
+    host: 192.168.1.250
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_switch
+    host: 192.168.1.253
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_bbox
+    host: 192.168.1.254
+    scan_interval: 30
+
+  - platform: mqtt
+    name: computer_rig_kaoru_connected
+    state_topic: "iotlink/workgroup/rig-kaoru/lwt"
+    value_template: "{{ value }}"
+    payload_on: "ON"
+    payload_off: "OFF"
+    device_class: "connectivity"
+    qos: 1

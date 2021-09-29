@@ -1,0 +1,18 @@
+shell_command:
+
+  ####################################################
+  #                                                  #
+  #                  SHELL COMMAND                   #
+  #                                                  #
+  ####################################################
+
+
+  ha_dockermon_restart_container: !secret ha_dockermon_restart_container
+  clear_logs: truncate -s 0 /config/home-assistant.log
+
+  ha_update: !secret ha_update
+
+  google_home_get_token: !secret google_home_get_token
+  enedis_update_data: !secret enedis_update_data
+
+  bbox_update_data: !secret bbox_update_data

@@ -1,0 +1,109 @@
+              action: fire-dom-event
+              browser_mod:
+                command: popup
+                title: "Xiaomi Smart Fan 2"
+                card:
+                  type: vertical-stack
+                  cards:
+                    - type: entities
+                      state_color: true
+                      card_mod:
+                        class: content
+                      entities:
+
+                        - entity: fan.xiaomi_smart_fan_2
+                          secondary_info: last-changed
+
+                        - type: custom:slider-entity-row
+                          entity: input_number.fan_speed
+                          hide_state: false
+
+                        - type: custom:slider-entity-row
+                          entity: input_number.fan_timer
+                          hide_state: false
+
+                        # - entity: input_select.fan_timer
+
+                        - entity: switch.fan_oscillate
+
+                        - entity: switch.fan_eco_mode
+
+                        - entity: switch.fan_buzzer
+
+                        - type: custom:hui-horizontal-stack-card
+                          cards:
+                            - type: custom:button-card
+                              name: "+5° gauche"
+                              icon: mdi:reload
+                              tap_action:
+                                action: call-service
+                                service: fan.set_direction
+                                service_data:
+                                  direction: forward
+                                  entity_id: fan.xiaomi_smart_fan_2
+                              template: icon_name
+                              styles:
+                                card:
+                                  - margin-left: 28px
+
+                            - type: custom:button-card
+                              name: "+5° droite"
+                              icon: mdi:reload
+                              tap_action:
+                                action: call-service
+                                service: fan.set_direction
+                                service_data:
+                                  direction: reverse
+                                  entity_id: fan.xiaomi_smart_fan_2
+                              template: icon_name
+                              styles:
+                                card:
+                                  - margin-left: 10px
+
+                    - type: custom:mini-graph-card
+                      entities:
+                        - color: '#385581'
+                          entity: sensor.average_temperature
+                      name: Temperature Maison
+                      line_width: 8
+                      hour24: true
+                      group: true
+                      align_icon: left
+                      align_state: right
+                      align_header: left
+                      hours_to_show: 24
+                      show:
+                        {fill: fade, icon: true, name: true, state: true,
+                        name_adaptive_color: false, labels: hover, legend: false}
+                      style: |
+                        ha-card {
+                          border-radius: 0.35em;
+                          background: none;
+                          box-shadow: none;
+                          margin-top: -0.4em;
+                        }
+                        .name > span,
+                        .state > span.state__value.ellipsis,
+                        .state > span.state__uom.ellipsis {
+                          font-size: 14px !important;
+                          font-weight: 400 !important;
+                          opacity: 1 !important;
+                        }
+                        .name > span {
+                          margin-left: 16px !important;
+                        }
+                        .icon {
+                          margin-left: 36px !important;
+                        }
+                        .state {
+                          margin-top: -36px;
+                          margin-right: 33px;
+                        }
+                        .state > span.state__uom.ellipsis {
+                          margin-top: -3px;
+                        }
+                        .state > div {
+                          opacity: 0;
+                        }
+                      tap_action:
+                        action: none

@@ -185,6 +185,16 @@ script:
       - service: homeassistant.update_entity
         entity_id: binary_sensor.monitors_mute_check
 
+  refresh_kwh_consumption:
+    sequence:
+      - service: browser_mod.toast
+        data:
+          message: Rafraîchissement de la consommation...
+      - service: homeassistant.update_entity
+        target:
+          entity_id: sensor.myenedis_01134587449350
+      - service: shell_command.enedis_update_data
+
   homeassistant_restart:
     sequence:
       - service: browser_mod.toast
@@ -224,40 +234,6 @@ script:
             ['exit_15', 'settings_1', 'down_2', 'down_2' , 'down_2', 'enter_5', 'down_2', 'down_2', 'down_2',
             'down_2', 'enter_5', 'enter_5', 'down_2', 'down_2', 'enter_5', 'exit_15', 'exit_15']
 
-  kaoru_find_my_iphone:
-    sequence:
-      - repeat:
-          count: 3
-          sequence:
-            - service: notify.mobile_app_oneplus_8_pro
-              data:
-                title: Trouver mon téléphone
-                message: TTS
-                data:
-                  ttl: 0
-                  priority: high
-                  channel: alarm_stream_max
-            - delay:
-                seconds: 4
-
-  papa_find_my_iphone:
-    sequence:
-      - repeat:
-          count: 3
-          sequence:
-            - service: notify.mobile_app_samsung_s10e
-              data:
-                title: Trouver mon téléphone
-                message: Je suis ici
-                data:
-                  push:
-                    sound:
-                      name: Ringtone_UK_Haptic.caf
-                      critical: 1
-                      volume: 1.0
-            - delay:
-                seconds: 4
-
   trigerred_snapshot:
     sequence:
       - service: hassio.snapshot_full
@@ -294,30 +270,27 @@ script:
                   '/local/sound/tts_custom/french/salut.mp3',
                   '/local/sound/tts_custom/french/wesh.mp3'] | random }}
                 media_content_type: music #Petit délire avec le wesh
-      - choose:
-        - conditions:
-            - condition: state
-              entity_id: sun.sun
-              state: below_horizon
-          sequence:
-            - service: scene.turn_on
-              data:
-                entity_id: scene.hemma_below_horizon
-        default:
-          - service: scene.turn_on
-            data:
-              entity_id: scene.hemma_above_horizon
-      - delay:
-          seconds: 4
+      # - choose:
+      #   - conditions:
+      #       - condition: state
+      #         entity_id: sun.sun
+      #         state: below_horizon
+      #     sequence:
+      #       - service: scene.turn_on
+      #         data:
+      #           entity_id: scene.hemma_below_horizon
+      #   default:
+      #     - service: scene.turn_on
+      #       data:
+      #         entity_id: scene.hemma_above_horizon
+      # - delay:
+      #     seconds: 4
 
   home_leave:
     alias: Partir
     sequence:
       - choose:
         - conditions:
-            - condition: state
-              entity_id: switch.lenovotab_screen
-              state: 'on'
             - condition: state
               entity_id: switch.lenovotab_screensaver
               state: 'off'

@@ -25,30 +25,30 @@ input_boolean:
   samsung_tv_remote:
     initial: off
 
-  krisinformation_visibility:
-  laundry_timer_visibility:
-
-  sovrum_anslut_oscillate:
-    name: Oscillera
-    icon: mdi:arrow-left-right
+  # krisinformation_visibility:
+  # laundry_timer_visibility:
+  #
+  # sovrum_anslut_oscillate:
+  #   name: Oscillera
+  #   icon: mdi:arrow-left-right
 
   computer_rig_kaoru_lock:
-    name: Verrouillage 
+    name: Verrouillage
     icon: custom:lock
 
   computer_papa_lock:
-    name: Verrouillage 
+    name: Verrouillage
     icon: custom:lock
 
-  motion_hall:
-    name: hallen
-    initial: off
-  motion_garderob:
-    name: klädkammaren
-    initial: off
-  motion_badrum:
-    name: badrummet
-    initial: off
+  # motion_hall:
+  #   name: hallen
+  #   initial: off
+  # motion_garderob:
+  #   name: klädkammaren
+  #   initial: off
+  # motion_badrum:
+  #   name: badrummet
+  #   initial: off
 
 input_number:
 
@@ -105,6 +105,24 @@ input_number:
   #   step: 1
   #   unit_of_measurement: 'h'
 
+  fan_speed:
+    icon: mdi:fan-speed-up
+    name: Vitesse
+    initial: 25
+    min: 1
+    max: 100
+    step: 1
+
+
+  fan_timer:
+    icon: mdi:timer
+    name: Timer
+    initial: 0
+    min: 0
+    max: 480
+    step: 1
+
+
 input_select:
 
   ####################################################
@@ -144,9 +162,15 @@ input_select:
   #     ['Ingen vald', 'Hall', 'Kök', 'Vardagsrum', 'Studio', 'Sovrum']
 
   conditional_media:
-    initial: Senast nedladdat
+    initial: Récemment ajouté
     options:
-      ['Senast nedladdat', 'Cuisine', 'Chambre', 'Spotify', 'Bouygues4K']
+      ['Récemment ajouté', 'Cuisine', 'Chambre', 'Spotify', 'Bouygues4K', 'OP8', 'Chrome']
+
+  # fan_timer:
+  #   initial: 0
+  #   options:
+  #     ['0','60','120','180','240','300','360','420','480']
+  #   icon: mdi:timer
 
 lock:
 

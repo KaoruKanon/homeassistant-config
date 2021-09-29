@@ -13,12 +13,21 @@ class HacsCategory(str, Enum):
     THEME = "theme"
     REMOVED = "removed"
 
+    def __str__(self):
+        return str(self.value)
+
+
+class ConfigurationType(str, Enum):
+    YAML = "yaml"
+    CONFIG_ENTRY = "config_entry"
+
 
 class LovelaceMode(str, Enum):
     """Lovelace Modes."""
 
     STORAGE = "storage"
     AUTO = "auto"
+    AUTO_GEN = "auto-gen"
     YAML = "yaml"
 
 
@@ -37,3 +46,12 @@ class HacsSetupTask(str, Enum):
     HACS_REPO = "Hacs Repository"
     CATEGORIES = "Additional categories"
     CLEAR_STORAGE = "Clear storage"
+
+
+class HacsDisabledReason(str, Enum):
+    RATE_LIMIT = "rate_limit"
+    REMOVED = "removed"
+    INVALID_TOKEN = "invalid_token"
+    CONSTRAINS = "constrains"
+    LOAD_HACS = "load_hacs"
+    RESTORE = "restore"

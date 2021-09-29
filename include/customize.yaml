@@ -15,12 +15,30 @@ homeassistant:
 
     binary_sensor.plex_availability:
       icon: mdi:plex
+      friendly_name: Plex
 
-    sensor.synology_maximum_disk_temp_volume_1:
-      friendly_name: Disktemperatur
+    binary_sensor.deluge_availability:
+      icon: custom:deluge
+      friendly_name: Deluge
 
-    sensor.hall_temperature:
-      friendly_name: Température
+    binary_sensor.grafana_availability:
+      icon: custom:grafana
+      friendly_name: Grafana
+
+    binary_sensor.nextcloud_availability:
+      icon: mdi:cloud
+      friendly_name: Nextcloud
+
+    sensor.myip:
+      friendly_name: IP Publique
+      icon: mdi:web
+
+    # sensor.synology_maximum_disk_temp_volume_1:
+    #   friendly_name: Disktemperatur
+    #
+    # sensor.hall_temperature:
+    #   friendly_name: Température
+
 
     sensor.processor_temperature:
       icon: mdi:thermometer
@@ -28,15 +46,19 @@ homeassistant:
     sensor.processor_use:
       icon: mdi:chip
 
-    sensor.aktuellt_spotpris:
-      icon: mdi:home-currency-usd
+    # sensor.aktuellt_spotpris:
+    #   icon: mdi:home-currency-usd
 
     sensor.fullykiosk:
       icon: mdi:tablet-dashboard
 
     sensor.docker_cpu:
-      friendly_name: Processeur
+      friendly_name: Docker CPU
       icon: mdi:chip
+
+    sensor.template_dockermon_mem:
+      friendly_name: Docker Mem
+      icon: mdi:memory
 
     sensor.docker_uptime:
       friendly_name: Dernier rédémarrage
@@ -44,6 +66,10 @@ homeassistant:
 
     sensor.last_boot:
       icon: mdi:calendar-clock
+
+    sensor.OS_version:
+      friendly_name: OS
+      icon: mdi:linux
 
     ### William computer ###
     sensor.computer_rig_kaoru_uptime:
@@ -121,16 +147,10 @@ homeassistant:
 
     #media_player
 
-    # media_player.sony_bravia:
-    #   friendly_name: Tv
-    #   device_class: tv
-    #   source_list: ['HDMI 1', 'HDMI 2/MHL', 'HDMI 3', 'HDMI 4']
-
     media_player.samsung_tv_remote:
       friendly_name: "TV"
       device_class: tv
       source_list: ['TV', 'HDMI1', 'HDMI2', 'HDMI3']
-
 
     #person
 
@@ -144,6 +164,13 @@ homeassistant:
 
     person.papa:
       entity_picture: '/local/papa.jpg'
+
+    # media_player
+    media_player.plex_plex_web_chrome:
+      friendly_name: Chrome
+
+    media_player.plex_plex_for_android_mobile_in2023:
+      friendly_name: OP8
 
     #light
 
@@ -204,9 +231,9 @@ homeassistant:
     # automation.tv_on_lights:
     #   friendly_name: Tänd Tv-lampa
 
-    automation.macos_notification_motion_hall:
-      friendly_name: Mottag notiser
-      icon: mdi:bell
+    # automation.macos_notification_motion_hall:
+    #   friendly_name: Mottag notiser
+    #   icon: mdi:bell
 
     # automation.turn_off_monitors:
     #   friendly_name: Stäng av när dator stängs av

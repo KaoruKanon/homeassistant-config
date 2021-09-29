@@ -1,497 +1,170 @@
 button_card_templates: !include button_card_templates.yaml
 
-##########################################################################
-#                                                                        #
-#                              * LOVELACE *                              #
-#                                                                        #
-##########################################################################
-
 views:
-  - title: Maison
-    panel: true
-    path: default_view
+  - type: custom:grid-layout
+    path: 0
+    layout:
+      #default
+      grid-gap: var(--custom-layout-card-padding)
+      grid-template-columns: repeat(4, 1fr) 0
+      grid-template-rows: 0 repeat(2, fit-content(100%)) 0fr
+      grid-template-areas: |
+        "sidebar  .           .       .       ."
+        "sidebar  salon  william  temperature  ."
+        "sidebar  media       autres  maison   ."
+        "sidebar  footer      footer  footer  ."
+      mediaquery:
+        #phone
+        "(max-width: 800px)":
+          grid-gap: calc(var(--custom-layout-card-padding) * 1.5)
+          grid-template-columns: 0 repeat(2, 1fr) 0
+          grid-template-rows: 0 repeat(5, fit-content(100%)) 0fr
+          grid-template-areas: |
+            ".  .           .        ."
+            ".  sidebar     sidebar  ."
+            ".  salon       temperature   ."
+            ".  william     autres   ."
+            ".  media       maison    ."
+            ".  footer      footer   ."
+            ".  .           .        ."
+        #portrait
+        "(max-width: 1200px)":
+          grid-gap: var(--custom-layout-card-padding)
+          grid-template-columns: repeat(3, 1fr) 0
+          grid-template-rows: 0 repeat(3, fit-content(100%)) 0fr
+          grid-template-areas: |
+            "sidebar  .           .       ."
+            "sidebar  salon       temperature  ."
+            "sidebar  william      autres  ."
+            "sidebar  media       maison   ."
+            "sidebar  footer      footer  ."
+            "sidebar  .           .       ."
     cards:
-      - type: picture-elements
-        image: /local/background.png
-        theme: tablet
-        elements:
 
-          #################################################
-          #                                               #
-          #                   UNDERBAR                    #
-          #                                               #
-          #################################################
+      - type: custom:button-card #extra_styles fix
 
-          - type: custom:hui-element
-            card_type: markdown
-            style:
-              top: 93.65%
-              left: 70.2%
-            content: >
+      #################################################
+      #                                               #
+      #                    SIDEBAR                    #
+      #                                               #
+      #################################################
 
-                {% set break = ' ‍ ‍ ‍ ‍ ‍ ‍<font color="#2f3436">|</font> ‍ ‍ ‍ ‍ ‍ ‍' %}
-                {% set lights = [states.light.salon_1, states.light.salon_2, states.light.plafond_1, states.light.plafond_2,
-                states.light.yeelight_stripe, states.light.lampe_japonaise] %}
-                {% set lights_on = lights | selectattr('state','eq','on') | list %}
-                <font color='#6a7377'>
-                <ha-icon icon="mdi:alarm"></ha-icon> <b> {{ states('sensor.next_timer_human') }}</b>{{ break -}}
-                <ha-icon icon="mdi:home-thermometer-outline"></ha-icon> <b>  {{ states('sensor.average_temperature') | round }}</b>°C / <b>  {{ states('sensor.average_humidity') | round }}</b>% {{ break -}}
-                <ha-icon icon="mdi:weather-cloudy"></ha-icon> <b>{{ state_attr('weather.villeneuve_d_ascq', 'temperature') }}</b>°C {{ break -}}
-                <ha-icon icon="mdi:lightbulb"></ha-icon> <b> {{ lights_on | length }} </b>{{ break -}}
-                </font>
-            card_mod:
-              class: markdown-covid19
-              style:
-                .: |
-                  ha-markdown {
-                    padding: 0 !important;
-                  }
-                ha-markdown:
-                  $: |
-                    ha-markdown-element {
-                      opacity: 0.6;
-                    }
-                    ha-markdown-element > font > ha-icon {
-                      vertical-align: 3%;
-                      opacity: 0.4;
-                    }
+      - type: vertical-stack
+        view_layout:
+          grid-area: sidebar
+        cards:
+          - type: custom:button-card
+            entity: sensor.template_sidebar
+            template: sidebar_template
 
-          ##########################################################################
-          #                                                                        #
-          #                              * SIDEBAR *                               #
-          #                                                                        #
-          ##########################################################################
+          - type: conditional
+            conditions:
+              - entity: input_boolean.laundry_display
+                state: 'on'
+            card:
+              type: custom:button-card
+              entity: timer.laundry
+              template: laundry
 
-          - type: image
-            image: local/sidebar.png
-            style:
-              top: 49.24%
-              left: 10.6%
-              width: 21.5%
-              pointer-events: none
-              border-right: 2px solid rgba(58,69,73,0.2)
-            card_mod:
-              style:
-                hui-image$div: |
-                  #brokenImage {
-                    opacity: 0 !important;
-                  }
+          - type: grid
+            cards:
 
-          #################################################
-          #                                               #
-          #                   MARKDOWN                    #
-          #                                               #
-          #################################################
+              - type: button
+                icon: custom:bus
+                tap_action: !include popup/sidebar_bus.yaml
+                hold_action:
+                  action: none
 
-          - type: custom:hui-element
-            card_type: markdown
-            style:
-              top: 9%
-              left: 11.1%
-            card_mod:
-              class: markdown-sidebar
-              style:
-                .: |
-                  ha-markdown {
-                    padding: 0 !important;
-                  }
-                ha-markdown:
-                  $: |
-                    :host {
-                      opacity: 0.9;
-                    }
-                    ha-markdown-element > p > span {
-                      font-family: SF Text;
-                      font-size: 5vw;
-                      font-weight: 200;
-                      margin-left: -0.3vw;
-                      letter-spacing: -0.05vw;
-                    }
-                    ha-markdown-element > p > span > span {
-                      position: relative;
-                      top: -.09em;
-                    }
+              - type: button
+                icon: custom:qr-code
+                tap_action: !include popup/sidebar_qr_wifi.yaml
+                hold_action:
+                  action: none
 
-            content: >
-              <span>{{ states('sensor.time') }}</span>
+              - type: button
+                icon: custom:check-network
+                tap_action: !include popup/sidebar_monitoring_battery.yaml
+                hold_action:
+                  action: none
+
+              - type: button
+                icon: mdi:information-outline
+                tap_action: !include popup/sidebar_information.yaml
+                hold_action:
+                  action: none
+
+              - type: button
+                icon: mdi:arrow-up-bold-circle-outline
+                tap_action: !include popup/sidebar_update.yaml
+                hold_action:
+                  action: call-service
+                  service: homeassistant.update_entity
+                  service_data:
+                    entity_id: sensor.hacs
 
 
-              <font color='#6a7377'><b>{{ states('sensor.sidebar_day') }}</b><br>
-              <b>{{ states('sensor.sidebar_date') }}</b> </font><br>
+      #################################################
+      #                                               #
+      #                  SALON (ex VARDAGSRUM)        #
+      #                                               #
+      #################################################
 
-
-              <b>{{ states('sensor.sidebar_greeting') }}</b>
-
-
-              <font color='#6a7377'>
-              {{ states('sensor.sidebar_weather') }}.
-
-              Il fait {{ states('sensor.average_temperature') | round}}°C dans la maison.
-
-
-              {{ states('sensor.sidebar_active') }}
-
-
-              {% if is_state('binary_sensor.plex_availability', 'off') %}
-              {{'\u26A0\uFE0F'}} Plex est éteint...{% endif %}
-
-
-              {% if is_state('binary_sensor.rpi_internet_access', 'off') %}
-              {{'\u26A0\uFE0F'}} Vérifier l'accès Internet{% endif %}
-              </font>
-
-          #################################################
-          #                                               #
-          #              QR CODE WIFI BUTTON              #
-          #                                               #
-          #################################################
-
-          - type: icon
-            icon: custom:qr-code
-            title: null
-            style:
-              top: 87.41%
-              left: 4.8%
-            tap_action:
-              !include popup/sidebar_qr_wifi.yaml
-            hold_action:
-              action: none
-
-          #################################################
-          #                                               #
-          #                  INFO BUTTON                  #
-          #                                               #
-          #################################################
-
-          - type: icon
-            icon: mdi:information-outline
-            title: null
-            style:
-              top: 87.41%
-              left: 10.7%
-            tap_action:
-              !include popup/sidebar_information.yaml
-            hold_action:
-              action: none
-
-          #################################################
-          #                                               #
-          #                UPDATES BUTTON                 #
-          #                                               #
-          #################################################
-
-          - type: icon
-            icon: mdi:arrow-up-bold-circle-outline
-            title: null
-            style:
-              top: 87.41%
-              left: 16.55%
-            tap_action:
-              !include popup/sidebar_update.yaml
-            hold_action:
-              action: call-service
-              service: homeassistant.update_entity
-              service_data:
-                entity_id: sensor.hacs
-            card_mod:
-              style: |
-                :host {
-                  {% if is_state('binary_sensor.sidebar_update_color', 'on') %}
-                    color: rgb(35,78,106) !important;
-                    opacity: 1 !important;
-                  {% endif %}
-                  }
-
-          ##########################################################################
-          #                                                                        #
-          #                             * SALON *                                  #
-          #                                                                        #
-          ##########################################################################
-
-          - type: state-label
-            entity: sensor.placeholder
-            attribute: salon
-            style:
-              top: 9.15%
-              left: 25.4%
-
-          #################################################
-          #                                               #
-          #                  Salon 1                      #
-          #                                               #
-          #################################################
+      - type: grid
+        title: Salon
+        view_layout:
+          grid-area: salon
+        columns: 2
+        cards:
 
           - type: custom:button-card
             entity: light.salon_1
             name: Salon 1
-            style:
-              top: 20.35%
-              left: 30.31%
-              width: 10%
             template:
               - light
               - icon_hue
-
-          #################################################
-          #                                               #
-          #                   Salon 2                     #
-          #                                               #
-          #################################################
 
           - type: custom:button-card
             entity: light.salon_2
             name: Salon 2
-            style:
-              top: 20.35%
-              left: 41.31%
-              width: 10%
             template:
               - light
               - icon_hue
-
-          #################################################
-          #                                               #
-          #                 group salon                   #
-          #                                               #
-          #################################################
 
           - type: custom:button-card
-            entity: light.salon
-            name: GROUP
-            style:
-              top: 37.9%
-              left: 30.31%
-              width: 10%
+            entity: light.salon #hue_group
+            name: SALON
             template:
               - light
               - icon_hue
-
-          #################################################
-          #                                               #
-          #               computer papa                   #
-          #                                               #
-          #################################################
 
           - type: custom:button-card
             entity: switch.computer_papa
+            name: Papa
             triggers_update:
-              - input_boolean.computer_papa
-              - input_boolean.computer_papa_lock
+              - lock.papa_computer_lock
               - script.home_leave
-            style:
-              top: 37.9%
-              left: 41.31%
-              width: 10%
             hold_action:
-              !include popup/computer_papa.yaml
-            double_tap_action:
               !include popup/computer_papa.yaml
             template:
               - base
               - icon_imac
               - loader
-              - computer_lock
+              - lock_computer_papa
 
-          ##########################################################################
-          #                                                                        #
-          #                          * CHAMBRE WILLIAM *                           #
-          #                                                                        #
-          ##########################################################################
+      #################################################
+      #                                               #
+      #                    WILLIAM (ex STUDIO)        #
+      #                                               #
+      #################################################
 
-          - type: state-label
-            entity: sensor.placeholder
-            attribute: william
-            style:
-              top: 9.15%
-              left: 50.2%
-
-          - type: custom:swipe-card
-            start_card: 1
-            reset_after: 10
-            parameters:
-              roundLengths: true
-              effect: coverflow
-              speed: 650
-              spaceBetween: 20
-              threshold: 7
-              coverflowEffect:
-                rotate: 80
-                depth: 300
-            style:
-              top: 12.30%
-              left: 60.7%
-              width: 20.97%
-              height: 1px
-              --ha-card-border-radius: .88vw
-            cards:
-
-              - type: picture-elements
-                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' /%3E"
-                elements:
-
-                #################################################
-                #                                               #
-                #                 group bureau                  #
-                #                                               #
-                #################################################
-
-                - type: custom:button-card
-                  entity: light.bureau
-                  name: BUREAU
-                  style:
-                    top: 23.9%
-                    left: 23.8%
-                    width: 47.7%
-                  template:
-                    - light
-                    - icon_hue
-
-                #################################################
-                #                                               #
-                #               group plafond                   #
-                #                                               #
-                #################################################
-
-                - type: custom:button-card
-                  entity: light.plafond
-                  name: PLAFOND
-                  style:
-                    top: 23.9%
-                    left: 76.2%
-                    width: 47.7%
-                  template:
-                    - light
-                    - icon_hue
-
-                #################################################
-                #                                               #
-                #                group chambre                  #
-                #                                               #
-                #################################################
-
-                - type: custom:button-card
-                  entity: light.chambre
-                  name: CHAMBRE
-                  style:
-                    top: 76.2%
-                    left: 23.8%
-                    width: 47.7%
-                  template:
-                    - light
-                    - icon_hue
-
-                #################################################
-                #                                               #
-                #                Kaoru computer                 #
-                #                                               #
-                #################################################
-
-                - type: custom:button-card
-                  entity: switch.computer_rig_kaoru
-                  triggers_update:
-                    - input_boolean.computer_rig_kaoru
-                    - input_boolean.computer_rig_kaoru_lock
-                  style:
-                    top: 76.2%
-                    left: 76.2%
-                    width: 47.7%
-                  hold_action:
-                    !include popup/computer_rig_kaoru.yaml
-                  double_tap_action:
-                    !include popup/computer_rig_kaoru.yaml
-                  template:
-                    - base
-                    - icon_imac
-                    - loader
-                    - computer_lock
-
-              - type: picture-elements
-                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' /%3E"
-                elements:
-
-                #################################################
-                #                                               #
-                #                   LED                         #
-                #                                               #
-                #################################################
-
-                - type: custom:button-card
-                  entity: light.yeelight_stripe
-                  name: LED
-                  style:
-                    top: 23.9%
-                    left: 23.8%
-                    width: 47.7%
-                  template:
-                    - light
-                    - icon_hue
-
-                #################################################
-                #                                               #
-                #                lampe japonaise                #
-                #                                               #
-                #################################################
-
-                - type: custom:button-card
-                  entity: light.lampe_japonaise
-                  name: Lanterne
-                  style:
-                    top: 23.9%
-                    left: 76.2%
-                    width: 47.7%
-                  template:
-                    - light
-                    - icon_shade
-
-                #################################################
-                #                                               #
-                #                   plafond 1                   #
-                #                                               #
-                #################################################
-
-                - type: custom:button-card
-                  entity: light.plafond_1
-                  name: Plafond 1
-                  style:
-                    top: 76.2%
-                    left: 23.8%
-                    width: 47.7%
-                  template:
-                    - light
-                    - icon_hue
-
-                #################################################
-                #                                               #
-                #                  plafond 2                    #
-                #                                               #
-                #################################################
-
-                - type: custom:button-card
-                  entity: light.plafond_2
-                  name: Plafond 2
-                  style:
-                    top: 76.2%
-                    left: 76.2%
-                    width: 47.7%
-                  template:
-                    - light
-                    - icon_hue
-
-          ##########################################################################
-          #                                                                        #
-          #                               * TEMPERATURE *                          #
-          #                                                                        #
-          ##########################################################################
-
-          - type: state-label
-            entity: sensor.placeholder
-            attribute: temperature
-            style:
-              top: 9.15%
-              left: 75.1%
+      - type: grid
+        title: William
+        view_layout:
+          grid-area: william
+        columns: 1
+        cards:
 
           - type: custom:swipe-card
-            reset_after: 10
             start_card: 1
             parameters:
               roundLengths: true
@@ -502,227 +175,236 @@ views:
               coverflowEffect:
                 rotate: 80
                 depth: 300
-            style:
-              top: 12.55%
-              left: 85.8%
-              width: 20.97%
-              height: 1px
-              --ha-card-border-radius: .88vw
             cards:
 
-              - type: picture-elements
-                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' /%3E"
-                elements:
+              - type: grid
+                columns: 2
+                cards:
 
-                  #################################################
-                  #                                               #
-                  #             temperature William               #
-                  #                                               #
-                  #################################################
-                  - type: custom:mini-graph-card
-                    entities:
-                      - color: '#0066ff'
-                        entity: sensor.temperature_chambre_william
-                    style:
-                      top: 23.9%
-                      left: 23.8%
-                      width: 47.7%
-                      height: 47.7%
-                    height: 325
-                    line_width: 12
-                    align_state: left
-                    group: false
-                    lower_bound: 18
-                    points_per_hour: 2
-                    hour24: true
-                    hours_to_show: 12
-                    show:
-                      {fill: fade, icon: false, name: false, state: false, name_adaptive_color: true, legend: false, points: false, labels: false}
                   - type: custom:button-card
-                    entity: sensor.temperature_chambre_william
-                    name: William
-                    style:
-                      top: 23.9%
-                      left: 23.8%
-                      width: 47.7%
-                    hold_action: !include popup/temperature_chambre_william.yaml
-                    tap_action: !include popup/temperature_chambre_william.yaml
+                    entity: light.bureau
+                    name: BUREAU
                     template:
-                      - thermometre
-                      - icon_thermometre
+                      - light
+                      - icon_hue
 
-                  #################################################
-                  #                                               #
-                  #             temperature papa                  #
-                  #                                               #
-                  #################################################
-                  - type: custom:mini-graph-card
-                    entities:
-                      - color: '#2ee615'
-                        entity: sensor.temperature_chambre_papa
-                    style:
-                      top: 23.9%
-                      left: 76.2%
-                      width: 47.7%
-                      height: 47.7%
-                    height: 325
-                    line_width: 12
-                    align_state: left
-                    group: false
-                    lower_bound: 18
-                    points_per_hour: 2
-                    hour24: true
-                    hours_to_show: 12
-                    show:
-                      {fill: fade, icon: false, name: false, state: false, name_adaptive_color: true, legend: false, points: false, labels: false}
                   - type: custom:button-card
-                    entity: sensor.temperature_chambre_papa
-                    name: Papa
-                    style:
-                      top: 23.9%
-                      left: 76.2%
-                      width: 47.7%
-                    tap_action: !include popup/temperature_chambre_papa.yaml
-                    hold_action: !include popup/temperature_chambre_papa.yaml
+                    entity: light.plafond
+                    name: PLAFOND
                     template:
-                      - thermometre
-                      - icon_thermometre
+                      - light
+                      - icon_hue
 
-                  #################################################
-                  #                                               #
-                  #             temperature salon                 #
-                  #                                               #
-                  #################################################
-
-                  - type: custom:mini-graph-card
-                    entities:
-                      - color: '#ff3300'
-                        entity: sensor.temperature_salon
-                    style:
-                      top: 76.2%
-                      left: 23.8%
-                      width: 47.7%
-                      height: 47.7%
-                    height: 325
-                    line_width: 12
-                    align_state: left
-                    group: false
-                    lower_bound: 18
-                    points_per_hour: 2
-                    hour24: true
-                    hours_to_show: 12
-                    show:
-                      {fill: fade, icon: false, name: false, state: false, name_adaptive_color: true, legend: false, points: false, labels: false}
                   - type: custom:button-card
-                    entity: sensor.temperature_salon
-                    name: Salon
-                    style:
-                      top: 76.2%
-                      left: 23.8%
-                      width: 47.7%
-                    tap_action: !include popup/temperature_salon.yaml
-                    hold_action: !include popup/temperature_salon.yaml
+                    entity: light.chambre
+                    name: CHAMBRE
                     template:
-                      - thermometre
-                      - icon_thermometre
+                      - light
+                      - icon_hue
 
-                  #################################################
-                  #                                               #
-                  #             temperature cuisine               #
-                  #                                               #
-                  #################################################
-
-                  - type: custom:mini-graph-card
-                    entities:
-                      - color: '#b43db4'
-                        entity: sensor.temperature_cuisine
-                    style:
-                      top: 76.2%
-                      left: 76.2%
-                      width: 47.7%
-                      height: 47.7%
-                    height: 325
-                    line_width: 12
-                    align_state: left
-                    group: false
-                    lower_bound: 18
-                    points_per_hour: 2
-                    hour24: true
-                    hours_to_show: 12
-                    show:
-                      {fill: fade, icon: false, name: false, state: false, name_adaptive_color: true, legend: false, points: false, labels: false}
                   - type: custom:button-card
-                    entity: sensor.temperature_cuisine
-                    name: Cuisine
-                    style:
-                      top: 76.2%
-                      left: 76.2%
-                      width: 47.7%
-                    tap_action: !include popup/temperature_cuisine.yaml
-                    hold_action: !include popup/temperature_cuisine.yaml
+                    entity: switch.computer_rig_kaoru
+                    name: Kaoru
+                    triggers_update:
+                      - lock.rig_kaoru_computer_lock
+                      - script.home_leave
+                    hold_action:
+                      !include popup/computer_rig_kaoru.yaml
                     template:
-                      - thermometre
-                      - icon_thermometre
+                      - base
+                      - icon_imac
+                      - loader
+                      - lock_computer_rig_kaoru
 
-              #Seconde partie de la swipe card
-              - type: picture-elements
-                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' /%3E"
-                elements:
+              - type: grid
+                columns: 2
+                cards:
 
-                  #################################################
-                  #                                               #
-                  #             temperature salle de bain         #
-                  #                                               #
-                  #################################################
+                  - type: custom:button-card
+                    entity: light.plafond_1
+                    name: Plafond 1
+                    template:
+                      - light
+                      - icon_hue
 
-                  - type: custom:mini-graph-card
-                    entities:
-                      - color: '#0066ff'
-                        entity: sensor.temperature_salle_de_bain
-                    style:
-                      top: 23.9%
-                      left: 23.8%
-                      width: 47.7%
-                      height: 47.7%
-                    height: 325
-                    line_width: 12
-                    align_state: left
-                    group: false
-                    lower_bound: 18
-                    points_per_hour: 2
-                    hour24: true
-                    hours_to_show: 12
-                    show:
-                      {fill: fade, icon: false, name: false, state: false, name_adaptive_color: true, legend: false, points: false, labels: false}
+                  - type: custom:button-card
+                    entity: light.plafond_2
+                    name: Plafond 2
+                    template:
+                      - light
+                      - icon_hue
+
+                  - type: custom:button-card
+                    entity: light.lampe_japonaise
+                    name: Lampe
+                    template:
+                      - light
+                      - icon_hue
+
+                  - type: custom:button-card
+                    entity: light.yeelight_stripe
+                    name: LED
+                    template:
+                      - light
+                      - icon_hue
+
+      #################################################
+      #                                               #
+      #                 TEMPERATURE (ex SOVRUM)        #
+      #                                               #
+      #################################################
+
+      - type: grid
+        title: Temperature
+        view_layout:
+          grid-area: temperature
+        columns: 1
+        cards:
+
+          - type: custom:swipe-card
+            start_card: 1
+            parameters:
+              roundLengths: true
+              effect: coverflow
+              speed: 650
+              spaceBetween: 20
+              threshold: 7
+              coverflowEffect:
+                rotate: 80
+                depth: 300
+            cards:
+
+              - type: grid
+                columns: 2
+                cards:
+
+                    - type: custom:button-card
+                      entity: sensor.temperature_chambre_william
+                      name: Willam
+                      hold_action: !include popup/temperature_chambre_william.yaml
+                      tap_action: !include popup/temperature_chambre_william.yaml
+                      custom_fields:
+                        graph:
+                          card:
+                            entities:
+                              - entity: sensor.temperature_chambre_william
+                                color: '#0066ff'
+                      template:
+                        - thermometre
+                        - icon_thermometre
+
+
+                    - type: custom:button-card
+                      entity: sensor.temperature_chambre_papa
+                      name: Papa
+                      tap_action: !include popup/temperature_chambre_papa.yaml
+                      hold_action: !include popup/temperature_chambre_papa.yaml
+                      custom_fields:
+                        graph:
+                          card:
+                            entities:
+                              - entity : sensor.temperature_chambre_papa
+                                color: '#2bc416'
+                      template:
+                        - thermometre
+                        - icon_thermometre
+
+                    - type: custom:button-card
+                      entity: sensor.temperature_salon
+                      name: Salon
+                      tap_action: !include popup/temperature_salon.yaml
+                      hold_action: !include popup/temperature_salon.yaml
+                      custom_fields:
+                        graph:
+                          card:
+                            entities:
+                              - entity: sensor.temperature_salon
+                                color: '#ff3300'
+                      template:
+                        - thermometre
+                        - icon_thermometre
+
+
+                    - type: custom:button-card
+                      entity: sensor.temperature_cuisine
+                      name: Cuisine
+                      tap_action: !include popup/temperature_cuisine.yaml
+                      hold_action: !include popup/temperature_cuisine.yaml
+                      custom_fields:
+                        graph:
+                          card:
+                            entities:
+                              - entity: sensor.temperature_cuisine
+                                color: '#b43db4'
+                      template:
+                        - thermometre
+                        - icon_thermometre
+
+
+              - type: grid
+                columns: 2
+                cards:
+
                   - type: custom:button-card
                     entity: sensor.temperature_salle_de_bain
                     name: Bain
-                    style:
-                      top: 23.9%
-                      left: 23.8%
-                      width: 47.7%
                     tap_action: !include popup/temperature_salle_de_bain.yaml
                     hold_action: !include popup/temperature_salle_de_bain.yaml
+                    custom_fields:
+                      graph:
+                        card:
+                          entities:
+                            - entity: sensor.temperature_salle_de_bain
+                              color: '#d4e60c'
                     template:
                       - thermometre
                       - icon_thermometre
 
-          ##########################################################################
-          #                                                                        #
-          #                               * MEDIA *                                #
-          #                                                                        #
-          ##########################################################################
+                  - type: custom:button-card
+                    entity: sensor.average_temperature
+                    name: Maison
+                    tap_action: !include popup/temperature_maison.yaml
+                    hold_action: !include popup/temperature_maison.yaml
+                    custom_fields:
+                      graph:
+                        card:
+                          entities:
+                            - entity: sensor.average_temperature
+                              color: '#e60c63'
+                    template:
+                      - thermometre
+                      - icon_thermometre
 
-          - type: state-label
-            entity: sensor.placeholder
-            attribute: media
-            style:
-              top: 53.4%
-              left: 25.4%
+                  - type: custom:button-card
+                    entity: sensor.template_weather_temperature
+                    name: Météo
+                    tap_action: !include popup/temperature_weather.yaml
+                    hold_action: !include popup/temperature_weather.yaml
+                    custom_fields:
+                      graph:
+                        card:
+                          entities:
+                            - entity: sensor.template_weather_temperature
+                              color: '#08fad3'
+                    template:
+                      - thermometre_weather
+                      - icon_thermometre
+
+      #################################################
+      #                                               #
+      #                     MEDIA                     #
+      #                                               #
+      #################################################
+
+      - type: grid
+        title: Media
+        view_layout:
+          grid-area: media
+        columns: 1
+        cards:
 
           - type: custom:swipe-card
             start_card: 1
-            reset_after: 10
             parameters:
               roundLengths: true
               effect: coverflow
@@ -732,309 +414,241 @@ views:
               coverflowEffect:
                 rotate: 80
                 depth: 300
-            style:
-              top: 56.55%
-              left: 35.8%
-              width: 20.97%
-              height: 1px
             cards:
 
-              - type: picture-elements
-                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' /%3E"
-                elements:
-
-                  #################################################
-                  #                                               #
-                  #              RECENTLY DOWNLOADED              #
-                  #                                               #
-                  #################################################
+              - type: horizontal-stack
+                cards:
 
                   - type: conditional
                     conditions:
                       - entity: input_select.conditional_media
-                        state: Senast nedladdat
-                    elements:
-                      - type: custom:button-card
-                        entity: sensor.plex_recently_added
-                        tap_action:
-                          action: none
-                        style:
-                          top: 50%
-                          left: 50%
-                          width: 100%
-                        template:
-                          - conditional_media
-                          - recently_downloaded
-                          - icon_plex
-
-                  #################################################
-                  #                                               #
-                  #               GOOGLE MINI CUISINE             #
-                  #                                               #
-                  #################################################
-
-                  - type: conditional
-                    conditions:
-                      - entity: input_select.conditional_media
-                        state: Cuisine
-                    elements:
-                      - type: custom:button-card
-                        entity: media_player.google_home_cuisine
-                        name: Google Home Cuisine
-                        style:
-                          top: 50%
-                          left: 50%
-                          width: 100%
-                        hold_action: !include popup/media_player.yaml
-                        double_tap_action: !include popup/media_player.yaml
-                        template:
-                          - conditional_media
-                          - icon_nest_mini
-
-                  #################################################
-                  #                                               #
-                  #               GOOGLE MINI CHAMBRE             #
-                  #                                               #
-                  #################################################
+                        state: Récemment ajouté
+                    card:
+                      type: custom:button-card
+                      entity: sensor.plex_recently_added
+                      tap_action:
+                        action: none
+                      template:
+                        - conditional_media
+                        - recently_downloaded
+                        - icon_plex
 
                   - type: conditional
                     conditions:
                       - entity: input_select.conditional_media
                         state: Chambre
-                    elements:
-                      - type: custom:button-card
-                        entity: media_player.google_home_chambre
-                        name: Google Home Chambre
-                        style:
-                          top: 50%
-                          left: 50%
-                          width: 100%
-                        hold_action: !include popup/media_player.yaml
-                        double_tap_action: !include popup/media_player.yaml
-                        template:
-                          - conditional_media
-                          - icon_nest_mini
-
-                  #################################################
-                  #                                               #
-                  #                   Bouygues4k                  #
-                  #                                               #
-                  #################################################
+                    card:
+                      type: custom:button-card
+                      entity: media_player.google_home_chambre
+                      hold_action: !include popup/media_player.yaml
+                      double_tap_action: !include popup/media_player.yaml
+                      template:
+                        - conditional_media
+                        - icon_nest_mini
 
                   - type: conditional
                     conditions:
                       - entity: input_select.conditional_media
-                        state: Bouygues4K
-                    elements:
-                      - type: custom:button-card
-                        entity: media_player.bouygues4k
-                        name: BouyguesTV 4k
-                        style:
-                          top: 50%
-                          left: 50%
-                          width: 100%
-                        hold_action: !include popup/media_player.yaml
-                        double_tap_action: !include popup/media_player.yaml
-                        template:
-                          - conditional_media
-                          - icon_bouygues
-
-                  #################################################
-                  #                                               #
-                  #                   SPOTIFY                     #
-                  #                                               #
-                  #################################################
+                        state: Cuisine
+                    card:
+                      type: custom:button-card
+                      entity: media_player.google_home_cuisine
+                      hold_action: !include popup/media_player.yaml
+                      double_tap_action: !include popup/media_player.yaml
+                      template:
+                        - conditional_media
+                        - icon_nest_mini
 
                   - type: conditional
                     conditions:
                       - entity: input_select.conditional_media
                         state: Spotify
-                    elements:
-                      - type: custom:button-card
-                        entity: media_player.spotify
-                        name: Spotify
-                        style:
-                          top: 50%
-                          left: 50%
-                          width: 100%
-                        hold_action: !include popup/spotify.yaml
-                        double_tap_action: !include popup/spotify.yaml
-                        template:
-                          - conditional_media
-                          - icon_spotify_green
+                    card:
+                      type: custom:button-card
+                      entity: media_player.spotify
+                      hold_action: !include popup/spotify.yaml
+                      double_tap_action: !include popup/spotify.yaml
+                      template:
+                        - conditional_media
+                        - icon_spotify_green
 
-                  #################################################
-                  #                                               #
-                  #           * SMALL MEDIA CONTROLS *            #
-                  #                                               #
-                  #################################################
+                  - type: conditional
+                    conditions:
+                      - entity: input_select.conditional_media
+                        state: Bouygues4K
+                    card:
+                      type: custom:button-card
+                      entity: media_player.bouygues4k
+                      hold_action: !include popup/media_player.yaml
+                      double_tap_action: !include popup/media_player.yaml
+                      template:
+                        - conditional_media
+                        - icon_bouygues
 
-              - type: picture-elements
-                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50' /%3E"
-                elements:
+                  - type: conditional
+                    conditions:
+                      - entity: input_select.conditional_media
+                        state: Chrome
+                    card:
+                      type: custom:button-card
+                      entity: media_player.plex_plex_web_chrome
+                      hold_action: !include popup/media_player.yaml
+                      double_tap_action: !include popup/media_player.yaml
+                      template:
+                        - conditional_media
+                        - icon_plex
 
-                  # SMALL GOOGLE NEST MINI
-                  - type: custom:button-card
-                    entity: media_player.google_home_cuisine
-                    style:
-                      top: 23.9%
-                      left: 23.8%
-                      width: 47.7%
-                    template:
-                      - media
-                      - icon_nest_mini
-                    double_tap_action: !include popup/media_player.yaml
-                    hold_action: !include popup/media_player.yaml
+                  - type: conditional
+                    conditions:
+                      - entity: input_select.conditional_media
+                        state: OP8
+                    card:
+                      type: custom:button-card
+                      entity: media_player.plex_plex_for_android_mobile_in2023
+                      hold_action: !include popup/media_player.yaml
+                      double_tap_action: !include popup/media_player.yaml
+                      template:
+                        - conditional_media
+                        - icon_plex
 
-                  # SMALL GOOGLE NEST MINI
+              - type: grid
+                columns: 2
+                cards:
+
                   - type: custom:button-card
                     entity: media_player.google_home_chambre
-                    style:
-                      top: 23.9%
-                      left: 76.2%
-                      width: 47.7%
+                    name: Chambre
+                    hold_action: !include popup/media_player.yaml
+                    double_tap_action: !include popup/media_player.yaml
                     template:
                       - media
                       - icon_nest_mini
-                    double_tap_action: !include popup/media_player.yaml
-                    hold_action: !include popup/media_player.yaml
 
-                  # SMALL SPOTIFY
+                  - type: custom:button-card
+                    name: Cuisine
+                    entity: media_player.google_home_cuisine
+                    hold_action: !include popup/media_player.yaml
+                    double_tap_action: !include popup/media_player.yaml
+                    template:
+                      - media
+                      - icon_nest_mini
+
                   - type: custom:button-card
                     entity: media_player.spotify
-                    style:
-                      top: 76.2%
-                      left: 23.8%
-                      width: 47.7%
+                    name: Spotify
                     hold_action: !include popup/spotify.yaml
                     double_tap_action: !include popup/spotify.yaml
                     template:
                       - media
                       - icon_spotify
 
-                  # SMALL BOUYGUES 4K
                   - type: custom:button-card
                     entity: media_player.bouygues4k
-                    style:
-                      top: 76.2%
-                      left: 76.2%
-                      width: 47.7%
-                    double_tap_action: !include popup/media_player.yaml
+                    name: Bbox
                     hold_action: !include popup/media_player.yaml
+                    double_tap_action: !include popup/media_player.yaml
                     template:
                       - media
                       - icon_bouygues_white
 
-          ##########################################################################
-          #                                                                        #
-          #                               * AUTRE *                               #
-          #                                                                        #
-          ##########################################################################
+              - type: grid
+                columns: 2
+                cards:
 
-          - type: state-label
-            entity: sensor.placeholder
-            attribute: autre
-            style:
-              top: 53.4%
-              left: 50.2%
+                  - type: custom:button-card
+                    entity: media_player.plex_plex_for_android_mobile_in2023
+                    name: OP8
+                    hold_action: !include popup/media_player.yaml
+                    double_tap_action: !include popup/media_player.yaml
+                    template:
+                      - media
+                      - icon_plex_white
+
+                  - type: custom:button-card
+                    entity: media_player.plex_plex_web_chrome
+                    name: Chrome
+                    hold_action: !include popup/media_player.yaml
+                    double_tap_action: !include popup/media_player.yaml
+                    template:
+                      - media
+                      - icon_plex_white
 
 
+      #################################################
+      #                                               #
+      #                  AUTRES (ex ÖVRIGT)           #
+      #                                               #
+      #################################################
+
+      - type: grid
+        title: Autres
+        view_layout:
+          grid-area: autres
+        columns: 2
+        cards:
+
+          - type: custom:button-card
+            entity: fan.xiaomi_smart_fan_2
+            name: "Smart fan"
+            hold_action: !include popup/fan.yaml
+
+            template:
+              - base
+              - icon_fan2
+              - loader
 
 
+      #################################################
+      #                                               #
+      #                    MAISON (ex HEMMA)          #
+      #                                               #
+      #################################################
 
-
-
-          ##########################################################################
-          #                                                                        #
-          #                               * MAISON *                               #
-          #                                                                        #
-          ##########################################################################
-
-          - type: state-label
-            entity: sensor.placeholder
-            attribute: maison
-            style:
-              top: 53.4%
-              left: 75.1%
-
-          #################################################
-          #                                               #
-          #                    WILLIAM                    #
-          #                                               #
-          #################################################
+      - type: grid
+        title: Maison
+        view_layout:
+          grid-area: maison
+        columns: 2
+        cards:
 
           - type: custom:button-card
             entity: person.kaoru
-            triggers_update:
-              ['person.kaoru', 'sensor.time']
-            style:
-              top: 64.5%
-              left: 80.05%
-              width: 10%
             name: William
             tap_action: !include popup/maison_william.yaml
             hold_action: !include popup/maison_william.yaml
             template: person
 
-          #################################################
-          #                                               #
-          #                     PAPA                      #
-          #                                               #
-          #################################################
-
           - type: custom:button-card
             entity: person.papa
-            triggers_update:
-              ['person.papa', 'sensor.time']
-            style:
-              top: 64.5%
-              left: 91.05%
-              width: 10%
             name: Papa
             tap_action: !include popup/maison_papa.yaml
             hold_action: !include popup/maison_papa.yaml
             template: person
 
-          #################################################
-          #                                               #
-          #                  PARTIR                       #
-          #                                               #
-          #################################################
-
           - type: custom:button-card
             entity: script.home_leave
-            state_display: Auto
-            style:
-              top: 82.1%
-              left: 80.05%
-              width: 10%
-            hold_action:
-              !include popup/maison_partir.yaml
-            styles:
-              card:
-                - transition: all 0.3s ease-out
+            name: Partir
+            tap_action: !include popup/maison_partir.yaml
+            hold_action: !include popup/maison_partir.yaml
             template:
               - base
               - icon_away
 
-          #################################################
-          #                                               #
-          #                     MAISON                    #
-          #                                               #
-          #################################################
-
           - type: custom:button-card
             entity: script.home_arrive
-            state_display: Auto
-            style:
-              top: 82.1%
-              left: 91.05%
-              width: 10%
-            hold_action:
-              !include popup/maison_data_kwh.yaml
-            styles:
-              card:
-                - transition: all 0.3s ease-out
+            name: Maison
+            hold_action: !include popup/maison_data_kwh.yaml
             template:
               - base
               - icon_home
+
+      #################################################
+      #                                               #
+      #                    FOOTER                     #
+      #                                               #
+      #################################################
+
+      - type: custom:button-card
+        view_layout:
+          grid-area: footer
+        template: footer

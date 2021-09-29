@@ -1,7 +1,7 @@
               action: fire-dom-event
               browser_mod:
                 command: popup
-                title: Thermomètre Salon 
+                title: Thermomètre Salon
                 card:
                   type: custom:stack-in-card
                   cards:
@@ -21,10 +21,10 @@
                           entity: sensor.humidity_salon
                           y_axis: secondary
                       align_state: left
-                      line_width: 3
+                      line_width: 4
                       height: 200
                       group: false
-                      points_per_hour: 10
+                      points_per_hour: 2
                       hour24: true
                       hours_to_show: 24
                       show:

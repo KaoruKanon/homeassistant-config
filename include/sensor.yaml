@@ -1,34 +1,3 @@
-binary_sensor:
-
-    ####################################################
-    #                                                  #
-    #                      BINARY                      #
-    #                                                  #
-    ###################################################
-
-
-  - platform: command_line
-    name: plex_availability
-    command: !secret plex_availability
-    scan_interval: 300
-    payload_on: 'on'
-    payload_off: 'off'
-
-  - platform: ping
-    name: rpi_internet_access
-    host: 8.8.8.8
-
-  - platform: mqtt
-    name: computer_rig_kaoru_connected
-    state_topic: "iotlink/workgroup/rig-kaoru/lwt"
-    value_template: "{{ value }}"
-    payload_on: "ON"
-    payload_off: "OFF"
-    device_class: "connectivity"
-    qos: 1
-
-
-
 sensor:
 
     ####################################################
@@ -37,7 +6,6 @@ sensor:
     #                                                  #
     ####################################################
 
-
   - platform: file
     name: enedis_kwh
     file_path: /config/python/data.kwh
@@ -45,6 +13,7 @@ sensor:
   ### Average sensor ###
 
   - platform: average
+    precision: 1
     name: average_temperature
     entities:
       - sensor.temperature_chambre_william
@@ -54,6 +23,7 @@ sensor:
 
   - platform: average
     name: average_humidity
+    precision: 1
     entities:
       - sensor.humidity_chambre_william
       - sensor.humidity_chambre_papa
@@ -219,8 +189,15 @@ sensor:
 
   - platform: filesize
     file_paths:
-      - /config/home-assistant_v2.db
       - /config/home-assistant.log
+
+  - platform: sql
+    db_url: !secret recorder_db_url
+    queries:
+      - name: Database
+        query: SELECT ROUND(page_count * page_size / 1024 / 1024, 1) as size FROM pragma_page_count(), pragma_page_size();
+        column: size
+        unit_of_measurement: "MiB"
 
   - platform: uptime
     unit_of_measurement: minutes
@@ -241,6 +218,8 @@ sensor:
       - type: throughput_network_out
         arg: eth0
       - type: processor_temperature
+
+  - platform: dnsip
 
   - platform: rest
     name: fullykiosk
@@ -283,7 +262,6 @@ sensor:
       | replace ('About an hour', 'une heure')  | replace ('seconds', 'secondes') | replace ('minutes', 'minutes')
       | replace ('hours', 'heures') | replace ('days', 'jours')}}
 
-
   - platform: plex_recently_added
     token: !secret plex_token
     host: !secret plex_host
@@ -293,10 +271,86 @@ sensor:
     image_resolution: 700
 
     # enedis
-  - platform: myEnedis
-    token: !secret enedis_token
-    code: !secret enedis_usage_point_id
+  # - platform: myEnedis
+  #   token: !secret enedis_token
+  #   code: !secret enedis_usage_point_id
+  #   scan_interval: 3600
+
+  - platform: rest
+    name: ilevia_ligne_1
+    resource: !secret ilevia_ligne_1
     scan_interval: 3600
+    headers:
+      Content-Type: application/json
+      Authorization: !secret mel_token_api
+    value_template: >
+      {% if value_json.records|length %}
+        OK
+      {% elif value_json['errorcode'] == 10001 %}
+        You have exceeded your quota of 3000 api calls per day
+      {% else %}
+        Pas de bus
+      {% endif %}
+    json_attributes:
+      - "records"
+      - "facet_groups"
+
+  - platform: rest
+    name: ilevia_ligne_2
+    resource: !secret ilevia_ligne_2
+    scan_interval: 3600
+    headers:
+      Content-Type: application/json
+      Authorization: !secret mel_token_api
+    value_template: >
+      {% if value_json.records|length %}
+        OK
+      {% elif value_json['errorcode'] == 10001 %}
+        You have exceeded your quota of 3000 api calls per day
+      {% else %}
+        Pas de bus
+      {% endif %}
+    json_attributes:
+      - "records"
+      - "facet_groups"
+
+  - platform: rest
+    name: ilevia_ligne_3
+    resource: !secret ilevia_ligne_3
+    scan_interval: 3600
+    headers:
+      Content-Type: application/json
+      Authorization: !secret mel_token_api
+    value_template: >
+      {% if value_json.records|length %}
+        OK
+      {% elif value_json['errorcode'] == 10001 %}
+        You have exceeded your quota of 3000 api calls per day
+      {% else %}
+        Pas de bus
+      {% endif %}
+    json_attributes:
+      - "records"
+      - "facet_groups"
+
+  - platform: rest
+    name: ilevia_ligne_4
+    resource: !secret ilevia_ligne_4
+    scan_interval: 3600
+    headers:
+      Content-Type: application/json
+      Authorization: !secret mel_token_api
+    value_template: >
+      {% if value_json.records|length %}
+        OK
+      {% elif value_json['errorcode'] == 10001 %}
+        You have exceeded your quota of 3000 api calls per day
+      {% else %}
+        Pas de bus
+      {% endif %}
+    json_attributes:
+      - "records"
+      - "facet_groups"
 
 
     ####################################################
@@ -311,24 +365,30 @@ sensor:
     scan_interval: 86400
     command: grep -oP 'VERSION = "\K[^"]+' custom_components/hacs/const.py
 
-
   - platform: command_line
     command: !secret google_home_next_timer
     name: next_timer
     value_template: >
-      {% set timer = value_json.timer|sort(attribute='fire_time') %}
-      {% if timer[0] is defined %}
-        {{ timer[0].fire_time }}
-      {% else %}
-        None
+      {% if value_json is defined %}
+        {% set timer = value_json.timer|sort(attribute='fire_time') %}
+        {% if timer[0] is defined %}
+          {{ timer[0].fire_time }}
+        {% else %}
+          None
+        {% endif %}
       {% endif %}
+
+  - platform: command_line
+    name: OS_version
+    scan_interval: 86400
+    command: echo $(cat /etc/issue.net) $(uname -sr)
 
   - platform: template
     scan_interval: 1
     sensors:
       next_timer_human:
         value_template: >
-          {% if states('sensor.next_timer') == "None" %}
+          {% if states('sensor.next_timer') == "None" or states('sensor.next_timer') == "" %}
             Pas de timer
           {% elif states('sensor.next_timer') == "unavailable" or states('sensor.next_timer') == "unknown" %}
             Google Home indisponible
@@ -339,529 +399,4 @@ sensor:
             {{ ( states('sensor.next_timer')|int/1000 - as_timestamp(now()) - 3600) | timestamp_custom('%S s') }}
           {% endif %}
         friendly_name: Next timer
-        icon_template: 'mdi:alarm'
-
-
-    ####################################################
-    #                                                  #
-    #                     TEMPLATE                     #
-    #                                                  #
-    ####################################################
-
-  - platform: template
-    sensors:
-
-      rpi_net_down:
-        value_template: ' '
-        icon_template: mdi:arrow-down-bold
-        friendly_name_template: >
-          {% set down = states('sensor.network_throughput_in_eth0') | float * 10000 %}
-          {% if down < 1000 %} {{ down | round(0) }} kb/s
-          {% elif down >= 1000 %} {{ ((down / 1000) | round(2) | string).rstrip('.0') }} Mb/s
-          {% endif %}
-
-      rpi_net_up:
-        value_template: ' '
-        icon_template: mdi:arrow-up-bold
-        friendly_name_template: >
-          {% set up = states('sensor.network_throughput_out_eth0') | float * 10000 %}
-          {% if up < 1000 %} {{ up | round(0) }} kb/s
-          {% elif up >= 1000 %} {{ ((up / 1000) | round(2) | string).rstrip('.0') }} Mb/s
-          {% endif %}
-
-
-      sidebar_greeting:
-        value_template: >
-          {% set time = now().hour %}
-          {% if time <= 1 %} Bonne nuit {{'\U0001F611'}}
-          {% elif time <= 3 %} Bonne nuit {{'\U0001F62A'}}
-          {% elif time <= 5 %} Bonne nuit {{'\U0001F634'}}
-          {% elif time <= 7 %} Bonjour {{'\U0001F4A9'}}
-          {% elif time <= 9 %} Bonjour {{'\u2615\uFE0F'}}
-          {% elif time <= 10 %} Bonjour {{'\U0001F642'}}
-          {% elif time <= 13 %} Bonne journée {{'\U0001F60A'}}
-          {% elif time <= 15 %} Bonne journée {{'\U0001F60E'}}
-          {% elif time <= 17 %} Bonne journée {{'\U0001F44B\U0001F3FB'}}
-          {% elif time <= 19 %} Bonsoir {{'\U0001F44B\U0001F3FB'}}
-          {% elif time <= 22 %} Bonsoir {{'\U0001F60C'}}
-          {% elif time <= 23 %} Bonsoir {{'\U0001F974'}}
-          {% else %} Bonsoir {{'\U0001F974'}}
-          {% endif %}
-
-      sidebar_active:
-        value_template: >
-          {% set lights = [states.light.salon_1, states.light.salon_2, states.light.plafond_1, states.light.plafond_2,
-          states.light.yeelight_stripe, states.light.lampe_japonaise] %}
-
-          {% set lights_on = lights | selectattr('state','eq','on') | list %}
-          {% set lights_name = lights | selectattr('state','eq','on') | map(attribute='name') | join(', ') %}
-
-          {% set switches = [states.switch.computer_rig_kaoru, states.switch.computer_papa, states.switch.tv_samsung,
-          states.switch.playstation_4] %}
-          {% set switches_on = switches | selectattr('state','eq','on') | list %}
-          {% set switches_name = switches | selectattr('state','eq','on') | map(attribute='name') | join(', ') %}
-
-          {% if (lights_on | length == 0) and (switches_on | length > 1) %}
-          {{ switches_name | regex_replace(',([^,]*)$',' et\\1') }} sont allumés
-
-          {% elif (lights_on | length == 0) and (switches_on | length == 1) %}
-          {{ switches_name | regex_replace(',([^,]*)$',' et\\1') }} est allumé
-
-          {% elif (lights_on | length == 1) and (switches_on | length == 1) %}
-          {{ lights_name }} et {{switches_name }} sont allumés
-
-          {% elif (lights_on | length == 1) and (switches_on | length > 1) %}
-          {{ lights_name }}, {{ switches_name | regex_replace(',([^,]*)$',' et\\1') }} sont allumées
-
-          {% elif (lights_on | length > 1) and (switches_on | length == 1) %}
-          {{ lights_on | length }} lampes et {{ switches_name }} sont allumés
-
-          {% elif (lights_on | length > 1) and (switches_on | length > 1) %}
-          {{ lights_on | length }} lampes, {{ switches_name | regex_replace(',([^,]*)$',' et\\1') }} sont allumés
-
-          {% elif (lights_on | length == 1) and (switches_on | length == 0) %}
-          {{ lights_name }} est allumée
-
-          {% elif (lights_on | length > 1) and (switches_on | length == 0) %}
-          {{ lights_on | length}} lampes allumées
-
-          {% else %}
-          <font color='#6a7377'>Tout est éteint</font>
-          {% endif %}
-
-      # sidebar_vacuum:
-      #   value_template: >
-      #     {% set entity_id = 'vacuum.xiaomi_vacuum_cleaner' %}
-      #     {% if is_state(entity_id, 'cleaning') %} Morty dammsuger
-      #     {% elif is_state(entity_id, 'returning') %} Morty är färdig
-      #     {% endif %}
-
-
-      sidebar_weather:
-        value_template: >
-          {% set temperature = state_attr('weather.villeneuve_d_ascq', 'temperature') %}
-          {% set precip = states('sensor.villeneuve_d_ascq_rain_chance') | round %}
-          {% set snow = states('sensor.villeneuve_d_ascq_snow_chance') | round %}
-          {% set weather_state = states('weather.villeneuve_d_ascq')
-            | replace('rainy', 'Pluvieux')
-            | replace('partlycloudy', 'Partiellement nuageux')
-            | replace('cloudy', 'Nuageux')
-            | replace('clear-night', 'Nuit claire')
-            | replace('fog', 'Brumeux')
-            | replace('hail', 'Grêleux')
-            | replace('lightning-rainy', 'Orageux')
-            | replace('lightning', 'Orageux')
-            | replace('pourring', 'Pluie intense')
-            | replace('snowy-rainy', 'Neigeux')
-            | replace('snowy', 'Neigeux')
-            | replace('sunny', 'Ensoleillé')
-            | replace('windy-variant', 'Variblement venteux')
-            | replace('windy', 'Venteux')
-            | replace('exceptional', 'Exceptionel') %}
-
-          {% if not state_attr('weather.villeneuve_d_ascq', 'temperature') == 'unknow' %}
-            {% if temperature | float <= 0.0 %}
-              {{ weather_state }}, il fait {{ temperature }}° avec {{ snow }}% de risque de neige {{'\u2744\uFE0F'}}
-            {% elif temperature | float > 0.0 %}
-              {{ weather_state }}, il fait {{ temperature }}° avec {{ precip }}% de risque de pluie {{ '\u2614\uFE0F' if precip > 30 }}
-            {% endif %}
-          {% else %}
-            Pas d'information métérologique...
-          {% endif %}
-
-
-      public_ip:
-        value_template: !secret public_ip
-
-      placeholder:
-        value_template: ' '
-        attribute_templates:
-          salon: Salon
-          temperature: Température
-          william: William
-          media: Media
-          autre: Autre
-          maison: Maison
-
-      # problème lié a docker
-      # dockermon_mem:
-      #   friendly_name: Mémoire
-      #   icon_template: mdi:memory
-      #   value_template: >
-      #     {% set entity_id = 'sensor.docker_cpu' %}
-      #     {{ (state_attr(entity_id, 'memory_stats')['usage'] /
-      #     state_attr(entity_id, 'memory_stats')['limit'] * 100) | round(1) | default(0) }}
-
-      hass_version:
-        icon_template: mdi:home-assistant
-        friendly_name_template: >
-          version {{ states('sensor.hass_version_installed') }}
-        value_template: >
-          {{ 'Latest' if states('sensor.hass_version_installed') ==
-          states('sensor.hass_version_latest') else states('sensor.hass_version_latest') }}
-
-      hass_dev_release:
-        icon_template: mdi:dev-to
-        friendly_name_template: >
-          {% if ((as_timestamp(state_attr('calendar.home_assistant_devs',
-          'start_time')) - as_timestamp(now())) / 86400) > 20 %}
-            Beta planifiée
-          {% else %}
-            {{ state_attr('calendar.home_assistant_devs','message') }}
-          {% endif %}
-        value_template: >
-          {% set dev = ((as_timestamp(state_attr('calendar.home_assistant_devs',
-          'start_time')) - as_timestamp(now())) / 86400) %}
-          {% if dev < -1 %} release
-          {% elif dev < 0 %} Aujourd'hui
-          {% elif dev < 1 %} Demain
-          {% elif dev > 20 %} Non
-          {% else %} {{ dev | int + 1 }} jours
-          {% endif %}
-
-    ####################################################
-    #                                                  #
-    #                      VACUUM                      #
-    #                                                  #
-    ####################################################
-
-      # roborock_battery:
-      #   friendly_name: Batteri
-      #   unit_of_measurement: '%'
-      #   value_template: >
-      #     {{ state_attr('vacuum.xiaomi_vacuum_cleaner', 'battery_level') }}
-      #   icon_template: >
-      #     {{ state_attr('vacuum.xiaomi_vacuum_cleaner', 'battery_icon') }}
-
-      # roborock_state:
-      #   friendly_name: Roborock S5
-      #   icon_template: custom:roborock-vacuum
-      #   value_template: >
-      #     {% set entity_id = 'vacuum.xiaomi_vacuum_cleaner' %}
-      #     {% if is_state(entity_id, 'docked') %} Dockad
-      #     {% elif is_state(entity_id, 'paused') %} Pausad
-      #     {% elif is_state(entity_id, 'cleaning') %} Städar
-      #     {% elif is_state(entity_id, 'returning') %} Återvänder
-      #     {% else %} {{ states(entity_id) }}
-      #     {% endif %}
-
-      # roborock_speed:
-      #   value_template: >
-      #     {{ state_attr('vacuum.xiaomi_vacuum_cleaner', 'fan_speed') }}
-
-      # roborock_filter:
-      #   friendly_name: Filter
-      #   icon_template: custom:roborock-filter
-      #   unit_of_measurement: '%'
-      #   value_template: >
-      #     {{ (state_attr('vacuum.xiaomi_vacuum_cleaner', 'filter_left') / 1.5) | round | default(0) }}
-
-      # roborock_mainbrush:
-      #   friendly_name: Huvudborste
-      #   icon_template: custom:roborock-mainbrush
-      #   unit_of_measurement: '%'
-      #   value_template: >
-      #     {{ (state_attr('vacuum.xiaomi_vacuum_cleaner', 'main_brush_left') / 3) | round | default(0) }}
-
-      # roborock_sensors:
-      #   friendly_name: Sensorer
-      #   icon_template: custom:roborock-sensor
-      #   unit_of_measurement: '%'
-      #   value_template: >
-      #     {{ (state_attr('vacuum.xiaomi_vacuum_cleaner', 'sensor_dirty_left') / 0.3) | round | default(0) }}
-
-      # roborock_sidebrush:
-      #   friendly_name: Sidoborste
-      #   icon_template: custom:roborock-sidebrush
-      #   unit_of_measurement: '%'
-      #   value_template: >
-      #     {{ (state_attr('vacuum.xiaomi_vacuum_cleaner', 'side_brush_left') / 2) | round | default(0) }}
-
-      # roborock_last_clean:
-      #   friendly_name: Senast städat
-      #   icon_template: mdi:calendar-clock
-      #   value_template: >
-      #     {% set last_cleaned = (as_timestamp(now()) - as_timestamp(state_attr('vacuum.xiaomi_vacuum_cleaner', 'clean_stop'))) | default(0) %}
-      #     {% if last_cleaned | timestamp_custom('%d') | int -1 == 1 %} {{ last_cleaned | timestamp_custom('%d') | int -1 }} dag sedan
-      #     {% elif last_cleaned | timestamp_custom('%d') | int -1 >= 2 %} {{ last_cleaned | timestamp_custom('%d') | int -1 }} dagar sedan
-      #     {% elif last_cleaned | timestamp_custom('%H') | int -1 == 1 %} {{ last_cleaned | timestamp_custom('%H') | int -1 }} timme sedan
-      #     {% elif last_cleaned | timestamp_custom('%H') | int -1 >= 2 %} {{ last_cleaned | timestamp_custom('%H') | int -1 }} timmar sedan
-      #     {% elif last_cleaned | timestamp_custom('%M') | int == 1 %} {{ last_cleaned | timestamp_custom('%M') | int }} minut sedan
-      #     {% elif last_cleaned | timestamp_custom('%M') | int >= 2 %} {{ last_cleaned | timestamp_custom('%M') | int }} minuter sedan
-      #     {% else %} Minde än 1 minut sedan
-      #     {% endif %}
-
-
-    ####################################################
-    #                                                  #
-    #                      TABLET                      #
-    #                                                  #
-    ####################################################
-
-      fullykiosk_storage:
-        friendly_name: Stockage
-        icon_template: mdi:sd
-        unit_of_measurement: '%'
-        value_template: >
-          {% set entity_id = 'sensor.fullykiosk' %}
-          {% set FreeSpace = state_attr(entity_id, 'internalStorageFreeSpace') %}
-          {% set TotalSpace = state_attr(entity_id, 'internalStorageTotalSpace') %}
-          {% if not (FreeSpace == None or TotalSpace == None) %}
-            {{ 100 - (FreeSpace / TotalSpace * 100) | int }}
-          {% endif %}
-      fullykiosk_memory:
-        friendly_name: Mémoire
-        icon_template: mdi:memory
-        unit_of_measurement: '%'
-        value_template: >
-          {% set entity_id = 'sensor.fullykiosk' %}
-          {% set FreeMemory = state_attr(entity_id, 'ramFreeMemory') %}
-          {% set TotalMemory = state_attr(entity_id, 'ramTotalMemory') %}
-          {% if not (FreeMemory == None or TotalMemory == None) %}
-            {{ 100 - (FreeMemory / TotalMemory * 100) | int }}
-          {% endif %}
-      fullykiosk_last_app_start:
-        friendly_name: Dernier redémarrage
-        icon_template: mdi:update
-        device_class: timestamp
-        value_template: >
-          {{ states('sensor.lenovotab_last_app_start') | replace(' ','T') }}
-
-    ####################################################
-    #                                                  #
-    #                      DATE                        #
-    #                                                  #
-    ####################################################
-
-      sidebar_day:
-        icon_template: mdi:calendar
-        value_template: >
-          {% set days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'] %}
-          {{ days[now().weekday()] }}
-
-      sidebar_date:
-        icon_template: mdi:calendar
-        value_template: >
-          {% set months = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin',
-          'Julliet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'] %}
-          {{ strptime(states('sensor.date'), '%Y-%m-%d').day }} {{ months[now().month-1] }}
-
-      # mathem_countdown:
-      #   friendly_name: Mathem
-      #   icon_template: mdi:calendar
-      #   value_template: >
-      #     {% set start_time = state_attr('calendar.mathem', 'start_time') %}
-      #     {% set end_time = state_attr('calendar.mathem', 'end_time') %}
-      #     {% if start_time != None %}
-      #       {% set time = as_timestamp(start_time) | timestamp_custom('%H:%M') %}
-      #       {% set time_end = as_timestamp(end_time) | timestamp_custom('%H:%M') %}
-      #       {% set hours = as_timestamp(start_time) | timestamp_custom('%H') | int / 24 %}
-      #       {% set count = (as_timestamp(start_time) - as_timestamp(now())) / 86400 - hours %}
-      #       {% set day = strptime(start_time, '%Y-%m-%d %H:%M:%S').strftime('%A')
-      #       | replace('Monday', 'Lundi')
-      #       | replace('Tuesday', 'Mardi')
-      #       | replace('Wednesday', 'Mercredi')
-      #       | replace('Thursday', 'Jeudi')
-      #       | replace('Friday', 'Vendredi')
-      #       | replace('Saturday', 'Samedi')
-      #       | replace('Sunday', 'Dimanche') %}
-
-      #       {% if count <= 0.0 %}
-      #         {{'\U0001F6D2'}} Mathem idag mellan {{ time }}-{{ time_end }}
-      #       {% elif count <= 1.0 %}
-      #         Mathem imorgon mellan {{ time }}-{{ time_end }}
-      #       {% elif count <= 2.0 %}
-      #         Mathem i övermorgon mellan {{ time }}-{{ time_end }}
-      #       {% else %}
-      #         Mathem om {{ (count + hours) | round }} dagar på {{ day }} entre {{ time }}-{{ time_end }}
-      #       {% endif %}
-      #     {% endif %}
-
-      hass_uptime:
-        friendly_name: Dernier redémarrage
-        icon_template: mdi:update
-        value_template: >
-          {% set uptime = states('sensor.uptime') | float %}
-          {% if uptime < 1 %} Depuis {{ (uptime * 60) | int }} secondes
-          {% elif uptime | int == 1 %} Depuis une minute
-          {% elif uptime | int > 1 %}
-            {% if uptime | int < 60 %} Depuis {{ uptime | int }} minutes
-            {% elif uptime | int / 60 == 24 %} {{ (uptime | int / 60 / 24) | int }} Depuis un jour
-            {% elif uptime | int / 60 >= 24 %} Depuis {{ (uptime | int / 60 / 24) | int }} jours
-            {% elif uptime | int >= 60 and uptime | int < 120 %} {{ (uptime | int / 60) | int }} Depuis une heure
-            {% elif uptime | int >= 120 %} Depuis {{ (uptime | int / 60) | int }}  heures
-            {% endif %}
-          {% endif %}
-
-
-
-
-
-
-
-
-
-
-
-    ####################################################
-    #                                                  #
-    #                    Monthly kWh                   #
-    #                                                  #
-    ####################################################
-
-
-
-
-
-      enedis_kwh_1:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[0].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[0].split(' ')[2] | int }}"
-
-      enedis_kwh_2:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[1].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') | replace('b','v') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[1].split(' ')[2] | int }}"
-
-      enedis_kwh_3:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[2].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[2].split(' ')[2] | int }}"
-
-      enedis_kwh_4:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[3].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') | replace('p','v') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[3].split(' ')[2] | int }}"
-
-      enedis_kwh_5:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[4].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') | replace('y','i') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[4].split(' ')[2] | int }}"
-
-      enedis_kwh_6:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[5].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[5].split(' ')[2] | int }}"
-
-      enedis_kwh_7:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[6].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[6].split(' ')[2] | int }}"
-
-      enedis_kwh_8:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[7].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') | replace('ug','ou') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[7].split(' ')[2] | int }}"
-
-      enedis_kwh_9:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[8].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[8].split(' ')[2] | int }}"
-
-      enedis_kwh_10:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[9].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[9].split(' ')[2] | int }}"
-
-      enedis_kwh_11:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[10].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[10].split(' ')[2] | int }}"
-
-      enedis_kwh_12:
-        friendly_name_template: >
-          {{ as_timestamp(strptime(states('sensor.enedis_kwh').split(',')[11].split(' ')[1],
-          '%Y-%m-%d')) | timestamp_custom('%b') }}
-        value_template: "{{ states('sensor.enedis_kwh').split(',')[11].split(' ')[2] | int }}"
-
-      enedis_kwh_last_month_kwh:
-        unit_of_measurement: 'kWh'
-        value_template: >
-          {% set entity_id = 'sensor.enedis_kwh' %}
-          {% for month in range(12) %}
-            {% if now().month-1 == (states(entity_id).split(',')
-            [month].split(' ')[0]|join|string).lstrip('0')|int %}
-              {{ states(entity_id).split(',')[month].split(' ')[2] }}
-            {% endif %}
-          {% endfor %}
-      enedis_kwh_last_month_price:
-        icon_template: mdi:calculator
-        friendly_name_template: >
-          {% set entity_id = 'sensor.enedis_kwh' %}
-          {% if now().month-1 == 0 %}
-            Estimé en {{ as_timestamp(strptime(states(entity_id).split(',')[11].split(' ')[1], '%Y-%m-%d')) |
-            timestamp_custom('%B')
-            | replace('January', 'Janvier')
-            | replace('February', 'Février')
-            | replace('March', 'Mars')
-            | replace('May', 'Mai')
-            | replace('June', 'Juin')
-            | replace('July', 'Juillet')
-            | replace('August', 'Août')
-            | replace('September', 'Septembre')
-            | replace('October', 'Octobre')
-            | replace('November', 'Novembre')
-            | replace('December', 'Décembre') }}
-          {% else %}
-            {% for month in range(12) %}
-              {% if now().month-1 == (states(entity_id).split(',')[month].split(' ')[0]|join|string).lstrip('0')|int %}
-                Estimé en {{ as_timestamp(strptime(states(entity_id).split(',')[month].split(' ')[1], '%Y-%m-%d')) |
-                timestamp_custom('%B')
-                | replace('January', 'Janvier')
-                | replace('February', 'Février')
-                | replace('March', 'Mars')
-                | replace('May', 'Mai')
-                | replace('June', 'Juin')
-                | replace('July', 'Juillet')
-                | replace('August', 'Août')
-                | replace('September', 'Septembre')
-                | replace('October', 'Octobre')
-                | replace('November', 'Novembre')
-                | replace('December', 'Décembre') }}
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-        value_template: >
-          {% set entity_id = 'sensor.enedis_kwh' %}
-          {% set dagar %}
-            {% if now().month-1 == 0 %}
-              {{ states(entity_id).split(',')[11].split(' ')[1].split('-')[2] | int }}
-            {% else %}
-              {% for month in range(12) %}
-                {% if now().month-1 == (states(entity_id).split(',')[month].split(' ')[0]|join|string).lstrip('0')|int %}
-                  {{ states(entity_id).split(',')[month].split(' ')[1].split('-')[2] | int }}
-                {% endif %}
-              {% endfor %}
-            {% endif %}
-          {% endset %}
-          {% set kwh = states('sensor.enedis_kwh_last_month_kwh') | float %}
-          {{ (kwh * 0.1765 ) | round }}
-        unit_of_measurement: '€'
-
-      enedis_kwh_total_year_kwh:
-        icon_template: mdi:poll-box
-        friendly_name_template: >
-          Total {{ now().year }}
-        value_template: "{{ states('sensor.enedis_kwh').split('total=')[1]}}"
-        unit_of_measurement: 'kWh'
-
-      enedis_kwh_year:
-        icon_template: mdi:checkbox-blank
-        friendly_name_template: "{{ now().year }}"
-        value_template: ' '
-
-      enedis_kwh_last_year:
-        icon_template: mdi:checkbox-blank
-        friendly_name_template: "{{ now().year-1 }}"
-        value_template: ' '
+        icon_template: 'mdi:server'

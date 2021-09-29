@@ -28,29 +28,28 @@ automation:
             - condition: state
               entity_id:
                 ['media_player.google_home_cuisine',
-                'media_player.google_home_chambre', 'media_player.spotify', 'media_player.bouygues4k']
+                'media_player.google_home_chambre', 'media_player.spotify', 'media_player.bouygues4k',
+                'media_player.plex_plex_for_android_mobile_in2023', 'media_player.plex_plex_web_chrome']
               state: 'off'
           sequence:
             - service: input_select.select_option
               data:
                 entity_id: input_select.conditional_media
-                option: Senast nedladdat
+                option: Récemment ajouté
       - delay:
           seconds: 10
       - service: fullykiosk.load_start_url
         data:
           entity_id: media_player.lenovotab_media_player
-      - choose:
-        - conditions:
-            - condition: state
-              entity_id: light.hall
-              state: 'off'
-          sequence:
-            - service: switch.turn_on
-              entity_id: switch.lenovotab_screensaver
-      - service: homekit.start
-
-
+      # - choose:
+      #   - conditions:
+      #       - condition: state
+      #         entity_id: light.hall
+      #         state: 'off'
+      #     sequence:
+      #       - service: switch.turn_on
+      #         entity_id: switch.lenovotab_screensaver
+    #  - service: homekit.start
 
 
   - alias: lovelace_updated_ignore
@@ -104,7 +103,6 @@ automation:
             auto_backup_{{ states("sensor.date") | replace("-", "")}}_{{
             states("sensor.time") | replace(":", "") }}
 
-
   - alias: get_google_home_token_at_ha_restart
     trigger:
       - platform: homeassistant
@@ -122,9 +120,16 @@ automation:
   - alias: enedis_update_data
     trigger:
       - platform: time_pattern
-        hours: '*'
+        hours: '/12'
     action:
       - service: shell_command.enedis_update_data
+
+  - alias: bbox_update_data
+    trigger:
+      - platform: time_pattern
+        minutes: '/1'
+    action:
+      - service: shell_command.bbox_update_data
 
   - alias: update_timer
     trigger:
@@ -142,6 +147,24 @@ automation:
     action:
       - service: homeassistant.update_entity
         entity_id: sensor.next_timer_human
+
+  - alias: update_ilevia_sensor
+    trigger:
+      - platform: time_pattern
+        minutes: '/2'
+    condition:
+      - condition: time
+        after: '05:30:00'
+        before: '23:30:00'
+    action:
+      - service: homeassistant.update_entity
+        target:
+          entity_id:
+            - sensor.ilevia_ligne_1
+            - sensor.ilevia_ligne_2
+            - sensor.ilevia_ligne_3
+            - sensor.ilevia_ligne_4
+    mode: single
 
 
     ####################################################
@@ -337,6 +360,7 @@ automation:
       data: {}
       entity_id: switch.computer_rig_kaoru
 
+
   - alias: webhook_turnoff_computer_rig_kaoru
     trigger:
     - platform: webhook
@@ -347,50 +371,31 @@ automation:
       data: {}
       entity_id: switch.computer_rig_kaoru
 
+
   - alias: turn_off_gps_home_absence
     trigger:
-    - platform: state
-      entity_id: person.kaoru
-      from: 'home '
-      to: not_home
-    - platform: state
-      entity_id: person.papa
-      from: home
-      to: not_home
-    condition:
-    - condition: and
-      conditions:
-      - condition: state
+      - platform: state
         entity_id: person.kaoru
-        state: not_home
-      - condition: state
+        from: home
+        to: not_home
+      - platform: state
         entity_id: person.papa
-        state: not_home
+        from: home
+        to: not_home
+    condition:
+      - condition: and
+        conditions:
+          - condition: state
+            entity_id: person.kaoru
+            state: not_home
+          - condition: state
+            entity_id: person.papa
+            state: not_home
     action:
-    - type: turn_off
-      device_id: 8cda3d2c1da24ec8238bc9d454cdc172
-      entity_id: light.yeelight_stripe
-      domain: light
-    - type: turn_off
-      device_id: faad3116c2e75034b43c6f1bcf3adb3a
-      entity_id: light.lampe_japonaise
-      domain: light
-    - type: turn_off
-      device_id: 69ba9f289ac3e2853905c24a4dc3ce16
-      entity_id: light.plafond_1
-      domain: light
-    - type: turn_off
-      device_id: 1c5afbe389434f52cf1184503b61096d
-      entity_id: light.plafond_2
-      domain: light
-    - type: turn_off
-      device_id: 227c406d791ae230c40220b8f44dd05a
-      entity_id: light.salon_1
-      domain: light
-    - type: turn_off
-      device_id: edb4be04b0d44a91b2cf5949b421aa10
-      entity_id: light.salon_2
-      domain: light
+      - service: light.turn_off
+        target:
+          entity_id: light.maison
+
 
   - alias: turn_off_gps_papa_absence
     trigger:
@@ -408,6 +413,77 @@ automation:
     action:
       - service: script.computer_papa_shutdown
         data: {}
+
+
+  - alias: turn_off_gps_william_absence
+    trigger:
+      - platform: state
+        entity_id: person.kaoru
+        from: home
+        to: not_home
+    condition:
+      - condition: state
+        entity_id: person.kaoru
+        state: not_home
+    action:
+      - service: fan.turn_off
+        target:
+          entity_id: fan.xiaomi_smart_fan_2
+      - service: light.turn_off
+        target:
+          entity_id: light.chambre
+    mode: single
+
+
+
+  - alias: update_speed_fan
+    trigger:
+      - platform: state
+        entity_id: input_number.fan_speed
+    condition:
+      - condition: template
+        value_template: >-
+          {{ as_timestamp(now()) -
+          as_timestamp(state_attr('automation.update_speed_fan_slider',
+          'last_triggered')) > 1 }}
+    action:
+      - service: fan.set_percentage
+        target:
+          entity_id: fan.xiaomi_smart_fan_2
+        data:
+          percentage: "{{ states('input_number.fan_speed') | int }}"
+    mode: single
+
+  - alias: update_speed_fan_slider
+    trigger:
+      - platform: state
+        entity_id: fan.xiaomi_smart_fan_2
+    condition:
+      - condition: template
+        value_template: >-
+          {{ as_timestamp(now()) -
+          as_timestamp(state_attr('automation.update_speed_fan',
+          'last_triggered')) > 1 }}
+    action:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.fan_speed
+        data:
+          value: "{{ state_attr('fan.xiaomi_smart_fan_2', 'percentage') }}"
+    mode: single
+
+  - alias: update_fan_timer
+    description: ''
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_number.fan_timer
+    condition: []
+    action:
+      - service: xiaomi_miio_fan.fan_set_delay_off
+        data:
+          entity_id: fan.xiaomi_smart_fan_2
+          delay_off_countdown: "{{ states('input_number.fan_timer') | int }}"
 
 
     ####################################################
@@ -500,6 +576,7 @@ automation:
   #   action:
   #     - service: switch.turn_on
   #       entity_id: switch.watchtower
+
 
 
     ####################################################
@@ -629,7 +706,7 @@ automation:
       - platform: state
         entity_id:
           ['media_player.samsung_tv_remote', 'switch.computer_rig_kaoru', 'switch.computer_papa',
-          'switch.playstation_4', 'fan.sovrum_anslut', 'switch.air_purifier']
+          'switch.playstation_4', 'fan.xiaomi_smart_fan_2', 'switch.air_purifier']
     action:
       - service: input_boolean.turn_off
         data:
@@ -765,12 +842,18 @@ automation:
       ####################################################
 
   - alias: conditional_media_playing
+    id: '5557842567134'
     initial_state: true
     mode: restart
     trigger:
       - platform: state
         entity_id:
-          ['media_player.google_home_cuisine', 'media_player.google_home_chambre', 'media_player.spotify', 'media_player.bouygues4k']
+          - media_player.google_home_cuisine
+          - media_player.google_home_chambre
+          - media_player.spotify
+          - media_player.bouygues4k
+          - media_player.plex_plex_web_chrome
+          - media_player.plex_plex_for_android_mobile_in2023
         to: playing
     action:
       - service: input_select.select_option
@@ -779,17 +862,28 @@ automation:
           option: >
             {{ trigger.to_state.name }}
   - alias: conditional_media_paused_idle
+    id: '3603627624707'
     initial_state: true
     mode: restart
     trigger:
       - platform: state
         entity_id:
-          ['media_player.google_home_cuisine', 'media_player.google_home_chambre', 'media_player.spotify', 'media_player.bouygues4k']
+          - media_player.google_home_cuisine
+          - media_player.google_home_chambre
+          - media_player.spotify
+          - media_player.bouygues4k
+          - media_player.plex_plex_web_chrome
+          - media_player.plex_plex_for_android_mobile_in2023
         to:
           ['off', 'idle', 'standby']
       - platform: state
         entity_id:
-          ['media_player.google_home_cuisine', 'media_player.google_home_chambre', 'media_player.spotify', 'media_player.bouygues4k']
+          - media_player.google_home_cuisine
+          - media_player.google_home_chambre
+          - media_player.spotify
+          - media_player.bouygues4k
+          - media_player.plex_plex_web_chrome
+          - media_player.plex_plex_for_android_mobile_in2023
         to: paused
         for:
           minutes: 10
@@ -799,17 +893,24 @@ automation:
           entity_id: input_select.conditional_media
           option: >
             {% set media_players =
-              [states.media_player.google_home_cuisine, states.media_player.google_home_chambre, states.media_player.spotify, states.media_player.bouygues4k] %}
+              [states.media_player.google_home_cuisine, states.media_player.google_home_chambre,
+                  states.media_player.spotify, states.media_player.bouygues4k, states.media_player.plex_plex_web_chrome, states.media_player.plex_plex_for_android_mobile_in2023] %}
             {% if media_players | selectattr('state','eq','playing') | list | count == 0 %}
               {% if media_players | selectattr('state','eq','paused') | list | count == 0 %}
-              Senast nedladdat
+              Récemment ajouté
               {% else %}
               {{ media_players | selectattr('state','eq','paused') | map(attribute='name') | max }}
               {% endif %}
+            {% elif is_state_attr('media_player.bouygues4k', 'entity_picture_local', '') %}
+              Récemment ajouté
+            {% elif states.media_player.bouygues4k.attributes.media_title is not defined and media_players | selectattr('state','eq','playing') | list | count == 1 %}
+              Récemment ajouté
             {% else %}
             {{ media_players | selectattr('state','eq','playing') | map(attribute='name') | max }}
             {% endif %}
+
   - alias: conditional_media_all_off
+    id: '6882931899148'
     initial_state: true
     trigger:
       - platform: template
@@ -819,81 +920,94 @@ automation:
           is_state('media_player.playstation_4', 'standby') and
           is_state('media_player.google_home_chambre', 'off') and
           is_state('media_player.spotify', 'idle') and
-          is_state('media_player.bouygues4k', 'idle')
+          is_state('media_player.bouygues4k', 'idle') and
+          is_state('media_player.plex_plex_web_chrome', 'idle') and
+          is_state('media_player.plex_plex_for_android_mobile_in2023k', 'idle')
           or
           is_state('media_player.sony_bravia', 'off') and
           is_state('media_player.google_home_cuisine', 'off') and
           is_state('media_player.google_home_chambre', 'off') and
           is_state('media_player.spotify', 'idle') and
-          is_state('media_player.bouygues4k', 'idle') }}
+          is_state('media_player.bouygues4k', 'idle') and
+          is_state('media_player.plex_plex_web_chrome', 'idle') and
+          is_state('media_player.plex_plex_for_android_mobile_in2023', 'idle')
+          }}
     action:
       - service: input_select.select_option
         data:
           entity_id: input_select.conditional_media
-          option: Senast nedladdat
+          option: Récemment ajouté
 
-  - alias: conditional_media_atv1_fix
-    initial_state: true
-    trigger:
-      - platform: template
-        value_template: >
-          {{ is_state('media_player.vardagsrum', 'paused') and
-          is_state_attr('media_player.vardagsrum', 'media_title', 'No title') }}
-        for:
-          seconds: 5
-    action:
-      - service: input_select.select_option
-        data:
-          entity_id: input_select.conditional_media
-          option: >
-            {% set media_players =
-              [states.media_player.google_home_cuisine, states.media_player.google_home_chambre, states.media_player.spotify, states.media_player.bouygues4k] %}
-            {% if media_players | selectattr('state','eq','playing') | list | count == 0 %}
-              {% if media_players | selectattr('state','eq','paused') | list | count == 0 %}
-              Senast nedladdat
-              {% elif is_state('media_player.vardagsrum', 'paused') and
-              is_state_attr('media_player.vardagsrum', 'media_title', 'No title') or
-              is_state('media_player.sovrum', 'paused') and
-              is_state_attr('media_player.sovrum', 'media_title', 'No title')
-              %}
-              Senast nedladdat
-              {% else %}
-              {{ media_players | selectattr('state','eq','paused') | map(attribute='name') | max }}
-              {% endif %}
-            {% else %}
-            {{ media_players | selectattr('state','eq','playing') | map(attribute='name') | max }}
-            {% endif %}
-  - alias: conditional_media_atv2_fix
-    initial_state: true
-    trigger:
-      - platform: template
-        value_template: >
-          {{ is_state('media_player.sovrum', 'paused') and
-          is_state_attr('media_player.sovrum', 'media_title', 'No title') }}
-        for:
-          seconds: 5
-    action:
-      - service: input_select.select_option
-        data:
-          entity_id: input_select.conditional_media
-          option: >
-            {% set media_players =
-              [states.media_player.google_home_cuisine, states.media_player.google_home_chambre, states.media_player.spotify, states.media_player.bouygues4k] %}
-            {% if media_players | selectattr('state','eq','playing') | list | count == 0 %}
-              {% if media_players | selectattr('state','eq','paused') | list | count == 0 %}
-              Senast nedladdat
-              {% elif is_state('media_player.vardagsrum', 'paused') and
-              is_state_attr('media_player.vardagsrum', 'media_title', 'No title') or
-              is_state('media_player.sovrum', 'paused') and
-              is_state_attr('media_player.sovrum', 'media_title', 'No title')
-              %}
-              Senast nedladdat
-              {% else %}
-              {{ media_players | selectattr('state','eq','paused') | map(attribute='name') | max }}
-              {% endif %}
-            {% else %}
-            {{ media_players | selectattr('state','eq','playing') | map(attribute='name') | max }}
-            {% endif %}
+  # - alias: conditional_media_atv1_fix
+  #   id: '8872219660798'
+  #   initial_state: true
+  #   trigger:
+  #     - platform: template
+  #       value_template: >
+  #         {{ is_state('media_player.bouygues4k', 'paused') and
+  #         is_state_attr('media_player.bouygues4k', 'media_title', 'No title') }}
+  #       for:
+  #         seconds: 5
+  #   action:
+  #     - service: input_select.select_option
+  #       data:
+  #         entity_id: input_select.conditional_media
+  #         option: >
+  #           {% set media_players =
+  #              [states.media_player.google_home_cuisine, states.media_player.google_home_chambre,
+  #              states.media_player.spotify, states.media_player.bouygues4k, states.plex_plex_web_chrome_windows, states.plex_plex_for_android_mobile_in2023] %}
+  #           {% if media_players | selectattr('state','eq','playing') | list | count == 0 %}
+  #             {% if media_players | selectattr('state','eq','paused') | list | count == 0 %}
+  #             Récemment ajouté
+  #             {% elif is_state('media_player.bouygues4k', 'paused') and
+  #             is_state_attr('media_player.bouygues4k', 'media_title', 'No title')
+  #             %}
+  #             Récemment ajouté
+  #             {% elif state_attr('media_player.bouygues4k', 'media_title') == None %}
+  #             Récemment ajouté
+  #             {% else %}
+  #             {{ media_players | selectattr('state','eq','paused') | map(attribute='name') | max }}
+  #             {% endif %}
+  #           {% else %}
+  #           {{ media_players | selectattr('state','eq','playing') | map(attribute='name') | max }}
+  #           {% endif %}
+  #
+  # - alias: conditional_media_atv2_fix
+  #   id: '4497990852096'
+  #   initial_state: true
+  #   trigger:
+  #     - platform: template
+  #       value_template: >
+  #         {{ is_state('media_player.bouygues4k', 'paused') and
+  #         is_state_attr('media_player.bouygues4k', 'media_title', 'No title') }}
+  #       for:
+  #         seconds: 5
+  #   action:
+  #     - service: input_select.select_option
+  #       data:
+  #         entity_id: input_select.conditional_media
+  #         option: >
+  #           {% set media_players =
+  #             [states.media_player.google_home_cuisine, states.media_player.google_home_chambre,
+  #             states.media_player.spotify, states.media_player.bouygues4k,
+  #             states.media_player.plex_plex_web_chrome, states.media_player.plex_plex_for_android_mobile_in2023] %}
+  #           {% if media_players | selectattr('state','eq','playing') | list | count == 0 %}
+  #             {% if media_players | selectattr('state','eq','paused') | list | count == 0 %}
+  #             Récemment ajouté
+  #             {% elif is_state('media_player.bouygues4k', 'paused') and
+  #             is_state_attr('media_player.bouygues4k', 'media_title', 'No title')
+  #             %}
+  #             Récemment ajouté
+  #             {% elif state_attr('media_player.bouygues4k', 'media_title') == None %}
+  #             Récemment ajouté
+  #             {% else %}
+  #             {{ media_players | selectattr('state','eq','paused') | map(attribute='name') | max }}
+  #             {% endif %}
+  #           {% else %}
+  #           {{ media_players | selectattr('state','eq','playing') | map(attribute='name') | max }}
+  #           {% endif %}
+
+
 
 
     ####################################################

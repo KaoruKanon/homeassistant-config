@@ -21,16 +21,16 @@ switch:
 
   - platform: wake_on_lan
     name: wol_samsungtv
-    mac: !secret wake_on_lan_samsungtv_mac
-    host: !secret wake_on_lan_samsungtv_host
+    mac: !secret samsungtv_host
+    host: !secret samsungtv_mac
     broadcast_address: 192.168.1.255
 
-  - platform: rest
-    name: Watchtower
-    resource: !secret ha_dockermon_watchtower
-    body_on: '{"state": "start"}'
-    body_off: '{"state": "stop"}'
-    is_on_template: '{{ value_json is not none and value_json.state == "running" }}'
+  # - platform: rest
+  #   name: Watchtower
+  #   resource: !secret ha_dockermon_watchtower
+  #   body_on: '{"state": "start"}'
+  #   body_off: '{"state": "stop"}'
+  #   is_on_template: '{{ value_json is not none and value_json.state == "running" }}'
 
 
     ####################################################
@@ -158,3 +158,55 @@ switch:
           - service: shell_command.fullykiosk_screensaver_on
         turn_off:
           - service: shell_command.fullykiosk_screensaver_off
+
+      fan_oscillate:
+        friendly_name: Oscillation
+        icon_template: mdi:rotate-3d-variant
+        value_template: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'oscillate', true) }}"
+        turn_on:
+          - service: fan.oscillate
+            target:
+              entity_id: fan.xiaomi_smart_fan_2
+            data:
+              oscillating: true
+        turn_off:
+          - service: fan.oscillate
+            target:
+              entity_id: fan.xiaomi_smart_fan_2
+            data:
+              oscillating: false
+
+      fan_eco_mode:
+        friendly_name: Eco mode
+        icon_template: mdi:leaf
+        value_template: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'mode', 'nature') }}"
+        turn_on:
+          - service: xiaomi_miio_fan.fan_set_natural_mode_on
+            data: {}
+        turn_off:
+          - service: xiaomi_miio_fan.fan_set_natural_mode_off
+            data: {}
+
+      fan_buzzer:
+        friendly_name: Buzzer
+        icon_template: mdi:bell-ring
+        value_template: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'buzzer', True) }}"
+        turn_on:
+          - service: xiaomi_miio_fan.fan_set_buzzer_on
+            data: {}
+        turn_off:
+          - service: xiaomi_miio_fan.fan_set_buzzer_off
+            data: {}
+
+      # fan_led:
+      #   friendly_name: LED
+      #   icon_template: mdi:led-on
+      #   value_template: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'led', True) }}"
+      #   turn_on:
+      #     - service: xiaomi_miio_fan.fan_set_led_brightness
+      #       data:
+      #         brightness: 0
+      #   turn_off:
+      #     - service: xiaomi_miio_fan.fan_set_led_brightness
+      #       data:
+      #         brightness: 2

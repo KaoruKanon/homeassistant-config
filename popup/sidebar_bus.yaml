@@ -1,0 +1,298 @@
+              action: fire-dom-event
+              browser_mod:
+                command: popup
+                title: Prochain bus
+                style:
+                  .: |
+                    :host .content {
+                      width: auto;
+                      height: auto;
+                      padding: 0em 1em 1em 1em;
+                  hui-vertical-stack-card:
+                    $hui-history-graph-card$ : |
+                      .content {
+                        padding: 0.2em 1.7em 1.2em 1.7em !important;
+                      }
+                    $: |
+                      button-card {
+                        align-self: center;
+                        padding: 0.2em 0 2.3em 0;
+                      }
+                    $hui-map-card:
+                      $: |
+                        mwc-icon-button {
+                          color: var(--primary-color);
+                        }
+                        ha-card {
+                          border-radius: 0;
+                          animation: border 1s forwards;
+                        }
+                        @keyframes border {
+                          0%, 100% {
+                            border-top: 2px solid #1a1a1a;
+                          }
+                        }
+                      $ha-map$: |
+                        #map {
+                          background-color: #191919 !important;
+                        }
+                        .leaflet-control-attribution {
+                          display: none;
+                        }
+                        .leaflet-bar a {
+                          background-color: rgba(47, 51, 51, 0.9) !important;
+                          color: #9da0a2 !important;
+                        }
+                        a.leaflet-control-zoom-in {
+                          border-bottom: 1px solid #181818 !important;
+                        }
+                        .leaflet-pane.leaflet-tile-pane {
+                          filter: contrast(85%);
+                        }
+                card:
+                  type: vertical-stack
+                  cards:
+
+
+                    - type: markdown
+                      content: |-
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>LIGNE</td>
+                                    <td>DESTINATION</td>
+                                    <td>1er passage</td>
+                                    <td>2eme passage</td>
+                                    <td>3eme passage</td>
+                                </tr>
+                                <tr>
+                                    <td><mark>34</mark></td>
+                                    <td>PONT DE BOIS</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[0]|length %}{{state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[0]}}{% else %}...{% endif %}</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[1]|length %}{{state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[1]}}{% else %}...{% endif %}</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[2]|length %}{{state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[2]}}{% else %}...{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <td><mark>13</mark></td>
+                                    <td>LILLE FIVES</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[0]|length %}{{state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[0]}}{% else %}...{% endif %}</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[1]|length %}{{state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[1]}}{% else %}...{% endif %}</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[2]|length %}{{state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[2]}}{% else %}...{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <td><mark>34</mark></td>
+                                    <td>EUROTELEPORT</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[0]|length %}{{state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[0]}}{% else %}...{% endif %}</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[1]|length %}{{state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[1]}}{% else %}...{% endif %}</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[2]|length %}{{state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[2]}}{% else %}...{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <td><mark>13</mark></td>
+                                    <td>HOTEL DE VILLE</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[0]|length %}{{state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[0]}}{% else %}...{% endif %}</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[1]|length %}{{state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[1]}}{% else %}...{% endif %}</td>
+                                    <td>{% if state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[2]|length %}{{state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[2]}}{% else %}...{% endif %}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <span>
+                          {{ (as_timestamp(state_attr('automation.update_ilevia_sensor', 'last_triggered')) | timestamp_custom("Dernier rafraîchissement : %D %H:%M")) }}
+                        <span>
+                      card_mod:
+                        style:
+                          ha-markdown:
+                            $:
+                              ha-markdown-element: |
+                                table{
+                                  border-collapse: collapse;
+                                  font-size: 0.9em;
+                                  font-family: SF Display;
+                                  width: auto;
+                                }
+                                td {
+                                    padding: 12px 15px;
+                                    text-align: center;
+                                }
+                                tr {
+                                    border-bottom: 1px solid #1c2020;
+                                }
+
+                                tr:nth-of-type(even) {
+                                    background-color: rgb(54, 54, 54, 0.3);
+                                }
+                                tr:last-of-type {
+                                    border-bottom: transparent;
+                                }
+                                tr:nth-child(1) {
+                                  font-weight: bold;
+                                }
+                                tr:nth-child(2) > td:nth-child(1) > mark, tr:nth-child(4) > td:nth-child(1) > mark {
+                                    background: #009767;
+                                    color: #222627;
+                                    border-radius: 10px;
+                                    padding: 10px;
+                                }
+                                tr:nth-child(3) > td:nth-child(1) > mark, tr:nth-child(5) > td:nth-child(1) > mark {
+                                    background: #ffcc00;
+                                    color: #222627;
+                                    border-radius: 10px;
+                                    padding: 10px;
+                                }
+                                tr:nth-child(n+2) > td:nth-child(2) {
+                                  text-align: left;
+                                }
+                                span {
+                                  font-size: 10px;
+                                  font-family: SF Display;
+                                }
+
+                    - type: custom:button-card
+                      name: Mettre à jour les horaires
+                      icon: mdi:refresh
+                      tap_action:
+                        - services: |
+                              [[[
+                                hass.callService('browser_mod', 'toast', {
+                                  message: 'Rafraîchissement des bus...'
+                                });
+                                hass.callService('automation', 'trigger', {
+                                  entity_id: 'automation.update_ilevia_sensor'
+                                });
+                              ]]]
+                      template: icon_name
+
+
+
+
+
+
+
+              #
+              # action: fire-dom-event
+              # browser_mod:
+              #   command: popup
+              #   title: "Prochain bus"
+              #   style:
+              #     .: |
+              #       :host .content {
+              #         width: auto;
+              #         height: auto;
+              #         padding: 0em 1em 1em 1em;
+              #   card:
+              #     type: vertical-stack
+              #     cards:
+              #       - type: markdown
+              #         content: |-
+              #           <table>
+              #               <tbody>
+              #                   <tr>
+              #                       <td>LIGNE</td>
+              #                       <td>DESTINATION</td>
+              #                       <td>1er passage</td>
+              #                       <td>2eme passage</td>
+              #                       <td>3eme passage</td>
+              #                   </tr>
+              #                   <tr>
+              #                       <td><mark>34</mark></td>
+              #                       <td>PONT DE BOIS</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[0]|length %}{{state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[0]}}{% else %}...{% endif %}</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[1]|length %}{{state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[1]}}{% else %}...{% endif %}</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[2]|length %}{{state_attr('sensor.template_ilevia_ligne_1', 'horaire_next_bus')[2]}}{% else %}...{% endif %}</td>
+              #                   </tr>
+              #                   <tr>
+              #                       <td><mark>13</mark></td>
+              #                       <td>LILLE FIVES</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[0]|length %}{{state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[0]}}{% else %}...{% endif %}</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[1]|length %}{{state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[1]}}{% else %}...{% endif %}</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[2]|length %}{{state_attr('sensor.template_ilevia_ligne_2', 'horaire_next_bus')[2]}}{% else %}...{% endif %}</td>
+              #                   </tr>
+              #                   <tr>
+              #                       <td><mark>34</mark></td>
+              #                       <td>EUROTELEPORT</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[0]|length %}{{state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[0]}}{% else %}...{% endif %}</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[1]|length %}{{state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[1]}}{% else %}...{% endif %}</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[2]|length %}{{state_attr('sensor.template_ilevia_ligne_3', 'horaire_next_bus')[2]}}{% else %}...{% endif %}</td>
+              #                   </tr>
+              #                   <tr>
+              #                       <td><mark>13</mark></td>
+              #                       <td>HOTEL DE VILLE</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[0]|length %}{{state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[0]}}{% else %}...{% endif %}</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[1]|length %}{{state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[1]}}{% else %}...{% endif %}</td>
+              #                       <td>{% if state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[2]|length %}{{state_attr('sensor.template_ilevia_ligne_4', 'horaire_next_bus')[2]}}{% else %}...{% endif %}</td>
+              #                   </tr>
+              #               </tbody>
+              #           </table>
+              #           <span>
+              #             {{ (as_timestamp(state_attr('automation.update_ilevia_sensor', 'last_triggered')) | timestamp_custom("Dernier rafraîchissement : %D %H:%M")) }}
+              #           <span>
+              #         card_mod:
+              #           style:
+              #             ha-markdown:
+              #               $:
+              #                 ha-markdown-element: |
+              #                   table{
+              #                     border-collapse: collapse;
+              #                     font-size: 0.9em;
+              #                     font-family: SF Display;
+              #                     width: auto;
+              #                   }
+              #                   td {
+              #                       padding: 12px 15px;
+              #                       text-align: center;
+              #                   }
+              #                   tr {
+              #                       border-bottom: 1px solid #1c2020;
+              #                   }
+              #
+              #                   tr:nth-of-type(even) {
+              #                       background-color: rgb(54, 54, 54, 0.3);
+              #                   }
+              #                   tr:last-of-type {
+              #                       border-bottom: transparent;
+              #                   }
+              #                   tr:nth-child(1) {
+              #                     font-weight: bold;
+              #                   }
+              #                   tr:nth-child(2) > td:nth-child(1) > mark, tr:nth-child(4) > td:nth-child(1) > mark {
+              #                       background: #009767;
+              #                       color: #222627;
+              #                       border-radius: 10px;
+              #                       padding: 10px;
+              #                   }
+              #                   tr:nth-child(3) > td:nth-child(1) > mark, tr:nth-child(5) > td:nth-child(1) > mark {
+              #                       background: #ffcc00;
+              #                       color: #222627;
+              #                       border-radius: 10px;
+              #                       padding: 10px;
+              #                   }
+              #                   tr:nth-child(n+2) > td:nth-child(2) {
+              #                     text-align: left;
+              #                   }
+              #                   span {
+              #                     font-size: 10px;
+              #                     font-family: SF Display;
+              #                   }
+              #       - type: custom:hui-horizontal-stack-card
+              #         cards:
+              #         - type: custom:button-card
+              #           name: Mettre à jour les horaires
+              #           icon: mdi:refresh
+              #           style: |
+              #             ha-card {
+              #               margin-left: 70%;
+              #               margin-bottom: 1em;
+              #               background: #2e3333 !important;
+              #               border-radius: 0.6em !important;
+              #               margin-top: -20px
+              #             }
+              #           tap_action:
+              #             - services: |
+              #                   [[[
+              #                     hass.callService('browser_mod', 'toast', {
+              #                       message: 'Rafraîchissement des bus...'
+              #                     });
+              #                     hass.callService('automation', 'trigger', {
+              #                       entity_id: 'automation.update_ilevia_sensor'
+              #                     });
+              #                   ]]]
+              #           template: icon_name
