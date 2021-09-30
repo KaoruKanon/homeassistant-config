@@ -1,9 +1,0 @@
-{
-    "domain": "myEnedis",
-    "name": "myEnedis sensor",
-    "documentation": "",
-    "requirements": [
-    ],
-    "dependencies": [],
-    "codeowners": []
-}
