@@ -24,8 +24,8 @@
                     - type: markdown
                       content: |
                         Réseau caché :
-                        - SSID: apt
-                        - password: passwd4WiFiaccess
+                        - SSID: 
+                        - password: 
                       style: |
                         ha-card {
                           margin-left: 40px;
