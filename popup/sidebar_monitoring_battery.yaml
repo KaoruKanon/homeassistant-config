@@ -116,7 +116,7 @@ browser_mod:
                           hui-entities-card:
                             $: |
                               .card-content {
-                                padding: 1.5em 1.5em 1.5em 1.5em;
+                                padding: 1.5em 1.5em 1.5em 2.5em;
                               }
                               ha-card {
                                 animation: border 1s forwards;
@@ -183,7 +183,7 @@ browser_mod:
                                     .: |
                                       #states {
                                         padding: 0;
-                                        margin-left: 1em;
+                                        margin-left: 2em;
                                       }
                                     hui-sensor-entity-row:
                                       $hui-generic-entity-row$: |
@@ -247,7 +247,7 @@ browser_mod:
                                 icon: mdi:memory
 
 
-                          - entity: sensor.bbox_uptime
+                          - entity: sensor.bbox_uptime_human
                             name: Uptime
                             icon: mdi:calendar-clock
 
