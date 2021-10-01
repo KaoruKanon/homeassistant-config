@@ -882,9 +882,7 @@ automation:
               {% else %}
               {{ media_players | selectattr('state','eq','paused') | map(attribute='name') | max }}
               {% endif %}
-            {% elif is_state_attr('media_player.bouygtel4k', 'entity_picture_local', '') %}
-              Récemment ajouté
-            {% elif states.media_player.bouygtel4k.attributes.media_title is not defined and media_players | selectattr('state','eq','playing') | list | count == 1 %}
+            {% elif states.media_player.bouygtel4k.attributes.media_title is not defined and media_players | selectattr('state','eq','playing') | list | count == 1 and media_players | selectattr('state','eq','playing') | map(attribute='name') | max == 'Bougytel4K' %}
               Récemment ajouté
             {% else %}
             {{ media_players | selectattr('state','eq','playing') | map(attribute='name') | max }}
