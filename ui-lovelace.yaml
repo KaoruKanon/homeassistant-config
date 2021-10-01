@@ -510,7 +510,7 @@ views:
                         state: Bouygtel4K
                     card:
                       type: custom:button-card
-                      entity: media_player.bouygues4k
+                      entity: media_player.bouygtel4k
                       hold_action: !include popup/media_player.yaml
                       double_tap_action: !include popup/media_player.yaml
                       template:
@@ -575,7 +575,7 @@ views:
                       - icon_spotify
 
                   - type: custom:button-card
-                    entity: media_player.bouygues4k
+                    entity: media_player.bouygtel4k
                     name: Bbox
                     hold_action: !include popup/media_player.yaml
                     double_tap_action: !include popup/media_player.yaml

@@ -841,6 +841,7 @@ automation:
           entity_id: input_select.conditional_media
           option: >
             {{ trigger.to_state.name }}
+
   - alias: conditional_media_paused_idle
     id: '3603627624707'
     initial_state: true
