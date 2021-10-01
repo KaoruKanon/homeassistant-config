@@ -19,12 +19,6 @@ switch:
     host: !secret wake_on_lan_papa_host
     broadcast_address: 192.168.1.255
 
-  - platform: wake_on_lan
-    name: wol_samsungtv
-    mac: !secret samsungtv_host
-    host: !secret samsungtv_mac
-    broadcast_address: 192.168.1.255
-
   # - platform: rest
   #   name: Watchtower
   #   resource: !secret ha_dockermon_watchtower
