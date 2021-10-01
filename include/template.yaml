@@ -635,15 +635,17 @@ sensor:
         friendly_name: Uptime
         icon_template: mdi:update
         value_template: >
-          {% set time = states.sensor.bbox_uptime.state | int %}
-          {% if time < 60 %}
-             {{ time | timestamp_custom('%S s') }}
-          {% elif time > 60 and time < 3600 %}
-             {{ time | timestamp_custom('%M m %S s') }}
-          {% elif time >= 3600 and time < 86400 %}
-             {{ time | timestamp_custom('%H h %M m %S s') }}
-          {% elif time >= 86400 %}
-             {{ time // 86400 }} j{{ (time | timestamp_custom('%d j %H h %M m %S s'))[4:] }}
+          {% if states.sensor.bbox_uptime.state is defined %}
+            {% set time = states.sensor.bbox_uptime.state | int %}
+            {% if time < 60 %}
+               {{ time | timestamp_custom('%S s') }}
+            {% elif time > 60 and time < 3600 %}
+               {{ time | timestamp_custom('%M m %S s') }}
+            {% elif time >= 3600 and time < 86400 %}
+               {{ time | timestamp_custom('%H h %M m %S s') }}
+            {% elif time >= 86400 %}
+               {{ time // 86400 }} j{{ (time | timestamp_custom('%d j %H h %M m %S s'))[4:] }}
+            {% endif %}
           {% endif %}
 
       hass_uptime:
