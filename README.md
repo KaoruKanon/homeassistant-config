@@ -27,7 +27,7 @@ N'hésitez pas à mettre une ⭐ sur mon repo.
 | 🖥️ |️ Ordinateurs | 2 |
 | 🌡️ | Xiaomi mijia Temperature Humidity 2019 | 5 |
 | 📱 | Smartphone | 2 |
-| 📱 | enovo TAB M10+ & Fully Kiosk Browser | 1 |
+| 📱 | Lenovo TAB M10+ & Fully Kiosk Browser | 1 |
 | 💡 | Bulb E27 yeelight & yeelight strip | 7 |
 | 🔘 | Switch Xiaomi | 3 |
 | 📺 | Samsung TV | 1 |
@@ -77,18 +77,18 @@ J'utilise le travail de [chvancooten](https://github.com/chvancooten/homeassista
 ### Monitoring de la bbox
 
 La platerform [bbox](https://www.home-assistant.io/integrations/bbox/) officiel de home assistant ne fonctionne pas correctement. J'ai créé un script python qui utilise l'API d'HA et [ppybox](https://github.com/HydrelioxGitHub/pybbox). J'ai modifié ce dernier pour le débugger mais également créer de nouvelles méthodes pour mon utilisation.  
-<img src="/images/bbox-monitoring.jpg" height="300">
+<img src="/images/bbox-monitoring.jpg" height="500">
 
 ### Horaire des prochains bus
 
 J'ai implémenté les horaires de bus d'Ilévia via l'[API officiel de la Métropole Européenne de Lille](https://opendata.lillemetropole.fr/explore/dataset/ilevia-prochainspassages/information/?flg=fr)  
-<img src="/images/bus.jpg" height="300">
+<img src="/images/bus.jpg" height="500">
 
 ### QR-CODE du WiFi
 
 Pour facilité l'utilisation du WiFi chez moi, j'ai mis en place un popup contenant le QR code WiFi qui n'a besoin d'être scanné mais aussi le code et le SSID en clair pour le faire manuellement.
 
-<img src="/images/wifi-qrcode.jpg" height="300">
+<img src="/images/wifi-qrcode.jpg" height="500">
 
 ## Ma façon d'implémenter son code
 L'auteur est suédois et nous n'avons pas les mêmes équipements.
