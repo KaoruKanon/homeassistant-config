@@ -91,9 +91,9 @@ browser_mod:
           align_state: left
           line_width: 4
           group: false
-          points_per_hour: 15
+          points_per_hour: 1
           hour24: true
-          hours_to_show: 2
+          hours_to_show: 24
           height: 200
           show:
             {fill: fade, icon: false, name: false, state: false, name_adaptive_color: true, labels: hover, legend: true}
