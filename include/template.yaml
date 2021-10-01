@@ -44,8 +44,38 @@ template:
           {%- else %} Bonne soirée {{'\U0001F974'}}
           {%- endif -%}
           </b>
+        weather: |
+          {% set temperature = state_attr('weather.villeneuve_d_ascq', 'temperature') %}
+          {% set precip = states('sensor.villeneuve_d_ascq_rain_chance') | round %}
+          {% set snow = states('sensor.villeneuve_d_ascq_snow_chance') | round %}
+          {% set weather_state = states('weather.villeneuve_d_ascq')
+            | replace('rainy', 'Pluvieux')
+            | replace('partlycloudy', 'Partiellement nuageux')
+            | replace('cloudy', 'Nuageux')
+            | replace('clear-night', 'Nuit claire')
+            | replace('fog', 'Brumeux')
+            | replace('hail', 'Grêleux')
+            | replace('lightning-rainy', 'Orageux')
+            | replace('lightning', 'Orageux')
+            | replace('pourring', 'Pluie intense')
+            | replace('snowy-rainy', 'Neigeux')
+            | replace('snowy', 'Neigeux')
+            | replace('sunny', 'Ensoleillé')
+            | replace('windy-variant', 'Variblement venteux')
+            | replace('windy', 'Venteux')
+            | replace('exceptional', 'Exceptionel') %}
+          {% if not state_attr('weather.villeneuve_d_ascq', 'temperature') == 'unknow' %}
+            {% if temperature | float <= 0.0 %}
+              {{ weather_state }}, il fait {{ temperature }}° avec {{ snow }}% de risque de neige. {{'\u2744\uFE0F' if precip > 30 }}
+              Il fait {{ states('sensor.average_temperature') | round}}°C dans la maison.
+            {% elif temperature | float > 0.0 %}
+              {{ weather_state }}, il fait {{ temperature }}° avec {{ precip }}% de risque de pluie. {{ '\u2614\uFE0F' if precip > 30 }}
+              Il fait {{ states('sensor.average_temperature') | round}}°C dans la maison.
+            {% endif %}
+          {% else %}
+            Pas d'information métérologique...
+          {% endif %}
         active: |
-          <b>
           {%- set lights = [
             states.light.salon_1,
             states.light.salon_2,
@@ -93,45 +123,13 @@ template:
           {%- else %}
             <font color='#6a7377'>Tout est éteint</font>
           {%- endif -%}
-          </b>
         # vacuum: |
         #   {% set entity_id = 'vacuum.valetudo_robot' %}
         #   {%- if is_state(entity_id, 'cleaning') -%}
         #     <b>Morty dammsuger</b>
         #   {%- elif is_state(entity_id, 'returning') -%}
         #     <b>Morty är färdig</b>
-        #   {%- endif %}
-        weather: |
-          {% set temperature = state_attr('weather.villeneuve_d_ascq', 'temperature') %}
-          {% set precip = states('sensor.villeneuve_d_ascq_rain_chance') | round %}
-          {% set snow = states('sensor.villeneuve_d_ascq_snow_chance') | round %}
-          {% set weather_state = states('weather.villeneuve_d_ascq')
-            | replace('rainy', 'Pluvieux')
-            | replace('partlycloudy', 'Partiellement nuageux')
-            | replace('cloudy', 'Nuageux')
-            | replace('clear-night', 'Nuit claire')
-            | replace('fog', 'Brumeux')
-            | replace('hail', 'Grêleux')
-            | replace('lightning-rainy', 'Orageux')
-            | replace('lightning', 'Orageux')
-            | replace('pourring', 'Pluie intense')
-            | replace('snowy-rainy', 'Neigeux')
-            | replace('snowy', 'Neigeux')
-            | replace('sunny', 'Ensoleillé')
-            | replace('windy-variant', 'Variblement venteux')
-            | replace('windy', 'Venteux')
-            | replace('exceptional', 'Exceptionel') %}
-          {% if not state_attr('weather.villeneuve_d_ascq', 'temperature') == 'unknow' %}
-            {% if temperature | float <= 0.0 %}
-              {{ weather_state }}, il fait {{ temperature }}° avec {{ snow }}% de risque de neige. {{'\u2744\uFE0F' if precip > 30 }}
-              Il fait {{ states('sensor.average_temperature') | round}}°C dans la maison.
-            {% elif temperature | float > 0.0 %}
-              {{ weather_state }}, il fait {{ temperature }}° avec {{ precip }}% de risque de pluie. {{ '\u2614\uFE0F' if precip > 30 }}
-              Il fait {{ states('sensor.average_temperature') | round}}°C dans la maison.
-            {% endif %}
-          {% else %}
-            Pas d'information métérologique...
-          {% endif %}
+        #   {%- endif %}          
         # transport: |
         #   {% if states('sensor.ilevia_ligne_1') != 'You have exceeded your quota of 3000 api calls per day' or states('sensor.ilevia_ligne_2') != 'You have exceeded your quota of 3000 api calls per day' %}
         #     {%  set list_min_next_bus = (state_attr('sensor.template_ilevia_ligne_1','min_next_bus') + state_attr('sensor.template_ilevia_ligne_2','min_next_bus')) | sort %}
