@@ -15,6 +15,15 @@ abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
 
+def bytes_conversion_human(bytes):
+    if bytes < 10**3:
+        return str(bytes) + ' MB'
+    elif bytes >= 10**3 and bytes < 10**6:
+        return str(round(bytes/10**3, 2)) + ' GB'
+    elif bytes >= 10**6 and bytes < 10**9:
+        return str(round(bytes/10**6, 2)) + ' TB'
+
+
 with open('../secrets.yaml') as f:
     secrets = yaml.safe_load(f)
 
@@ -34,6 +43,7 @@ bbox_cpu_usage = round(bbox_cpu_json['total'] / bbox_cpu_json['idle'] * 100 - 10
 
 bbox_mem_json = bbox.get_bbox_mem()
 bbox_mem_usage = round(bbox_mem_json['free'] / bbox_mem_json['total'] * 100, 1)
+
 
 # sensors dict list
 list_sensor = [
@@ -107,7 +117,7 @@ list_sensor = [
         "config": {
             "state": "",
             "attributes": {
-                "friendly_name": str(bbox.get_up_bytes()) + " Mb"
+                "friendly_name": bytes_conversion_human(bbox.get_up_bytes())
             }
         }
     },
@@ -116,7 +126,7 @@ list_sensor = [
         "config": {
             "state": "",
             "attributes": {
-                "friendly_name": str(bbox.get_down_bytes()) + " Mb"
+                "friendly_name": bytes_conversion_human(bbox.get_down_bytes())
             }
         }
     },

@@ -330,14 +330,14 @@ class Bbox:
         :return: the upload bytes of the wan in Mbps
         :rtype: float
         """
-        return round(self.get_ip_stats()['tx']['bytes'] / 1000000, 2)
+        return round(self.get_ip_stats()['tx']['bytes'] / 10**6, 2)
 
     def get_down_bytes(self):
         """
         :return: the download bytes of the wan in Mbps
         :rtype: float
         """
-        return round(self.get_ip_stats()['rx']['bytes'] / 1000000, 2)
+        return round(self.get_ip_stats()['rx']['bytes'] / 10**6, 2)
 
 
     """
