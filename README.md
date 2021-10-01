@@ -68,7 +68,7 @@ J'ai ajouté dans le popup information un bouton pour faire un snapshot manuelle
 ### Afficher le timer en cours du google home de la cuisne
 J'utilise le travail de [chvancooten](https://github.com/chvancooten/homeassistant-googletokenretriever) pour récupérer le miniteur du google home et l'afficher en bas.
 
-<img src="/images/google-timer.jpg" height="50"> <img src="/images/google-timer-no-timer.jpg" height="50">
+<img src="/images/google-timer.jpg" height="100"> <img src="/images/google-timer-no-timer.jpg" height="100">
 
 ### Monitoring des batteries, services, systèmes et réseaux
 
