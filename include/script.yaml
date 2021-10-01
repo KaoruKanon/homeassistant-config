@@ -217,23 +217,6 @@ script:
           params:
             zone_ids: ["{{ states('input_select.roborock_zone') }}"]
 
-  samsung_tv_energy_saving:
-    alias: Eko-läge
-    icon: mdi:leaf
-    sequence:
-      - service: browser_mod.toast
-        data:
-          duration: 8000
-          message: Ställer in eko-läge på Tv i sovrummet...
-      - service: remote.send_command
-        data:
-          entity_id: remote.broadlink
-          delay_secs: 1.5
-          device: samsung_tv
-          command:
-            ['exit_15', 'settings_1', 'down_2', 'down_2' , 'down_2', 'enter_5', 'down_2', 'down_2', 'down_2',
-            'down_2', 'enter_5', 'enter_5', 'down_2', 'down_2', 'enter_5', 'exit_15', 'exit_15']
-
   trigerred_snapshot:
     sequence:
       - service: hassio.snapshot_full

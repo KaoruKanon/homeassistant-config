@@ -12,19 +12,6 @@ input_boolean:
   computer_papa:
     initial: off
 
-  computer_imac:
-    initial: off
-  sony_bravia:
-    initial: off
-  playstation_4:
-    initial: off
-  sovrum_anslut:
-    initial: off
-  air_purifier:
-    initial: off
-  samsung_tv_remote:
-    initial: off
-
   # krisinformation_visibility:
   # laundry_timer_visibility:
   #
@@ -76,7 +63,6 @@ input_number:
     step: 1
     unit_of_measurement: '%'
 
-
 # VOLUME AUDIO
   # computer_kaoru_vol_slider:
   #   name: Luminosité
@@ -85,7 +71,6 @@ input_number:
   #   max: 100
   #   step: 1
   #   unit_of_measurement: '%'
-
 
   # wemo_fan_timer:
   #   name: Stäng efter
@@ -113,7 +98,6 @@ input_number:
     max: 100
     step: 1
 
-
   fan_timer:
     icon: mdi:timer
     name: Timer
@@ -131,19 +115,13 @@ input_select:
   #                                                  #
   ####################################################
 
-  # hdmi:
-  #   name: Källa
-  #   options:
-  #     ['HDMI 1', 'HDMI 2/MHL', 'HDMI 3', 'HDMI 4']
-  #   initial: HDMI 1
-  #   icon: custom:hdmi-source
-
-  hdmi2:
-    name: Källa
+  hdmi:
+    name: Source
     options:
-      ['TV', 'HDMI']
-    initial: HDMI
+      ['TV', 'Bouygues Telecom', 'IPTV', 'HDMI 3']
+    initial: Bouygues Telecom
     icon: custom:hdmi-source
+
 
   # roborock_speed:
   #   name: Rengöringsläge

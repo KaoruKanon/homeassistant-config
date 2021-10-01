@@ -395,7 +395,9 @@ automation:
       - service: light.turn_off
         target:
           entity_id: light.maison
-
+      - service: media_player.turn_off
+        target:
+          entity_id: media_player.samsung_tv_salon
 
   - alias: turn_off_gps_papa_absence
     trigger:
@@ -433,7 +435,6 @@ automation:
         target:
           entity_id: light.chambre
     mode: single
-
 
 
   - alias: update_speed_fan
@@ -705,7 +706,7 @@ automation:
     trigger:
       - platform: state
         entity_id:
-          ['media_player.samsung_tv_remote', 'switch.computer_rig_kaoru', 'switch.computer_papa',
+          ['media_player.samsung_tv_salon', 'switch.computer_rig_kaoru', 'switch.computer_papa',
           'switch.playstation_4', 'fan.xiaomi_smart_fan_2', 'switch.air_purifier']
     action:
       - service: input_boolean.turn_off
@@ -718,7 +719,7 @@ automation:
     trigger:
       - platform: state
         entity_id:
-          ['input_boolean.samsung_tv_remote', 'input_boolean.computer_rig_kaoru', 'input_boolean.computer_papa',
+          ['input_boolean.samsung_tv_salon', 'input_boolean.computer_rig_kaoru', 'input_boolean.computer_papa',
           'input_boolean.playstation_4', 'input_boolean.sovrum_anslut', 'input_boolean.air_purifier']
         to: 'on'
         for:
@@ -747,59 +748,38 @@ automation:
   #         source: >
   #           {{ states(trigger.entity_id) }}
 
-  - alias: hdmi2_input_select
+  - alias: hdmi_input_select
     initial_state: true
     trigger:
       - platform: state
-        entity_id: input_select.hdmi2
+        entity_id: input_select.hdmi
     action:
       - service: media_player.select_source
         data:
-          entity_id: media_player.samsung_tv_remote
+          entity_id: media_player.samsung_tv_salon
           source: >
             {{ states(trigger.entity_id) }}
 
-  - alias: turn_on_tv_failsafe
-    initial_state: true
-    trigger:
-      - platform: event
-        event_type: call_service
-        event_data:
-          domain: media_player
-          service: turn_on
-          service_data:
-            entity_id: media_player.sony_bravia
-    action:
-      - service: media_player.turn_on
-        data:
-          entity_id: media_player.vardagsrum
-      - delay:
-          seconds: 1
-      - service: remote.send_command
-        data:
-          entity_id: remote.vardagsrum
-          command: menu
-
-  - alias: turn_on_tv2_failsafe
-    initial_state: true
-    trigger:
-      - platform: event
-        event_type: call_service
-        event_data:
-          domain: media_player
-          service: turn_on
-          service_data:
-            entity_id: media_player.samsung_tv_remote
-    action:
-      - service: media_player.turn_on
-        data:
-          entity_id: media_player.sovrum
-      - delay:
-          seconds: 1
-      - service: remote.send_command
-        data:
-          entity_id: remote.sovrum
-          command: menu
+  # - alias: turn_on_tv_failsafe
+  #   initial_state: true
+  #   trigger:
+  #     - platform: event
+  #       event_type: call_service
+  #       event_data:
+  #         domain: media_player
+  #         service: turn_on
+  #         service_data:
+  #           entity_id: media_player.samsung_tv_remote
+  #   action:
+  #     - service: media_player.turn_on
+  #       data:
+  #         entity_id: media_player.sovrum
+  #     - delay:
+  #         seconds: 1
+  #     - service: remote.send_command
+  #       data:
+  #         entity_id: remote.sovrum
+  #         command: menu
 
     ####################################################
     #                                                  #
