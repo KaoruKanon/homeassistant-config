@@ -122,7 +122,6 @@ input_select:
     initial: Bouygues Telecom
     icon: custom:hdmi-source
 
-
   # roborock_speed:
   #   name: Rengöringsläge
   #   options:
