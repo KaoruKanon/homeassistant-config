@@ -472,7 +472,7 @@ template:
             []
           {%- endif %}
         bus_number_ligne: >
-          {%if state_attr('sensor.ilevia_ligne_1','facet_groups') is defined %}
+          {%if state_attr('sensor.ilevia_ligne_1','facet_groups') is not none %}
             {{state_attr('sensor.ilevia_ligne_1','facet_groups')[0]['facets'][0]['name'] }}
           {% else %}
             []
@@ -510,7 +510,7 @@ template:
             []
           {%- endif %}
         bus_number_ligne: >
-          {%if state_attr('sensor.ilevia_ligne_2','facet_groups') is defined %}
+          {%if state_attr('sensor.ilevia_ligne_2','facet_groups') is not none %}
             {{state_attr('sensor.ilevia_ligne_2','facet_groups')[0]['facets'][0]['name'] }}
           {% else %}
             []
@@ -548,7 +548,7 @@ template:
             []
           {%- endif %}
         bus_number_ligne: >
-          {%if state_attr('sensor.ilevia_ligne_3','facet_groups') is defined %}
+          {%if state_attr('sensor.ilevia_ligne_3','facet_groups') is not none %}
             {{state_attr('sensor.ilevia_ligne_3','facet_groups')[0]['facets'][0]['name'] }}
           {% else %}
             []
@@ -586,7 +586,7 @@ template:
             []
           {%- endif %}
         bus_number_ligne: >
-          {%if state_attr('sensor.ilevia_ligne_4','facet_groups') is defined %}
+          {%if state_attr('sensor.ilevia_ligne_4','facet_groups') is not none %}
             {{state_attr('sensor.ilevia_ligne_4','facet_groups')[0]['facets'][0]['name'] }}
           {% else %}
             []
