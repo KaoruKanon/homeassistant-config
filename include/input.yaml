@@ -142,7 +142,7 @@ input_select:
   conditional_media:
     initial: Récemment ajouté
     options:
-      ['Récemment ajouté', 'Cuisine', 'Chambre', 'Spotify', 'Bouygues4K', 'OP8', 'Chrome']
+      ['Récemment ajouté', 'Cuisine', 'Chambre', 'Spotify', 'Bouygtel4K', 'OP8', 'Chrome']
 
   # fan_timer:
   #   initial: 0

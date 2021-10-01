@@ -28,7 +28,7 @@ automation:
             - condition: state
               entity_id:
                 ['media_player.google_home_cuisine',
-                'media_player.google_home_chambre', 'media_player.spotify', 'media_player.bouygues4k',
+                'media_player.google_home_chambre', 'media_player.spotify', 'media_player.bouygtel4k',
                 'media_player.plex_plex_for_android_mobile_in2023', 'media_player.plex_plex_web_chrome']
               state: 'off'
           sequence:
@@ -831,7 +831,7 @@ automation:
           - media_player.google_home_cuisine
           - media_player.google_home_chambre
           - media_player.spotify
-          - media_player.bouygues4k
+          - media_player.bouygtel4k
           - media_player.plex_plex_web_chrome
           - media_player.plex_plex_for_android_mobile_in2023
         to: playing
@@ -851,7 +851,7 @@ automation:
           - media_player.google_home_cuisine
           - media_player.google_home_chambre
           - media_player.spotify
-          - media_player.bouygues4k
+          - media_player.bouygtel4k
           - media_player.plex_plex_web_chrome
           - media_player.plex_plex_for_android_mobile_in2023
         to:
@@ -861,7 +861,7 @@ automation:
           - media_player.google_home_cuisine
           - media_player.google_home_chambre
           - media_player.spotify
-          - media_player.bouygues4k
+          - media_player.bouygtel4k
           - media_player.plex_plex_web_chrome
           - media_player.plex_plex_for_android_mobile_in2023
         to: paused
@@ -874,16 +874,16 @@ automation:
           option: >
             {% set media_players =
               [states.media_player.google_home_cuisine, states.media_player.google_home_chambre,
-                  states.media_player.spotify, states.media_player.bouygues4k, states.media_player.plex_plex_web_chrome, states.media_player.plex_plex_for_android_mobile_in2023] %}
+                  states.media_player.spotify, states.media_player.bouygtel4k, states.media_player.plex_plex_web_chrome, states.media_player.plex_plex_for_android_mobile_in2023] %}
             {% if media_players | selectattr('state','eq','playing') | list | count == 0 %}
               {% if media_players | selectattr('state','eq','paused') | list | count == 0 %}
               Récemment ajouté
               {% else %}
               {{ media_players | selectattr('state','eq','paused') | map(attribute='name') | max }}
               {% endif %}
-            {% elif is_state_attr('media_player.bouygues4k', 'entity_picture_local', '') %}
+            {% elif is_state_attr('media_player.bouygtel4k', 'entity_picture_local', '') %}
               Récemment ajouté
-            {% elif states.media_player.bouygues4k.attributes.media_title is not defined and media_players | selectattr('state','eq','playing') | list | count == 1 %}
+            {% elif states.media_player.bouygtel4k.attributes.media_title is not defined and media_players | selectattr('state','eq','playing') | list | count == 1 %}
               Récemment ajouté
             {% else %}
             {{ media_players | selectattr('state','eq','playing') | map(attribute='name') | max }}
@@ -900,7 +900,7 @@ automation:
           is_state('media_player.playstation_4', 'standby') and
           is_state('media_player.google_home_chambre', 'off') and
           is_state('media_player.spotify', 'idle') and
-          is_state('media_player.bouygues4k', 'idle') and
+          is_state('media_player.bouygtel4k', 'idle') and
           is_state('media_player.plex_plex_web_chrome', 'idle') and
           is_state('media_player.plex_plex_for_android_mobile_in2023k', 'idle')
           or
@@ -908,7 +908,7 @@ automation:
           is_state('media_player.google_home_cuisine', 'off') and
           is_state('media_player.google_home_chambre', 'off') and
           is_state('media_player.spotify', 'idle') and
-          is_state('media_player.bouygues4k', 'idle') and
+          is_state('media_player.bouygtel4k', 'idle') and
           is_state('media_player.plex_plex_web_chrome', 'idle') and
           is_state('media_player.plex_plex_for_android_mobile_in2023', 'idle')
           }}
@@ -924,8 +924,8 @@ automation:
   #   trigger:
   #     - platform: template
   #       value_template: >
-  #         {{ is_state('media_player.bouygues4k', 'paused') and
-  #         is_state_attr('media_player.bouygues4k', 'media_title', 'No title') }}
+  #         {{ is_state('media_player.bouygtel4k', 'paused') and
+  #         is_state_attr('media_player.bouygtel4k', 'media_title', 'No title') }}
   #       for:
   #         seconds: 5
   #   action:
@@ -935,15 +935,15 @@ automation:
   #         option: >
   #           {% set media_players =
   #              [states.media_player.google_home_cuisine, states.media_player.google_home_chambre,
-  #              states.media_player.spotify, states.media_player.bouygues4k, states.plex_plex_web_chrome_windows, states.plex_plex_for_android_mobile_in2023] %}
+  #              states.media_player.spotify, states.media_player.bouygtel4k, states.plex_plex_web_chrome_windows, states.plex_plex_for_android_mobile_in2023] %}
   #           {% if media_players | selectattr('state','eq','playing') | list | count == 0 %}
   #             {% if media_players | selectattr('state','eq','paused') | list | count == 0 %}
   #             Récemment ajouté
-  #             {% elif is_state('media_player.bouygues4k', 'paused') and
-  #             is_state_attr('media_player.bouygues4k', 'media_title', 'No title')
+  #             {% elif is_state('media_player.bouygtel4k', 'paused') and
+  #             is_state_attr('media_player.bouygtel4k', 'media_title', 'No title')
   #             %}
   #             Récemment ajouté
-  #             {% elif state_attr('media_player.bouygues4k', 'media_title') == None %}
+  #             {% elif state_attr('media_player.bouygtel4k', 'media_title') == None %}
   #             Récemment ajouté
   #             {% else %}
   #             {{ media_players | selectattr('state','eq','paused') | map(attribute='name') | max }}
@@ -958,8 +958,8 @@ automation:
   #   trigger:
   #     - platform: template
   #       value_template: >
-  #         {{ is_state('media_player.bouygues4k', 'paused') and
-  #         is_state_attr('media_player.bouygues4k', 'media_title', 'No title') }}
+  #         {{ is_state('media_player.bouygtel4k', 'paused') and
+  #         is_state_attr('media_player.bouygtel4k', 'media_title', 'No title') }}
   #       for:
   #         seconds: 5
   #   action:
@@ -969,16 +969,16 @@ automation:
   #         option: >
   #           {% set media_players =
   #             [states.media_player.google_home_cuisine, states.media_player.google_home_chambre,
-  #             states.media_player.spotify, states.media_player.bouygues4k,
+  #             states.media_player.spotify, states.media_player.bouygtel4k,
   #             states.media_player.plex_plex_web_chrome, states.media_player.plex_plex_for_android_mobile_in2023] %}
   #           {% if media_players | selectattr('state','eq','playing') | list | count == 0 %}
   #             {% if media_players | selectattr('state','eq','paused') | list | count == 0 %}
   #             Récemment ajouté
-  #             {% elif is_state('media_player.bouygues4k', 'paused') and
-  #             is_state_attr('media_player.bouygues4k', 'media_title', 'No title')
+  #             {% elif is_state('media_player.bouygtel4k', 'paused') and
+  #             is_state_attr('media_player.bouygtel4k', 'media_title', 'No title')
   #             %}
   #             Récemment ajouté
-  #             {% elif state_attr('media_player.bouygues4k', 'media_title') == None %}
+  #             {% elif state_attr('media_player.bouygtel4k', 'media_title') == None %}
   #             Récemment ajouté
   #             {% else %}
   #             {{ media_players | selectattr('state','eq','paused') | map(attribute='name') | max }}

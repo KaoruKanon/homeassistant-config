@@ -113,43 +113,75 @@ views:
         title: Salon
         view_layout:
           grid-area: salon
-        columns: 2
+        columns: 1
         cards:
 
-          - type: custom:button-card
-            entity: light.salon_1
-            name: Salon 1
-            template:
-              - light
-              - icon_hue
+          - type: custom:swipe-card
+            start_card: 1
+            parameters:
+              roundLengths: true
+              effect: coverflow
+              speed: 650
+              spaceBetween: 20
+              threshold: 7
+              coverflowEffect:
+                rotate: 80
+                depth: 300
+            cards:
 
-          - type: custom:button-card
-            entity: light.salon_2
-            name: Salon 2
-            template:
-              - light
-              - icon_hue
+              - type: grid
+                columns: 2
+                cards:
 
-          - type: custom:button-card
-            entity: light.salon #hue_group
-            name: SALON
-            template:
-              - light
-              - icon_hue
+                  - type: custom:button-card
+                    entity: media_player.samsung_tv_salon
+                    name: Tv
+                    hold_action:
+                      !include popup/salon_tv.yaml
+                    template:
+                      - base
+                      - icon_tv
+                      - loader
 
-          - type: custom:button-card
-            entity: switch.computer_papa
-            name: Papa
-            triggers_update:
-              - lock.papa_computer_lock
-              - script.home_leave
-            hold_action:
-              !include popup/computer_papa.yaml
-            template:
-              - base
-              - icon_imac
-              - loader
-              - lock_computer_papa
+                  - type: custom:button-card
+                    entity: switch.computer_papa
+                    name: Papa
+                    triggers_update:
+                      - lock.papa_computer_lock
+                      - script.home_leave
+                    hold_action:
+                      !include popup/computer_papa.yaml
+                    template:
+                      - base
+                      - icon_imac
+                      - loader
+                      - lock_computer_papa
+
+                  - type: custom:button-card
+                    entity: light.salon #hue_group
+                    name: SALON
+                    template:
+                      - light
+                      - icon_hue
+
+                  - type: custom:button-card
+                    entity: light.salon_1
+                    name: Salon 1
+                    template:
+                      - light
+                      - icon_hue
+
+              - type: grid
+                columns: 2
+                cards:
+
+                  - type: custom:button-card
+                    entity: light.salon_2
+                    name: Salon 2
+                    template:
+                      - light
+                      - icon_hue
+
 
       #################################################
       #                                               #
@@ -475,7 +507,7 @@ views:
                   - type: conditional
                     conditions:
                       - entity: input_select.conditional_media
-                        state: Bouygues4K
+                        state: Bouygtel4K
                     card:
                       type: custom:button-card
                       entity: media_player.bouygues4k
