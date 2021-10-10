@@ -134,7 +134,7 @@ browser_mod:
               let count = arr.length;
               let subtitle = count == 0
                   ? `Aucune mise à jour`
-                  : `${count} ${count == 1 ? "uppdatering tillgänglig" : "mise à jour disponible"}
+                  : `${count} ${count == 1 ? "mise à jour disponible" : "mise à jour disponibles"}
                     ${String.fromCodePoint("0x1f389")}`;
               return `
                 <ha-icon icon="hacs:hacs"></ha-icon> <span class="title">Community Store ${states['sensor.template_hacs_version'].state}</span><br>
