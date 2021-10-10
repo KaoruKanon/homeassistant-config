@@ -129,7 +129,7 @@ template:
         #     <b>Morty dammsuger</b>
         #   {%- elif is_state(entity_id, 'returning') -%}
         #     <b>Morty är färdig</b>
-        #   {%- endif %}          
+        #   {%- endif %}
         # transport: |
         #   {% if states('sensor.ilevia_ligne_1') != 'You have exceeded your quota of 3000 api calls per day' or states('sensor.ilevia_ligne_2') != 'You have exceeded your quota of 3000 api calls per day' %}
         #     {%  set list_min_next_bus = (state_attr('sensor.template_ilevia_ligne_1','min_next_bus') + state_attr('sensor.template_ilevia_ligne_2','min_next_bus')) | sort %}
@@ -457,9 +457,9 @@ template:
           {%- endif %}
         horaire_next_bus: >
           {% set force_update_template = states('sensor.time') %}
-          {%if state_attr('sensor.ilevia_ligne_2','records')|length %}
+          {%if state_attr('sensor.ilevia_ligne_1','records')|length %}
             {% set list_min = namespace(numbers=[]) %}
-            {% for records in state_attr('sensor.ilevia_ligne_2','records') -%}
+            {% for records in state_attr('sensor.ilevia_ligne_1','records') -%}
               {% set bus_timestamp = (as_timestamp(records['fields']["heureestimeedepart"])) %}
               {%- if bus_timestamp > as_timestamp(now()) %}
                 {% set list_min.numbers = list_min.numbers + [bus_timestamp | timestamp_custom("%H:%M")] %}
