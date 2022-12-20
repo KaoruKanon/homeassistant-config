@@ -3,37 +3,41 @@
 # enedis_sensor.py
 # Données mensuelles des kwh de chez Enedis/Linky
 # https://github.com/KaoruKanon
-# version : v1.1
+# version : v1.2
 ###############################################################
 
-from requests import get
 from datetime import datetime
 import os
-import yaml #pip install for the user used for running the script trought ssh command
-
+import sqlite3
 
 abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
 
+# get date and months
 d = datetime.now()
+date = d.strftime("%F")
+current_year = int(d.strftime("%Y"))
+current_month = int(d.strftime("%m"))
+current_day = int(d.strftime("%d"))
+last_month = int(d.strftime("%m")) - 1
 
-#get secrets with the secrets.yaml
-with open('../secrets.yaml') as f:
-    secrets = yaml.safe_load(f)
+if current_month == 1:
+    before_current_year = current_year = int(d.strftime("%Y")) - 1
+else :
+    before_current_year = current_year = int(d.strftime("%Y"))
 
-# restful HASS
-url = secrets['enedis_api_sensor_url']
-headers = {
-    "Authorization": secrets['enedis_ha_api_token'],
-    "content-type": "application/json",
-}
+# get kwh value from MyElectricalData DB
+con = sqlite3.connect("file:../enedisgateway2mqtt/cache.db?mode=ro", uri=True)
+cur = con.cursor()
 
-response = get(url, headers=headers).json()
+slq_request_current_month = "select * from consumption_daily where date>'" + str(current_year) + "-"+ str(current_month) +  "-01' and date<'" + date + "' ORDER by date"
+slq_request_current_month_res = cur.execute(slq_request_current_month).fetchall()
+kwh_current_month = sum([ x[3] for x in slq_request_current_month_res]) // 1000
 
-# get kwh value from json dict restful HASS
-kwh_current_month = round(float(response['attributes']['current_month']))
-kwh_last_month = round(float(response['attributes']['last_month']))
+slq_request_last_month = "select * from consumption_daily where date>'" + str(before_current_year) + "-"+ str(last_month) +  "-01' and date<'" + str(current_year) + "-"+ str(current_month) + "' ORDER by date"
+slq_request_last_month_res = cur.execute(slq_request_last_month).fetchall()
+kwh_last_month = sum([ x[3] for x in slq_request_last_month_res]) // 1000
 
 #open data
 with open('data.kwh') as f:
@@ -41,11 +45,6 @@ with open('data.kwh') as f:
 
 # split data with comma sepator
 data = data.split(",")
-
-# get date and months
-date = d.strftime("%F")
-current_month = int(d.strftime("%m"))
-last_month = int(d.strftime("%m")) - 1
 
 if current_month != 1:
 	date_last_month = data[last_month - 1 ].split(' ')[1]
