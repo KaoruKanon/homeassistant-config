@@ -70,7 +70,7 @@ recorder:
       ['person.kaoru', 'person.papa', 'sensor.network_throughput_in_eth0', 'sensor.network_throughput_out_eth0',
       'sensor.average_temperature']
     entity_globs:
-      ['sensor.temperature_*', 'sensor.*_temperature', 'sensor.*_humidity', 'sensor.humidity_*', 'sensor.myenedis_*']
+      ['sensor.temperature_*', 'sensor.*_temperature', 'sensor.*_humidity', 'sensor.humidity_*']
 
 browser_mod:
   devices:
