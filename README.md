@@ -4,7 +4,7 @@
 
 Cette configuration est basée sur celle de matt8707 [ [github](https://github.com/matt8707/hass-config) / [forum anglais](https://community.home-assistant.io/t/a-different-take-on-designing-a-lovelace-ui/162594) ]
 
-Mon Home assistant tourne sous un Raspberry Pi 3B+, avec lequel j'utilise une tablette Lenovo wall mounted avec [Fullykiosk](https://play.google.com/store/apps/details?id=de.ozerov.fully&hl=fr&gl=US), avec un chageur magnétique. J'utilise [applicationize](https://applicationize.me/) pour créer une webapp sous chrome en mode kiosk.
+Mon Home assistant tourne sous un Raspberry Pi 3B+, avec lequel j'utilise une tablette Lenovo wall mounted avec [Fullykiosk](https://play.google.com/store/apps/details?id=de.ozerov.fully&hl=fr&gl=US), avec un chageur magnétique.
 
 T'aimes mon repo ? Laisse une ⭐.
 * [![Twitter](https://img.shields.io/twitter/follow/kaorussh?style=social)](https://twitter.com/kaorussh)
@@ -21,7 +21,7 @@ T'aimes mon repo ? Laisse une ⭐.
 
 | Icon | Device | Total |
 |------|:--------------:|:------:|
-| 💻 | Gateway Xiaomi V2  | 1 |
+| 🌉 | Gateway Xiaomi V2  | 1 |
 | 🖥️ |️ Ordinateurs | 2 |
 | 🌡️ | Xiaomi mijia Temperature Humidity 2019 | 5 |
 | 📱 | Smartphone | 2 |
@@ -30,6 +30,8 @@ T'aimes mon repo ? Laisse une ⭐.
 | 🔘 | Switch Xiaomi | 3 |
 | 📺 | Samsung TV | 1 |
 | ⚡ | Enedis | 1 |
+| 🔌 | Tuya Smart Plug Zigbee 3.0 | 4 |
+| 🗝️ | Sonoff Zigbee 3.0 USB Dongle Plus | 1 |
 
 D'autres ampoules et boutons sans-fil devraient arriver d'ici prochainement pour terminer la domotisation des lumières
 
@@ -44,18 +46,7 @@ Je vous invite à consulter son repo github pour y voir les fonctionalités de b
 
 ### Météo
 
-Popup météo qui donne la prévision des prochains jours `weather-forecast`,`custom:mini-graph-card` de la témpérature et humidité des ces dernières 24h et les images satellites grâce à  [Windy](https://windy.com) contenu dans un `iframe`. Plus d'information via ce [lien](https://www.youtube.com/watch?v=U8j5p-DUdAE)
-
-### Media
-
-* Intégration officielle de Spotify et Plex en tant que mediaplayer pour l'ajouter avec les chromecast des medias.
-* Popup [Spotify Lovelace Card](https://github.com/custom-cards/spotify-card) pour lancer une playlist sur un chromecast. Fonctionne grâce au custom component [Start Spotify on chromecast](https://github.com/fondberg/spotcast)
-
-<img src="/images/spotify-card.jpg" height="130"> <img src="/images/spotify-active.jpg" height="130">
-
-<img src="/images/spotify-popup.jpg" height="366">
-
-<img src="/images/media-player-control.jpg" height="200">
+Popup météo qui donne la prévision des prochains jours `weather-forecast`,`custom:mini-graph-card` de la témpérature et humidité des ces dernières 24h et les images satellites grâce à  [Windy](https://windy.com) contenu dans un `iframe`. Plus d'information via ce [lien](https://www.youtube.com/watch?v=U8j5p-DUdAE)
 
 ### Popup automation
 
@@ -95,12 +86,6 @@ La platerform [bbox](https://www.home-assistant.io/integrations/bbox/) officiel 
 
 <img src="/images/bbox-monitoring.jpg" height="500">
 
-#### Horaire des prochains bus
-
-Implémentations des horaires de bus d'Ilévia via l'[API officiel de la Métropole Européenne de Lille](https://opendata.lillemetropole.fr/explore/dataset/ilevia-prochainspassages/information/?flg=fr)  
-
-<img src="/images/bus.jpg" height="500">
-
 #### QR-CODE du WiFi
 
 Ajout d'un QR-Code du WiFi accessible facilement depuis la tablette pour les invités. Le SSID et le password est accessible en clair également.
@@ -124,7 +109,7 @@ Météo avec l'api [Météo-France](https://www.home-assistant.io/integrations/m
 
 ### Monitoring des PC
 
-Utilisation de [IOT Link](https://iotlink.gitlab.io/) pour contrôler les PC sous Windows car matt8707 est sous mac et utilise du SSH.
+Utilisation de [HASS Agent](https://github.com/LAB02-Research/HASS.Agent) pour contrôler les PC sous Windows car matt8707 est sous mac et utilise du SSH.
 
 ## TODO et idées..
 
@@ -139,7 +124,7 @@ Utilisation de [IOT Link](https://iotlink.gitlab.io/) pour contrôler les PC sou
 * Système d'alarme
 * Robot aspirateur
 * Consommation eau et chauffage
-
+* Amélioratio Enedis
 
 <!-- MARKDOWN LINKS & IMAGES -->
 [dashboard]: /images/dashboard.jpg
