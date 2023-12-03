@@ -1,0 +1,124 @@
+rest:
+  - resource: https://api.github.com/repos/home-assistant/core/releases/latest
+    sensor:
+      name: hass_release_notes
+      value_template: >
+        {{ value_json.name }}
+      json_attributes:
+        - body
+    scan_interval: 21600
+
+  - resource: https://api.github.com/repos/home-assistant/core/releases?per_page=1
+    sensor:
+      name: hass_release_notes_beta
+      value_template: >
+        {{ value_json[0].name }}
+      json_attributes:
+        - body
+    scan_interval: 21600
+
+shell_command:
+  ha_update: !secret ha_update
+
+template:
+  - sensor:
+      - unique_id: hass_next_release
+        state: >
+          {% set start_time = state_attr('calendar.home_assistant_devs', 'start_time') %}
+          {{ (as_timestamp(start_time, default=0) + 60*60*20.5) | timestamp_local(default) }}
+        attributes:
+          friendly_name: >
+            {% set release = state_attr('calendar.home_assistant_devs','message') %}
+            {% if release == 'Home Assistant Core Beta Release' %}
+              Prochaine beta
+            {% elif release == 'Home Assistant Core Release' %}
+              Prochain release
+            {% else %}
+              {{ release }}
+            {% endif %}
+          icon: mdi:dev-to
+          device_class: timestamp
+
+      - unique_id: updates
+        state: >
+          {{ this.attributes.values() | sum }}
+        attributes:
+          home_assistant: >
+            {{ 1 if states('update.home_assistant_core_update') == 'on' else 0 }}
+          update_entities: >
+            {{ states.update
+              | selectattr('state', 'eq', 'on')
+              | rejectattr('entity_id', 'eq', 'update.home_assistant_core_update')
+              | list | count }}
+          other_updates: >
+            {{ states('sensor.template_other_updates') | int(0) }}
+
+      - unique_id: other_updates
+        state: >
+          {% set ns = namespace(list=[]) %}
+          {% for k, v in this.attributes | dictsort(by='value') %}
+            {% set ns.list = ns.list + [v] if v != '' else [] %}
+          {% endfor %}
+          {{ ns.list | count }}
+        attributes:
+          esphome: >
+            {% macro f(e) %}
+              {{- states('sensor.gosund_' + e + '_esphome_version') -}}
+            {% endmacro %}
+            {% set group = [f('monitors'), f('ac'), f('fan')] | min %}
+            {% set installed = group.split()[0] %}
+            {% set latest = states('sensor.updates_esphome_latest') %}
+            {% set url = 'https://github.com/esphome/esphome/releases/latest' %}
+            {% if installed != latest %}
+              <b><a href="#" onclick="window.open('{{ url }}');">ESPHome</a></b> {{ installed + ' <b>&rarr;</b> ' + latest }}
+            {% endif %}
+          rigmanager: >
+            {% set installed = state_attr('sensor.updates_kemper', 'rigmanager_installed') %}
+            {% set latest = state_attr('sensor.updates_kemper', 'rigmanager_latest') %}
+            {% set url = 'https://www.kemper-amps.com/downloads' %}
+            {% if installed != latest %}
+              <b><a href="#" onclick="window.open('{{ url }}');">Rig Manager</a></b> {{ installed + ' <b>&rarr;</b> ' + latest }}
+            {% endif %}
+
+sensor:
+  - platform: command_line
+    name: hacs_installed
+    command: |-
+      python3 << EOF
+      import os, json
+      installed = {"repositories": []}
+      PATH = "/config/.storage/hacs.repositories"
+      with open(PATH, "r", encoding="UTF-8") as file:
+          data = json.load(file)["data"]
+          for i in data:
+              if "installed" in data[i]:
+                  installed["repositories"] += [data[i]["full_name"]]
+          file.close()
+      print(json.dumps(installed))
+      EOF
+    value_template: >
+      {{ value_json.repositories | count }}
+    json_attributes:
+      - repositories
+    scan_interval: 86400
+
+script: 
+  trigerred_snapshot:
+    sequence:
+      - service: hassio.backup_full
+        data:
+          name: >-
+            trigerred_backup_{{ states("sensor.date") | replace("-", "")}}_{{
+            states("sensor.time") | replace(":", "") }}
+
+automation:
+  - alias: auto_snapshot
+    trigger:
+      - platform: time
+        at : "00:00:00"
+    action:
+      - service: hassio.backup_full
+        data:
+          name: >-
+            auto_backup_{{ states("sensor.date") | replace("-", "")}}_{{
+            states("sensor.time") | replace(":", "") }}

@@ -1,0 +1,425 @@
+syntax = "proto3";
+package google.internal.home.foyer.v1;
+
+// This file contains the following services:
+//
+// HomeControlService
+//   - GetAssistantRoutines
+//
+// StructuresService
+//   - GetHomeGraph
+//
+// HomeDevicesService
+//   - GetAssistantDeviceSettings
+
+message None {
+}
+
+// Home Control Service
+service HomeControlService {
+  rpc GetAssistantRoutines (None) returns (stream GetAssistantRoutinesResponse);
+}
+
+message GetAssistantRoutinesResponse {
+
+  message Part1 {
+    string routine_name = 1;
+
+    message WorkFlow {
+      string type = 1;
+
+      message WF_Sub1 {
+        string string1 = 1;
+
+        message WF_Sub1_Sub1 {
+          string string1 = 1;
+
+          message Routine {
+            string routine_id = 1;
+            uint32 num2 = 2;
+            string routine_name = 3;
+          }
+
+          Routine routine = 2;
+        }
+
+        WF_Sub1_Sub1 wf_s1_s1 = 2;
+      }
+
+      WF_Sub1 wf_s1 = 2;
+    }
+
+    WorkFlow workflow = 3;
+    string string4 = 4;
+    string string5 = 5;
+  }
+
+  repeated Part1 p1 = 1;
+
+  message Part2 {
+    string string1 = 1;
+    string string3 = 3;
+  }
+  Part2 p2 = 2;
+}
+
+
+// Structure Service
+service StructuresService {
+  rpc GetHomeGraph (GetHomeGraphRequest) returns (GetHomeGraphResponse);
+}
+
+message GetHomeGraphRequest {
+  string string1 = 3;
+  string num2 = 4;
+}
+
+message GetHomeGraphResponse {
+  uint64 timestamp1 = 1;
+
+  message Home {
+    string home_id = 1;
+    string home_name = 2;
+
+    message Location {
+      string address = 1;
+
+      message Coordinates {
+        double latitude = 1;
+        double longitude = 2;
+      }
+      Coordinates coordinates = 2;
+      uint64 timestamp5 = 5;
+      string timezone = 6;
+    }
+    Location location = 3;
+
+    message LinkedUser {
+      string email_address = 1;
+    }
+    repeated LinkedUser linked_users = 4;
+
+    message Room {
+      string room_id = 1;
+      string room_name = 3;
+
+      message Category {
+        string name = 1;
+      }
+      Category category = 4;
+    }
+    repeated Room rooms = 6;
+
+    message Device {
+      message DeviceInfo {
+        string device_id = 1;
+
+        message ProjectInfo {
+          string api_project_id = 1;
+          string string2 = 2;
+        }
+        ProjectInfo project_info = 2;
+      }
+      DeviceInfo device_info = 1;
+      string device_name = 4;
+      string device_type = 6;
+      repeated string traits = 7;
+      string suffix = 10;
+
+      message Message12 {
+        uint32 num2 = 2;
+        uint32 num4 = 4;
+        uint32 num5 = 5;
+        uint32 num37 = 37;
+        uint32 num38 = 38;
+        uint32 num45 = 45;
+        uint32 num46 = 46;
+      }
+      Message12 message12 = 12;
+
+      message Message15 {
+        uint64 num1 = 1;
+        uint64 num5 = 5;
+        uint64 num6 = 6;
+        uint64 num7 = 7;
+      }
+      Message15 message15 = 15;
+
+      message Hardware {
+        string model = 2;
+      }
+      Hardware hardware = 17;
+
+      message Message18 {
+        string device_name = 2;
+      }
+      Message18 message18 = 18;
+      uint64 timestamp19 = 19;
+
+      message Message20 {
+        message Message1 {
+          string key = 1;
+
+          message Value {
+            message Message6 {
+              message Message1 {
+                message Message5 {
+                  message Message1 {
+                    string capability = 1;
+                    message Message2 {
+                      bool bool4 = 4;
+                    }
+                    Message2 message2 = 2;
+                  }
+                  repeated Message1 message1 = 1;
+                }
+                Message5 message5 = 5;
+              }
+              Message1 message1 = 1;
+            }
+            Message6 message6 = 6;
+          }
+          Value value = 2;
+        }
+        repeated Message1 message1 = 1;
+      }
+      Message20 message20 = 20;
+
+      message Message25 {
+        bool bool1 = 1;
+        bool bool2 = 2;
+      }
+      Message25 message25 = 25;
+
+      message LinkedUser {
+        string email_address = 1;
+      }
+      repeated LinkedUser linked_users = 26;
+      string local_auth_token = 28;
+
+      message State {
+        string name = 1;
+        string value = 2;
+      }
+      repeated State states = 29;
+
+      message Message30 {
+        string key = 1;
+        message Message2 {
+          string string1 = 1;
+          message Message2 {
+            bool bool4 = 4;
+          }
+          Message2 message2 = 2;
+        }
+        Message2 message2 = 2;
+      }
+      Message30 message30 = 30;
+
+      message Message34 {
+        bool bool1 = 1;
+      }
+      Message34 message34 = 34;
+      uint32 num37 = 37;
+      string string41 = 41;
+      string string42 = 42;
+    }
+    repeated Device devices = 7;
+
+    message Message11 {
+      bool bool1 = 1;
+    }
+    Message11 message11 = 11;
+    string string12 = 12;
+
+    message Message13 {
+      message Message1 {
+          message DeviceInfo {
+          string device_id = 1;
+
+          message ProjectInfo {
+            string api_project_id = 1;
+            string string2 = 2;
+          }
+          ProjectInfo project_info = 2;
+        }
+        DeviceInfo device_info = 1;
+      }
+      Message1 message1 = 1;
+      string duo_call_url = 2;
+      string duo_phone_number = 3;
+    }
+    Message13 message13 = 13;
+
+    string message14 = 14;
+
+    message Message15 {
+      bool bool1 = 1;
+      string string2 = 2;
+
+      message Message3 {
+        string string1 = 1;
+
+        message Message2 {
+          string string1 = 1;
+        }
+        Message2 message2 = 2;
+      }
+      repeated Message3 message3 = 3;
+      bool bool4 = 4;
+    }
+    Message15 message15 = 15;
+  }
+  Home home = 2;
+
+  message Group {
+
+    message DeviceInfo {
+      message ProjectInfo {
+        string api_project_id = 1;
+        string string2 = 2;
+      }
+      ProjectInfo project_info = 2;
+    }
+    DeviceInfo device_info = 1;
+
+    string group_nmae = 4;
+    string device_type = 6;
+    string traits = 7;
+    string suffix = 10;
+
+    message Message12 {
+      bool bool3 = 3;
+      bool bool4 = 4;
+      bool bool37 = 37;
+      bool bool38 = 38;
+    }
+    Message12 message12 = 12;
+
+    message Message15 {
+      string string1 = 1;
+      uint64 num5 = 5;
+      uint32 num6 = 6;
+    }
+    Message15 message15 = 15;
+
+    message Message17 {
+      string group_model = 2;
+    }
+    Message17 message17 = 17;
+
+    message Message18 {
+      string group_name = 2;
+    }
+    Message18 message18 = 18;
+    uint64 timestamp19 = 19;
+
+    message Message34 {
+      bool bool1 = 1;
+    }
+    Message34 message34 = 34;
+  }
+  repeated Group groups = 3;
+
+  message RoomType {
+    string code = 1;
+    string name = 2;
+  }
+  repeated RoomType room_types = 4;
+
+  string string5 = 5;
+  bool bool6 = 6;
+
+  message DeviceType {
+    string code = 1;
+    string name = 2;
+  }
+  repeated DeviceType device_types = 7;
+
+  message ProjectType {
+    string code = 1;
+    string name = 2;
+  }
+  repeated ProjectType project_types = 9;
+
+  message Message11 {
+    string name = 1;
+
+    message Message2 {
+      uint32 num2 = 2;
+    }
+    Message2 message2 = 2;
+  }
+  repeated Message11 message11 = 11;
+
+  message LinkedApp {
+    string string1 = 1;
+    string string2 = 2;
+    uint32 num3 = 3;
+    uint32 num4 = 4;
+    uint32 num5 = 5;
+  }
+  repeated LinkedApp linked_apps = 12;
+}
+
+
+// Home Devices Service
+service HomeDevicesService {
+  rpc GetAssistantDeviceSettings (GetAssistantDeviceSettingsRequest) returns (stream GetAssistantDeviceSettingsResponse);
+  rpc UpdateAssistantDeviceSettings (UpdateAssistantDeviceSettingsRequest) returns (stream UpdateAssistantDeviceSettingsResponse);
+}
+
+message GetAssistantDeviceSettingsRequest {
+  message DeviceInfo {
+    string device_id = 1;
+
+    message ProjectInfo {
+      string api_project_id = 1;
+      string string2 = 2;
+    }
+    ProjectInfo project_info = 2;
+  }
+  DeviceInfo device_info = 1;
+  string string2 = 2;
+}
+
+message GetAssistantDeviceSettingsResponse {
+  message Message1 {
+    uint32 num1 = 1;
+    uint32 num2 = 2;
+    uint32 num4 = 4;
+    uint32 num5 = 5;
+    uint32 num6 = 6;
+    string string10 = 10;
+  }
+  Message1 message1 = 1;
+}
+
+message UpdateAssistantDeviceSettingsRequest {
+  string string1 = 1;
+
+  message DeviceInfo {
+    string device_id = 1;
+
+    message ProjectInfo {
+      string api_project_id = 1;
+      string string2 = 2;
+    }
+    ProjectInfo project_info = 2;
+  }
+  DeviceInfo device_info = 2;
+
+  message UpdateData {
+    message Message1 {
+      uint32 youtube_restricted_mode = 4; // 1=off, 2=on
+      uint32 youtube_tv_content_filter = 5; // 1=off, 2=on
+      string locale = 10; // local like "en-US"
+    }
+    Message1 message1 = 1;
+  }
+  UpdateData update_data = 3;
+}
+
+message UpdateAssistantDeviceSettingsResponse {
+  string string1 = 1;
+}

@@ -1,0 +1,352 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Monitoring et batterie
+    style: >
+      --popup-max-width: calc(385px + 385px + 385px);
+      --ha-card-border-radius: 0;
+    card_mod:
+      style:
+        layout-card:
+          $grid-layout$:
+            hui-entities-card:
+              $: |
+                .card-content {
+                  padding: var(--tablet-popup-content-padding);
+                  padding-bottom: 0.8em;
+                }
+                ha-card {
+                  border-right: 1.5px solid rgba(0, 0, 0, 0.2);
+                  border-radius: 0;
+                  transition: none;
+                }
+                /* portrait */
+                @media screen and (max-width: 1200px) {
+                  ha-card {
+                    border-right: none;
+                    border-bottom: 1.5px solid rgba(0, 0, 0, 0.2);
+                  }
+                }
+              $hui-horizontal-stack-card:
+                # horizontal bottom buttons
+                $: |
+                  #root {
+                    justify-content: space-evenly;
+                    margin-top: 0em;
+                    max-width: 82vw; /* iphonex */
+                  }
+    content:
+      type: custom:layout-card
+      layout_type: custom:grid-layout
+      layout:
+        margin: 0
+        grid-template-columns: 385px 385px 385px
+        grid-template-rows: 1fr
+        grid-template-areas: |
+          "network service battery"
+        mediaquery:
+          #portrait
+          "(max-width: 1200px)":
+            grid-template-columns: 1fr
+            grid-template-rows: repeat(3, 1fr)
+            grid-template-areas: |
+              "network"
+              "service"
+              "battery"
+      cards:
+
+        ### HOME ASSISTANT
+      - type: entities
+        view_layout:
+          grid-area: network
+        title: Réseaux et systèmes
+        show_header_toggle: false
+        card_mod:
+          class: header
+          style: |
+            ha-card {
+              margin: 0px !important;
+            }
+        entities:
+          - entity: binary_sensor.ping_bbox
+            name: Bbox
+            icon: mdi:router-network
+
+          - entity: binary_sensor.ping_switch
+            name: Borne D-Link DAP-2230
+            icon: mdi:router-wireless
+
+          - entity: binary_sensor.ping_dlink_wifi
+            name: Switch NETGEAR GS108PEv3
+            icon: mdi:switch
+
+          - entity: binary_sensor.ping_gateway
+            name: Xiaomi Gateway
+            icon: mdi:router-wireless
+
+          - entity: binary_sensor.ping_shiro
+            name: Shiro
+            icon: mdi:server
+
+          - type: custom:hui-horizontal-stack-card
+            cards:
+
+              - type: custom:button-card
+                name: Bbox
+                icon: mdi:router-network
+                template: icon_name
+                tap_action:
+                  action: fire-dom-event
+                  browser_mod:
+                    service: browser_mod.popup
+                    data:
+                      title: Bbox
+                      content:
+                        type: vertical-stack
+                        cards:
+
+                        - type: glance
+                          card_mod:
+                            style: |
+                              ha-card > div {
+                                padding: 1em 1.5em 0.2em 1em !important;
+                                box-sizing: content-box;
+                              }
+                          show_state: false
+                          entities:
+
+                            - entity: sensor.bbox_internet
+                              name: Router
+                              icon: mdi:router
+                              card_mod:
+                                style: &state |
+                                  state-badge {
+                                    color: {{ is_state(config.entity, 'True') | iif('#3182b7', '#3c3f3f') }};
+                                  }
+
+                            - entity: sensor.bbox_wifi
+                              name: WiFi
+                              icon: mdi:wifi
+                              style: *state                                  
+    
+                        - type: entities
+                          state_color: true
+                          card_mod:
+                            class: content
+                          entities:
+
+                            - type: custom:bar-card
+                              width: 55%
+                              height: 2em
+                              decimal: 0
+                              unit_of_measurement: '%'
+                              positions: &bar_card_positions2
+                                icon: outside
+                                indicator: 'off'
+                                name: outside
+                              severity: &bar_card_severity2
+                                - color: '#303435'
+                                  from: 0
+                                  to: 89
+                                - color: '#6d2525'
+                                  from: 90
+                                  to: 200
+                              entity_row: true
+                              entities:
+
+                                - entity: sensor.bbox_cpu
+                                  name: CPU
+                                  icon: mdi:chip
+                                - entity: sensor.bbox_mem
+                                  name: RAM
+                                  icon: mdi:memory
+
+                            - entity: sensor.bbox_uptime_human
+                              name: Uptime
+                              icon: mdi:calendar-clock
+
+                            - entity: sensor.bbox_hosts_active_number
+                              name: Hosts actives
+                              icon: mdi:server-network
+
+                            - entity: sensor.bbox_down_packet
+                              name: Packets down
+                              icon: mdi:package-down
+
+                            - entity: sensor.bbox_up_packet
+                              name: Packets up
+                              icon: mdi:package-up
+   
+                            - type: custom:hui-horizontal-stack-card
+                              cards:
+                                - type: entities
+                                  entities:
+                                    - entity: sensor.bbox_down_bytes
+                                      icon: mdi:arrow-down-bold
+                                      style: |
+                                        :host {
+                                          --paper-item-icon-color: green;
+                                        }
+                                - type: entities
+                                  entities:
+                                    - entity: sensor.bbox_up_bytes
+                                      icon: mdi:arrow-up-bold
+                                      style: |
+                                        :host {
+                                          --paper-item-icon-color: #385581;
+                                        }
+                              card_mod:
+                                style: 
+
+
+
+      #################################################
+      #                                               #
+      #                    SERVICE                    #
+      #                                               #
+      #################################################
+
+      - type: entities
+        view_layout:
+          grid-area: service
+        title: Service
+        show_header_toggle: false
+        card_mod:
+          class: header
+          style: |
+            ha-card {
+              margin: 0px !important;
+            }
+        entities:
+
+          - entity: binary_sensor.internet_access
+
+          - entity: sensor.myip
+
+          - entity: binary_sensor.plex_availability
+
+          - entity: binary_sensor.deluge_availability
+
+          - entity: binary_sensor.grafana_availability
+
+          - entity: binary_sensor.nextcloud_availability
+
+
+      #################################################
+      #                                               #
+      #                   BATTERY                     #
+      #                                               #
+      #################################################
+
+      - type: entities
+        view_layout:
+          grid-area: battery
+        title: Batterie
+        show_header_toggle: false
+        card_mod:
+          class: header
+          style:
+            .: |
+              ha-card {
+                animation: none !important;
+                margin: 0px !important;
+              }
+            mini-graph-card:
+              $: |
+                ha-card {
+                  padding: 0px !important;
+                }
+            hui-horizontal-stack-card:
+              $:
+                .: |
+                  #root {
+                    margin-top: 1em;
+                    margin-right: 1.5em;
+                  }
+                  #root > * {
+                    flex: none !important;
+                  }
+                hui-entities-card:
+                  $:
+                    .: |
+                      #states {
+                        padding: 0;
+                      }
+                    hui-sensor-entity-row:
+                      $hui-generic-entity-row$: |
+                        .info {
+                          margin: 0 8px 0 8px !important;
+                        }
+        entities:
+
+          - type: custom:bar-card
+            width: 55%
+            height: 2em
+            decimal: 0
+            unit_of_measurement: '%'
+            positions: &bar_card_positions
+              icon: outside
+              indicator: 'off'
+              name: outside
+            severity: &bar_card_severity
+              - color: '#6d2525'
+                from: 0
+                to: 5
+              - color: '#ff7a00'
+                from: 6
+                to: 14
+              - color: '#e9e913'
+                from: 15
+                to: 49
+              - color: '#39b329'
+                from: 50
+                to: 100
+            entity_row: true
+            entities:
+
+              - entity: sensor.battery_thermometre_chambre_papa
+                name: Chambre Papa
+                tap_action:
+                  action: call-service
+                  service: homeassistant.update_entity
+                  service_data:
+                    entity_id: sensor.battery_thermometre_chambre_papa
+                icon: mdi:battery
+
+              - entity: sensor.battery_thermometre_chambre_william
+                name: Chambre William
+                tap_action:
+                  action: call-service
+                  service: homeassistant.update_entity
+                  service_data:
+                    entity_id: sensor.battery_thermometre_chambre_william
+                icon: mdi:battery
+
+
+              - entity: sensor.battery_thermometre_cuisine
+                name: Cuisine
+                tap_action:
+                  action: call-service
+                  service: homeassistant.update_entity
+                  service_data:
+                    entity_id: sensor.battery_thermometre_cuisine
+                icon: mdi:battery
+
+              - entity: sensor.battery_thermometre_salon
+                name: Salon
+                tap_action:
+                  action: call-service
+                  service: homeassistant.update_entity
+                  service_data:
+                    entity_id: sensor.battery_thermometre_salon
+                icon: mdi:battery
+
+              - entity: sensor.battery_thermometre_salle_de_bain
+                name: Bain
+                tap_action:
+                  action: call-service
+                  service: homeassistant.update_entity
+                  service_data:
+                    entity_id: sensor.battery_thermometre_salle_de_bain
+                icon: mdi:battery

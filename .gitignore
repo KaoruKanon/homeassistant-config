@@ -5,6 +5,11 @@ __pycache__
 .*
 !.HA_VERSION
 !.gitignore
+!/.github
+blueprints
+deps
+addons_autoscripts
+custom_components
 
 google_calendars.yaml
 known_devices.yaml
@@ -12,12 +17,16 @@ secrets.yaml
 
 www/Plex_Recently_Added/*
 www/fonts
-www/google_home_tracker
+www/google_home_tracker/grpcurl
+www/sound
+www/community
 
 custom_components/archive
 
+myelectricaldata/config.yaml
+
 home-assistant.code-workspace
 home-assistant.log*
-home-assistant_2.db*
+*.db*
 
 vacuum_last_cleaned.txt

@@ -1,0 +1,195 @@
+base_updates:
+  show_state: true
+  show_name: false
+  show_icon: false
+  styles:
+    state:
+      - text-align: left
+      - justify-self: left
+      - white-space: normal
+    card:
+      - cursor: default
+      - padding: 0.2em 0 0 0.6em
+      - letter-spacing: var(--mdc-typography-body1-letter-spacing)
+  tap_action:
+    href:
+  extra_styles: |
+    #ripple {
+      display: none;
+    }
+    ha-icon {
+      width: 1.4em;
+      vertical-align: 12%;
+      opacity: 0.5;
+      padding-right: 2px;
+    }
+    .title {
+      font-size: 1.3em;
+      font-weight: 500;
+    }
+    .subtitle {
+      font-size: 0.95em;
+      line-height: 0.7em;
+      padding-left: 3px;
+      padding-bottom: 10px;
+      font-weight: 500;
+      color: #828383;
+    }
+    a {
+      color: var(--primary-color);
+    }
+    ul {
+      margin-top: -0.6em;
+      font-size: 0.88em;
+      letter-spacing: 0.5px;
+      line-height: 1.6em;
+    }
+    code {
+      background-color: var(--secondary-background-color);
+    }
+
+updates_hass:
+  template:
+    - base_updates
+    - settings
+  state_display: |
+    [[[
+      if (entity) {
+          let available = states[variables.available].attributes.home_assistant;
+
+          let links = new RegExp('<a href="([^"]+)"', "g"),
+              installed = entity.state,
+              hass_version_latest = states[variables.latest],
+              hass_version_latest_beta = states[variables.latest_beta],
+              hass_release_notes = states[variables.release_notes],
+              hass_release_notes_beta = states[variables.release_notes_beta];
+
+          let latest = installed.includes('b')
+              ? hass_version_latest_beta.state
+              : hass_version_latest.state;
+
+          let release_notes = installed.includes('b')
+              ? marked.parse(hass_release_notes.attributes.body)
+              : marked.parse(hass_release_notes_beta.attributes.body);
+
+          let subtitle = available === 0
+              ? `${variables.translate_no_updates} <b>&larr;</b> ${installed}`
+              : `${installed} <b>&rarr;</b> ${latest} ${variables.translate_available} ${String.fromCodePoint("0x1f389")}`;
+
+          let output = available === 0
+              ? '<ul></ul>'
+              : release_notes.replace(links, '<a href="#" onclick="window.open(\'$1\')"');
+
+          return `
+            <ha-icon icon="mdi:home-assistant"></ha-icon> <span class="title">Home Assistant</span><br>
+            <p class="subtitle">${subtitle}</p>
+            ${output}
+          `;
+      }
+    ]]]
+
+updates_hass_icon_name:
+  template: icon_name
+  icon: mdi:update
+  styles:
+    card:
+      - opacity: >
+          [[[
+            return entity && (entity.state === states[variables.latest].state ||
+              entity.state === states[variables.latest_beta].state)
+                ? '0.3'
+                : '1';
+          ]]]
+      - display: >
+          [[[
+            return entity
+              ? 'flex'
+              : 'none';
+          ]]]
+
+updates:
+  template:
+    - base_updates
+    - settings
+  state_display: |
+    [[[
+      // variables
+      let output = '',
+          updates = states[variables.updates],
+          hacs_installed = states[variables.hacs_installed]?.attributes.repositories,
+          other_updates = states[variables.other_updates],
+          hacs_update = states['update.hacs_update']?.attributes.installed_version,
+          no_updates = variables.translate_no_updates,
+          update_available = variables.translate_update_available,
+          updates_available = variables.translate_updates_available;
+
+      const rename = a => {
+          return a.release_url && a.release_url.indexOf('github.com') > -1
+              ? `${a.release_url.split('/')[3]}/${a.release_url.split('/')[4]}`
+              : a?.friendly_name;
+      };
+
+      // update entities
+      Object.keys(states).forEach(key => {
+        let s = states[key], e = s.entity_id, a = s.attributes;
+        if (e.includes('update.') && !e.includes('update.home_assistant') && s.state === 'on') {
+            output += `<li><b><a href="#" onclick="window.open('${a.release_url}');">
+            ${rename(a)}</a></b> ${a.installed_version} <b>&rarr;</b> ${a.latest_version}</li>`
+        }
+      });
+      // other updates
+      let attr = Object.fromEntries(
+          Object.entries(other_updates?.attributes).filter(([, value]) => value != false));
+      for (const [, value] of Object.entries(attr)) {
+        output += `<li>${value}</li>`;
+      }
+
+      // subtitle
+      let count = updates?.attributes.update_entities + updates?.attributes.other_updates,
+          subtitle = count === 0
+              ? `${no_updates} <b>&larr;</b> ${hacs_update || ''}`
+              : `${count} ${count === 1 ? update_available : updates_available} ${String.fromCodePoint('0x1f389')}`;
+
+      return `
+        <ha-icon icon="mdi:package-up"></ha-icon> <span class="title">Intégrations</span><br>
+        <p class="subtitle">${subtitle}</p>
+        <ul>${output}</ul>
+      `;
+    ]]]
+
+updates_icon_name:
+  template: icon_name
+  icon: mdi:open-in-new
+  styles:
+    card:
+      - opacity: >
+          [[[
+            return entity?.attributes?.update_entities === 0
+                ? '0.3'
+                : '1';
+          ]]]
+
+hacs_iframe:
+  tap_action:
+    action: fire-dom-event
+    browser_mod:
+      service: browser_mod.popup
+      data:
+        title: ' '
+        size: fullscreen
+        content:
+          type: iframe
+          aspect_ratio: 16x9.15
+          url: >
+            [[[ return `/${hass.panels.config.url_path}/updates` ]]]
+  template: icon_name
+
+hacs_navigate_ios:
+  tap_action:
+    action: fire-dom-event
+    browser_mod:
+      service: browser_mod.javascript
+      data:
+        code: >
+          window.location.href = `/${hass.panels.config.url_path}/updates`;
+  template: icon_name

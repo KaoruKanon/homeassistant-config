@@ -1,47 +1,73 @@
-button_card_templates: !include button_card_templates.yaml
+button_card_templates:
+  !include_dir_merge_named button_card_templates
 
 views:
   - type: custom:grid-layout
-    path: 0
+    title: Home
     layout:
       #default
+      margin: 0
       grid-gap: var(--custom-layout-card-padding)
       grid-template-columns: repeat(4, 1fr) 0
       grid-template-rows: 0 repeat(2, fit-content(100%)) 0fr
       grid-template-areas: |
-        "sidebar  .           .       .       ."
-        "sidebar  salon  william  temperature  ."
-        "sidebar  media       autres  maison   ."
-        "sidebar  footer      footer  footer  ."
+        "sidebar  .           .         .               ."
+        "sidebar  salon       william   temperature     ."
+        "sidebar  media       autres    maison          ."
+        "sidebar  footer      footer    footer          ."
       mediaquery:
         #phone
         "(max-width: 800px)":
-          grid-gap: calc(var(--custom-layout-card-padding) * 1.5)
+          grid-gap: calc(var(--custom-layout-card-padding) * 1.7)
           grid-template-columns: 0 repeat(2, 1fr) 0
           grid-template-rows: 0 repeat(5, fit-content(100%)) 0fr
           grid-template-areas: |
-            ".  .           .        ."
-            ".  sidebar     sidebar  ."
+            ".  .           .             ."
+            ".  sidebar     sidebar       ."
             ".  salon       temperature   ."
-            ".  william     autres   ."
-            ".  media       maison    ."
-            ".  footer      footer   ."
-            ".  .           .        ."
+            ".  william     autres        ."
+            ".  media       maison        ."
+            ".  footer      footer        ."
+            ".  .           .             ."
         #portrait
         "(max-width: 1200px)":
           grid-gap: var(--custom-layout-card-padding)
           grid-template-columns: repeat(3, 1fr) 0
           grid-template-rows: 0 repeat(3, fit-content(100%)) 0fr
           grid-template-areas: |
-            "sidebar  .           .       ."
-            "sidebar  salon       temperature  ."
-            "sidebar  william      autres  ."
-            "sidebar  media       maison   ."
-            "sidebar  footer      footer  ."
-            "sidebar  .           .       ."
+            "sidebar  .             .             ."
+            "sidebar  salon         temperature   ."
+            "sidebar  william       autres        ."
+            "sidebar  media         maison        ."
+            "sidebar  footer        footer        ."
+            "sidebar  .             .             ."
     cards:
 
-      - type: custom:button-card #extra_styles fix
+      #extra_styles fix, do not remove
+      #also warn if theme is not set
+
+      - type: custom:button-card
+        view_layout:
+          grid-area: 1 / 2 / 2 / 5
+        name: SET THEME TO "tablet" IN PROFILE
+        tap_action:
+          action: navigate
+          navigation_path: /profile
+        styles:
+          card:
+            - display: >
+                [[[
+                  return hass.themes.theme === 'tablet'
+                      ? 'none'
+                      : 'initial';
+                ]]]
+          name:
+            - z-index: 1
+            - overflow: visible
+            - color: red
+            - font-weight: bolder
+            - font-size: xxx-large
+            - background: yellow
 
       #################################################
       #                                               #
@@ -53,59 +79,14 @@ views:
         view_layout:
           grid-area: sidebar
         cards:
+
           - type: custom:button-card
             entity: sensor.template_sidebar
-            template: sidebar_template
-
-          - type: conditional
-            conditions:
-              - entity: input_boolean.laundry_display
-                state: 'on'
-            card:
-              type: custom:button-card
-              entity: timer.laundry
-              template: laundry
-
-          - type: grid
-            cards:
-
-              - type: button
-                icon: custom:bus
-                tap_action: !include popup/sidebar_bus.yaml
-                hold_action:
-                  action: none
-
-              - type: button
-                icon: custom:qr-code
-                tap_action: !include popup/sidebar_qr_wifi.yaml
-                hold_action:
-                  action: none
-
-              - type: button
-                icon: custom:check-network
-                tap_action: !include popup/sidebar_monitoring_battery.yaml
-                hold_action:
-                  action: none
-
-              - type: button
-                icon: mdi:information-outline
-                tap_action: !include popup/sidebar_information.yaml
-                hold_action:
-                  action: none
-
-              - type: button
-                icon: mdi:arrow-up-bold-circle-outline
-                tap_action: !include popup/sidebar_update.yaml
-                hold_action:
-                  action: call-service
-                  service: homeassistant.update_entity
-                  service_data:
-                    entity_id: sensor.hacs
-
+            template: sidebar
 
       #################################################
       #                                               #
-      #                  SALON (ex VARDAGSRUM)        #
+      #                   SALON                       #
       #                                               #
       #################################################
 
@@ -113,79 +94,45 @@ views:
         title: Salon
         view_layout:
           grid-area: salon
-        columns: 1
+        columns: 2
         cards:
 
-          - type: custom:swipe-card
-            start_card: 1
-            parameters:
-              roundLengths: true
-              effect: coverflow
-              speed: 650
-              spaceBetween: 20
-              threshold: 7
-              coverflowEffect:
-                rotate: 80
-                depth: 300
-            cards:
+          - type: custom:button-card
+            entity: switch.samsung_tv_salon
+            name: Tv
+            double_tap_action:
+              !include popup/salon_tv.yaml
+            template:
+              - base
+              - icon_tv
+              - loader
 
-              - type: grid
-                columns: 2
-                cards:
-
-                  - type: custom:button-card
-                    entity: media_player.samsung_tv_salon
-                    name: Tv
-                    hold_action:
-                      !include popup/salon_tv.yaml
-                    template:
-                      - base
-                      - icon_tv
-                      - loader
-
-                  - type: custom:button-card
-                    entity: switch.computer_papa
-                    name: Papa
-                    triggers_update:
-                      - lock.papa_computer_lock
-                      - script.home_leave
-                    hold_action:
-                      !include popup/computer_papa.yaml
-                    template:
-                      - base
-                      - icon_imac
-                      - loader
-                      - lock_computer_papa
-
-                  - type: custom:button-card
-                    entity: light.salon #hue_group
-                    name: SALON
-                    template:
-                      - light
-                      - icon_hue
-
-                  - type: custom:button-card
-                    entity: light.salon_1
-                    name: Salon 1
-                    template:
-                      - light
-                      - icon_hue
-
-              - type: grid
-                columns: 2
-                cards:
-
-                  - type: custom:button-card
-                    entity: light.salon_2
-                    name: Salon 2
-                    template:
-                      - light
-                      - icon_hue
+          - type: custom:button-card
+            entity: switch.computer_papa
+            name: Papa
+            double_tap_action:
+              !include popup/computer_papa.yaml
+            template:
+              - base
+              - icon_imac
+              - loader
+              - lock
+            variables:
+              lock: >
+                [[[
+                  let lock = states['input_boolean.computer_papa_lock'];
+                  return !lock || lock.state;
+                ]]]
+              trigger: >
+                [[[
+                  let trigger = states['script.home_leave'];
+                  return !trigger || trigger;
+                ]]]
 
 
       #################################################
       #                                               #
-      #                    WILLIAM (ex STUDIO)        #
+      #                    WILLIAM                    #
       #                                               #
       #################################################
 
@@ -197,16 +144,10 @@ views:
         cards:
 
           - type: custom:swipe-card
-            start_card: 1
             parameters:
-              roundLengths: true
-              effect: coverflow
-              speed: 650
-              spaceBetween: 20
-              threshold: 7
-              coverflowEffect:
-                rotate: 80
-                depth: 300
+              speed: 550
+              spaceBetween: 40
+              threshold: 5
             cards:
 
               - type: grid
@@ -237,16 +178,27 @@ views:
                   - type: custom:button-card
                     entity: switch.computer_rig_kaoru
                     name: Kaoru
-                    triggers_update:
-                      - lock.rig_kaoru_computer_lock
-                      - script.home_leave
+                    double_tap_action:
+                      !include popup/computer_rig_kaoru.yaml
                     hold_action:
                       !include popup/computer_rig_kaoru.yaml
                     template:
                       - base
                       - icon_imac
                       - loader
-                      - lock_computer_rig_kaoru
+                      - lock
+                    variables:
+                      lock: >
+                        [[[
+                          let lock = states['input_boolean.computer_rig_kaoru_lock'];
+                          return !lock || lock.state;
+                        ]]]
+                      trigger: >
+                        [[[
+                          let trigger = states['script.home_leave'];
+                          return !trigger || trigger;
+                        ]]]
+
 
               - type: grid
                 columns: 2
@@ -282,7 +234,7 @@ views:
 
       #################################################
       #                                               #
-      #                 TEMPERATURE (ex SOVRUM)        #
+      #                 TEMPERATURE                   #
       #                                               #
       #################################################
 
@@ -294,84 +246,96 @@ views:
         cards:
 
           - type: custom:swipe-card
-            start_card: 1
             parameters:
-              roundLengths: true
-              effect: coverflow
-              speed: 650
-              spaceBetween: 20
-              threshold: 7
-              coverflowEffect:
-                rotate: 80
-                depth: 300
+              speed: 550
+              spaceBetween: 40
+              threshold: 5
             cards:
 
               - type: grid
                 columns: 2
                 cards:
 
-                    - type: custom:button-card
-                      entity: sensor.temperature_chambre_william
-                      name: Willam
-                      hold_action: !include popup/temperature_chambre_william.yaml
-                      tap_action: !include popup/temperature_chambre_william.yaml
-                      custom_fields:
-                        graph:
-                          card:
-                            entities:
-                              - entity: sensor.temperature_chambre_william
-                                color: '#0066ff'
-                      template:
-                        - thermometre
-                        - icon_thermometre
+                  - type: custom:button-card
+                    entity: sensor.temperature_chambre_william
+                    name: William
+                    custom_fields:
+                      button:
+                        card: 
+                          type: custom:button-card
+                          entity: sensor.temperature_chambre_william 
+                          hold_action: !include popup/temperature_chambre_william.yaml
+                          tap_action: !include popup/temperature_chambre_william.yaml
+                      graph:
+                        card:
+                          type: custom:mini-graph-card
+                          entities:
+                            - entity: sensor.temperature_chambre_william
+                              color: '#0066ff' 
+                    template:
+                      - thermometre
+                      - icon_thermometre
+
+                  - type: custom:button-card
+                    entity: sensor.temperature_chambre_papa
+                    name: Papa
+                    custom_fields:
+                      button:
+                        card: 
+                          type: custom:button-card
+                          entity: sensor.temperature_chambre_papa 
+                          hold_action: !include popup/temperature_chambre_papa.yaml
+                          tap_action: !include popup/temperature_chambre_papa.yaml
+                      graph:
+                        card:
+                          type: custom:mini-graph-card
+                          entities:
+                            - entity: sensor.temperature_chambre_papa
+                              color: '#2bc416' 
+                    template:
+                      - thermometre
+                      - icon_thermometre
+
+                  - type: custom:button-card
+                    entity: sensor.temperature_salon
+                    name: Salon
+                    custom_fields:
+                      button:
+                        card: 
+                          type: custom:button-card
+                          entity: sensor.temperature_salon
+                          hold_action: !include popup/temperature_salon.yaml
+                          tap_action: !include popup/temperature_salon.yaml
+                      graph:
+                        card:
+                          type: custom:mini-graph-card
+                          entities:
+                            - entity: sensor.temperature_salon
+                              color: '#ff3300' 
+                    template:
+                      - thermometre
+                      - icon_thermometre
 
 
-                    - type: custom:button-card
-                      entity: sensor.temperature_chambre_papa
-                      name: Papa
-                      tap_action: !include popup/temperature_chambre_papa.yaml
-                      hold_action: !include popup/temperature_chambre_papa.yaml
-                      custom_fields:
-                        graph:
-                          card:
-                            entities:
-                              - entity : sensor.temperature_chambre_papa
-                                color: '#2bc416'
-                      template:
-                        - thermometre
-                        - icon_thermometre
-
-                    - type: custom:button-card
-                      entity: sensor.temperature_salon
-                      name: Salon
-                      tap_action: !include popup/temperature_salon.yaml
-                      hold_action: !include popup/temperature_salon.yaml
-                      custom_fields:
-                        graph:
-                          card:
-                            entities:
-                              - entity: sensor.temperature_salon
-                                color: '#ff3300'
-                      template:
-                        - thermometre
-                        - icon_thermometre
-
-
-                    - type: custom:button-card
-                      entity: sensor.temperature_cuisine
-                      name: Cuisine
-                      tap_action: !include popup/temperature_cuisine.yaml
-                      hold_action: !include popup/temperature_cuisine.yaml
-                      custom_fields:
-                        graph:
-                          card:
-                            entities:
-                              - entity: sensor.temperature_cuisine
-                                color: '#b43db4'
-                      template:
-                        - thermometre
-                        - icon_thermometre
-
+                  - type: custom:button-card
+                    entity: sensor.temperature_cuisine
+                    name: Cuisine
+                    custom_fields:
+                      button:
+                        card: 
+                          type: custom:button-card
+                          entity: sensor.temperature_salon
+                          hold_action: !include popup/temperature_cuisine.yaml
+                          tap_action: !include popup/temperature_cuisine.yaml
+                      graph:
+                        card:
+                          type: custom:mini-graph-card
+                          entities:
+                            - entity: sensor.temperature_cuisine
+                              color: '#b43db4' 
+                    template:
+                      - thermometre
+                      - icon_thermometre
 
               - type: grid
                 columns: 2
@@ -380,14 +344,19 @@ views:
                   - type: custom:button-card
                     entity: sensor.temperature_salle_de_bain
                     name: Bain
-                    tap_action: !include popup/temperature_salle_de_bain.yaml
-                    hold_action: !include popup/temperature_salle_de_bain.yaml
                     custom_fields:
+                      button:
+                        card: 
+                          type: custom:button-card
+                          entity: sensor.temperature_salon
+                          hold_action: !include popup/temperature_salle_de_bain.yaml
+                          tap_action: !include popup/temperature_salle_de_bain.yaml
                       graph:
                         card:
+                          type: custom:mini-graph-card
                           entities:
                             - entity: sensor.temperature_salle_de_bain
-                              color: '#d4e60c'
+                              color: '#d4e60c' 
                     template:
                       - thermometre
                       - icon_thermometre
@@ -395,14 +364,19 @@ views:
                   - type: custom:button-card
                     entity: sensor.average_temperature
                     name: Maison
-                    tap_action: !include popup/temperature_maison.yaml
-                    hold_action: !include popup/temperature_maison.yaml
                     custom_fields:
+                      button:
+                        card: 
+                          type: custom:button-card
+                          entity: sensor.average_temperature
+                          hold_action: !include popup/temperature_maison.yaml
+                          tap_action: !include popup/temperature_maison.yaml
                       graph:
                         card:
+                          type: custom:mini-graph-card
                           entities:
                             - entity: sensor.average_temperature
-                              color: '#e60c63'
+                              color: '#e60c63' 
                     template:
                       - thermometre
                       - icon_thermometre
@@ -410,17 +384,23 @@ views:
                   - type: custom:button-card
                     entity: sensor.template_weather_temperature
                     name: Météo
-                    tap_action: !include popup/temperature_weather.yaml
-                    hold_action: !include popup/temperature_weather.yaml
                     custom_fields:
+                      button:
+                        card: 
+                          type: custom:button-card
+                          entity: sensor.template_weather_temperature
+                          hold_action: !include popup/temperature_weather.yaml
+                          tap_action: !include popup/temperature_weather.yaml
                       graph:
                         card:
+                          type: custom:mini-graph-card
                           entities:
                             - entity: sensor.template_weather_temperature
-                              color: '#08fad3'
+                              color: '#08fad3' 
                     template:
                       - thermometre_weather
                       - icon_thermometre
+
 
       #################################################
       #                                               #
@@ -436,16 +416,10 @@ views:
         cards:
 
           - type: custom:swipe-card
-            start_card: 1
             parameters:
-              roundLengths: true
-              effect: coverflow
-              speed: 650
-              spaceBetween: 20
-              threshold: 7
-              coverflowEffect:
-                rotate: 80
-                depth: 300
+              speed: 550
+              spaceBetween: 40
+              threshold: 5
             cards:
 
               - type: horizontal-stack
@@ -453,95 +427,52 @@ views:
 
                   - type: conditional
                     conditions:
-                      - entity: input_select.conditional_media
-                        state: Récemment ajouté
+                      - entity: select.conditional_media
+                        state_not: Spotify
+
+                      - entity: select.conditional_media
+                        state_not: Cuisine
+
+                      - entity: select.conditional_media
+                        state_not: Chambre                        
+
                     card:
                       type: custom:button-card
                       entity: sensor.plex_recently_added
+                      name: Récemment ajouté 
                       tap_action:
                         action: none
                       template:
                         - conditional_media
-                        - recently_downloaded
                         - icon_plex
 
                   - type: conditional
                     conditions:
-                      - entity: input_select.conditional_media
+                      - entity: select.conditional_media
                         state: Chambre
+
                     card:
                       type: custom:button-card
                       entity: media_player.google_home_chambre
-                      hold_action: !include popup/media_player.yaml
-                      double_tap_action: !include popup/media_player.yaml
+                      tap_action:
+                        action: none
                       template:
                         - conditional_media
                         - icon_nest_mini
 
                   - type: conditional
                     conditions:
-                      - entity: input_select.conditional_media
-                        state: Cuisine
-                    card:
-                      type: custom:button-card
-                      entity: media_player.google_home_cuisine
-                      hold_action: !include popup/media_player.yaml
-                      double_tap_action: !include popup/media_player.yaml
-                      template:
-                        - conditional_media
-                        - icon_nest_mini
-
-                  - type: conditional
-                    conditions:
-                      - entity: input_select.conditional_media
+                      - entity: select.conditional_media
                         state: Spotify
+
                     card:
                       type: custom:button-card
                       entity: media_player.spotify
-                      hold_action: !include popup/spotify.yaml
-                      double_tap_action: !include popup/spotify.yaml
+                      tap_action:
+                        action: none
                       template:
                         - conditional_media
                         - icon_spotify_green
-
-                  - type: conditional
-                    conditions:
-                      - entity: input_select.conditional_media
-                        state: Bouygtel4K
-                    card:
-                      type: custom:button-card
-                      entity: media_player.bouygtel4k
-                      hold_action: !include popup/media_player.yaml
-                      double_tap_action: !include popup/media_player.yaml
-                      template:
-                        - conditional_media
-                        - icon_bouygues
-
-                  - type: conditional
-                    conditions:
-                      - entity: input_select.conditional_media
-                        state: Chrome
-                    card:
-                      type: custom:button-card
-                      entity: media_player.plex_plex_web_chrome
-                      hold_action: !include popup/media_player.yaml
-                      double_tap_action: !include popup/media_player.yaml
-                      template:
-                        - conditional_media
-                        - icon_plex
-
-                  - type: conditional
-                    conditions:
-                      - entity: input_select.conditional_media
-                        state: OP8
-                    card:
-                      type: custom:button-card
-                      entity: media_player.plex_plex_for_android_mobile_in2023
-                      hold_action: !include popup/media_player.yaml
-                      double_tap_action: !include popup/media_player.yaml
-                      template:
-                        - conditional_media
-                        - icon_plex
 
               - type: grid
                 columns: 2
@@ -550,8 +481,8 @@ views:
                   - type: custom:button-card
                     entity: media_player.google_home_chambre
                     name: Chambre
-                    hold_action: !include popup/media_player.yaml
-                    double_tap_action: !include popup/media_player.yaml
+                    #hold_action: !include popup/media_player.yaml
+                    #double_tap_action: !include popup/media_player.yaml
                     template:
                       - media
                       - icon_nest_mini
@@ -559,8 +490,8 @@ views:
                   - type: custom:button-card
                     name: Cuisine
                     entity: media_player.google_home_cuisine
-                    hold_action: !include popup/media_player.yaml
-                    double_tap_action: !include popup/media_player.yaml
+                    #hold_action: !include popup/media_player.yaml
+                    #double_tap_action: !include popup/media_player.yaml
                     template:
                       - media
                       - icon_nest_mini
@@ -568,8 +499,8 @@ views:
                   - type: custom:button-card
                     entity: media_player.spotify
                     name: Spotify
-                    hold_action: !include popup/spotify.yaml
-                    double_tap_action: !include popup/spotify.yaml
+                    #hold_action: !include popup/spotify.yaml
+                    #double_tap_action: !include popup/spotify.yaml
                     template:
                       - media
                       - icon_spotify
@@ -577,38 +508,16 @@ views:
                   - type: custom:button-card
                     entity: media_player.bouygtel4k
                     name: Bbox
-                    hold_action: !include popup/media_player.yaml
-                    double_tap_action: !include popup/media_player.yaml
+                    #hold_action: !include popup/media_player.yaml
+                    #double_tap_action: !include popup/media_player.yaml
                     template:
                       - media
                       - icon_bouygues_white
 
-              - type: grid
-                columns: 2
-                cards:
-
-                  - type: custom:button-card
-                    entity: media_player.plex_plex_for_android_mobile_in2023
-                    name: OP8
-                    hold_action: !include popup/media_player.yaml
-                    double_tap_action: !include popup/media_player.yaml
-                    template:
-                      - media
-                      - icon_plex_white
-
-                  - type: custom:button-card
-                    entity: media_player.plex_plex_web_chrome
-                    name: Chrome
-                    hold_action: !include popup/media_player.yaml
-                    double_tap_action: !include popup/media_player.yaml
-                    template:
-                      - media
-                      - icon_plex_white
-
 
       #################################################
       #                                               #
-      #                  AUTRES (ex ÖVRIGT)           #
+      #                    AUTRES                     #
       #                                               #
       #################################################
 
@@ -622,8 +531,7 @@ views:
           - type: custom:button-card
             entity: fan.xiaomi_smart_fan_2
             name: "Smart fan"
-            hold_action: !include popup/fan.yaml
-
+            double_tap_action: !include popup/fan.yaml
             template:
               - base
               - icon_fan2
@@ -632,7 +540,7 @@ views:
 
       #################################################
       #                                               #
-      #                    MAISON (ex HEMMA)          #
+      #                     MAISON                    #
       #                                               #
       #################################################
 
@@ -646,22 +554,34 @@ views:
           - type: custom:button-card
             entity: person.kaoru
             name: William
-            tap_action: !include popup/maison_william.yaml
-            hold_action: !include popup/maison_william.yaml
-            template: person
+            triggers_update:
+              - sensor.kaoru_last_changed
+            double_tap_action:
+              !include popup/maison_william.yaml
+            variables:
+              retain: sensor.kaoru_last_changed
+            template:
+              - person
+              - circle
 
           - type: custom:button-card
             entity: person.papa
             name: Papa
-            tap_action: !include popup/maison_papa.yaml
-            hold_action: !include popup/maison_papa.yaml
-            template: person
+            triggers_update:
+              - sensor.papa_last_changed
+            double_tap_action:
+              !include popup/maison_papa.yaml
+            variables:
+              retain: sensor.papa_last_changed
+            template:
+              - person
+              - circle
 
           - type: custom:button-card
             entity: script.home_leave
             name: Partir
-            tap_action: !include popup/maison_partir.yaml
-            hold_action: !include popup/maison_partir.yaml
+            tap_action: !include popup/home_leave.yaml
+            hold_action: !include popup/home_leave.yaml
             template:
               - base
               - icon_away
@@ -669,7 +589,6 @@ views:
           - type: custom:button-card
             entity: script.home_arrive
             name: Maison
-            hold_action: !include popup/maison_data_kwh.yaml
             template:
               - base
               - icon_home
@@ -680,7 +599,89 @@ views:
       #                                               #
       #################################################
 
-      - type: custom:button-card
+      - type: horizontal-stack
         view_layout:
           grid-area: footer
-        template: footer
+        cards:
+
+          - type: custom:button-card
+            name: >
+              <ha-icon icon="mdi:information-outline"></ha-icon> Système
+            tap_action:
+              !include popup/footer_host_hass.yaml
+            triggers_update:
+              - update.nas_dsm_update
+              - sensor.nas_volume_1_status
+              - binary_sensor.nas_security_status
+              - sensor.disk_use_percent
+            variables:
+              notify: >
+                [[[
+                  let id = this._config.triggers_update;
+                  if (id.every(e => states[e]))
+                      return states[id[0]].state === 'on'
+                          ? 1
+                          : states[id[1]].state === 'background_scrubbing' ||
+                            states[id[2]].state === 'on' ||
+                            parseFloat(states[id[3]].state) >= 85;
+                ]]]
+            template: footer
+
+          - type: custom:button-card
+            entity: sensor.template_updates
+            name: >
+              <ha-icon icon="mdi:arrow-up-bold-circle-outline"></ha-icon> MAJ
+            tap_action:
+              !include popup/footer_updates.yaml
+            variables:
+              notify: >
+                [[[
+                  return parseInt(entity?.state);
+                ]]]
+            template: footer
+
+          - type: custom:button-card
+            name: >
+              <ha-icon icon="mdi:chart-line-variant"></ha-icon> Historique
+            tap_action:
+              !include popup/footer_history.yaml
+            template: footer
+
+          - type: custom:button-card
+            name: >
+              <ha-icon icon="mdi:tablet"></ha-icon> Tablette
+            tap_action:
+              !include popup/footer_tablet.yaml
+            variables:
+              notify: >
+                [[[
+                  let id = states['binary_sensor.lenovotab_plugged_in'];
+                  if (id) return id.state === 'off';
+                ]]]
+            template: footer
+
+          - type: custom:button-card
+            name: >
+              <ha-icon icon="mdi:check-network"></ha-icon> Appareil
+            tap_action:
+              !include popup/footer_device.yaml
+            triggers_update:
+              - update.unifi_dream_machine
+              - binary_sensor.template_udm_internet
+            variables:
+              notify: >
+                [[[
+                  let id = this._config.triggers_update;
+                  if (id.every(e => states[e]))
+                      return states[id[0]].state === 'on'
+                          ? 1
+                          : states[id[1]].state === 'off';
+                ]]]
+            template: footer
+
+          - type: custom:button-card
+            name: >
+              <ha-icon icon="mdi:qrcode"></ha-icon> QR
+            tap_action:
+              !include popup/footer_qr_wifi.yaml
+            template: footer

@@ -1,0 +1,126 @@
+fan:
+  - platform: xiaomi_miio_fan
+    name: Xiaomi Smart Fan 2
+    host: !secret xiaomi_smart_fan_ip
+    token: !secret xiaomi_smart_fan_token
+    model: dmaker.fan.p18
+
+sensor: 
+  - platform: template
+    sensors:
+      fan_speed:
+        value_template: >
+          {% if is_state('fan.xiaomi_smart_fan_2', 'on')  %}
+            {{ (state_attr('fan.xiaomi_smart_fan_2', 'percentage') / 25) | int }}
+          {% endif %}
+        friendly_name: Receiver Fan speed
+        icon_template: mdi:mdi:fan-speed-up
+
+switch:
+  - platform: template
+    switches:
+      fan_oscillate:
+        friendly_name: Oscillation
+        icon_template: mdi:rotate-3d-variant
+        value_template: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'oscillate', true) }}"
+        turn_on:
+          - service: fan.oscillate
+            target:
+              entity_id: fan.xiaomi_smart_fan_2
+            data:
+              oscillating: true
+        turn_off:
+          - service: fan.oscillate
+            target:
+              entity_id: fan.xiaomi_smart_fan_2
+            data:
+              oscillating: false
+
+      fan_eco_mode:
+        friendly_name: Eco mode
+        icon_template: mdi:leaf
+        value_template: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'mode', 'nature') }}"
+        turn_on:
+          - service: xiaomi_miio_fan.fan_set_natural_mode_on
+            data: {}
+        turn_off:
+          - service: xiaomi_miio_fan.fan_set_natural_mode_off
+            data: {}
+
+      fan_buzzer:
+        friendly_name: Buzzer
+        icon_template: mdi:bell-ring
+        value_template: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'buzzer', True) }}"
+        turn_on:
+          - service: xiaomi_miio_fan.fan_set_buzzer_on
+            data: {}
+        turn_off:
+          - service: xiaomi_miio_fan.fan_set_buzzer_off
+            data: {}
+
+input_number:
+  fan_speed:
+    icon: mdi:fast-forward
+    name: Vitesse
+    initial: 25
+    min: 1
+    max: 100
+    step: 1
+
+  fan_timer:
+    icon: mdi:timer
+    name: Timer
+    initial: 0
+    min: 0
+    max: 480
+    step: 1
+
+automation:
+  - alias: update_speed_fan
+    trigger:
+      - platform: state
+        entity_id: input_number.fan_speed
+    condition:
+      - condition: template
+        value_template: >-
+          {{ state_attr('automation.update_speed_fan_slider', 'last_triggered') is none or
+            (as_timestamp(now()) - as_timestamp(state_attr('automation.update_speed_fan_slider', 'last_triggered')) > 1) }}         
+    action:
+      - service: fan.set_percentage
+        target:
+          entity_id: fan.xiaomi_smart_fan_2
+        data:
+          percentage: "{{ states('input_number.fan_speed') | int }}"
+    mode: single
+
+  - alias: update_speed_fan_slider
+    trigger:
+      - platform: state
+        entity_id: fan.xiaomi_smart_fan_2
+    condition:
+      - condition: template
+        value_template: >-
+          {{ state_attr('automation.update_speed_fan', 'last_triggered') is none or
+            (as_timestamp(now()) - as_timestamp(state_attr('automation.update_speed_fan', 'last_triggered')) > 1) }}
+
+    action:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.fan_speed
+        data:
+          value: "{{ state_attr('fan.xiaomi_smart_fan_2', 'percentage') }}"
+    mode: single
+
+  - alias: update_fan_timer
+    description: ''
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_number.fan_timer
+    condition: []
+    action:
+      - service: xiaomi_miio_fan.fan_set_delay_off
+        data:
+          entity_id: fan.xiaomi_smart_fan_2
+          delay_off_countdown: "{{ states('input_number.fan_timer') | int }}"
+

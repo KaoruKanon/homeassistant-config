@@ -1,0 +1,83 @@
+homeassistant:
+  customize:
+    person.kaoru:
+      entity_picture: /local/kaoru.jpg
+    device_tracker.iphone:
+      entity_picture: /local/device_tracker.svg
+    person.papa:
+      entity_picture: /local/papa.jpg
+
+person:
+  - name: Kaoru
+    id: kaoru
+    device_trackers:
+      - device_tracker.oneplus_8_pro
+  - name: Papa
+    id: papa
+    device_trackers:
+      - device_tracker.samsung_s10e
+
+
+automation:
+  - alias: turn_off_gps_home_absence
+    trigger:
+      - platform: state
+        entity_id: person.kaoru
+        from: home
+        to: not_home
+      - platform: state
+        entity_id: person.papa
+        from: home
+        to: not_home
+    condition:
+      - condition: and
+        conditions:
+          - condition: state
+            entity_id: person.kaoru
+            state: not_home
+          - condition: state
+            entity_id: person.papa
+            state: not_home
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: light.maison
+      - service: media_player.turn_off
+        target:
+          entity_id: media_player.samsung_tv_salon
+
+  - alias: turn_off_gps_papa_absence
+    trigger:
+      - platform: state
+        entity_id: person.papa
+        from: home
+        to: not_home
+    condition:
+      - condition: state
+        entity_id: person.papa
+        state: not_home
+      - condition: state
+        state: 'on'
+        entity_id: switch.computer_papa
+    action:
+      - service: script.computer_papa_shutdown
+        data: {}
+
+  - alias: turn_off_gps_william_absence
+    trigger:
+      - platform: state
+        entity_id: person.kaoru
+        from: home
+        to: not_home
+    condition:
+      - condition: state
+        entity_id: person.kaoru
+        state: not_home
+    action:
+      - service: fan.turn_off
+        target:
+          entity_id: fan.xiaomi_smart_fan_2
+      - service: light.turn_off
+        target:
+          entity_id: light.chambre
+    mode: single

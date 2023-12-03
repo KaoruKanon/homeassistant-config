@@ -1,0 +1,30 @@
+sensor:
+  - platform: average
+    precision: 1
+    name: average_temperature
+    entities:
+      - sensor.temperature_chambre_william
+      - sensor.temperature_chambre_papa
+      - sensor.temperature_salon
+      - sensor.temperature_cuisine
+
+  - platform: average
+    name: average_humidity
+    precision: 1
+    entities:
+      - sensor.humidity_chambre_william
+      - sensor.humidity_chambre_papa
+      - sensor.humidity_salon
+      - sensor.humidity_cuisine
+
+template: 
+  sensor:
+    - unique_id: weather_temperature
+      unit_of_measurement: '°C'
+      state: >
+        {{ state_attr('weather.villeneuve_d_ascq', 'temperature') }}
+
+    - unique_id: weather_humidity
+      unit_of_measurement: '°C'
+      state: >
+        {{ state_attr('weather.villeneuve_d_ascq', 'humidity') }}

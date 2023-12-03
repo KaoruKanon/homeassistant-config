@@ -1,10 +1,34 @@
-###############################################################
+"""
+bbox_sensor.py
 
-# bbox_sensor.py
-# Bbox sensor à from the custom pybbox module
-# https://github.com/KaoruKanon
-# version : v1.0
-###############################################################
+Bbox sensor from the custom pybbox module
+https://github.com/KaoruKanon
+version : v1.0
+
+A script to collect various information from a Bbox (Internet Box) and use it as sensors in Home Assistant.
+
+Dependencies :
+  - pybbox_custom (https://github.com/KaoruKanon)
+  - requests
+  - os
+  - yaml
+
+Attributes :
+    abspath (str) : Absolute path of the script file.
+    dname (str) : Directory name of the script file.
+    secrets (dict) : Dictionary of secrets read from the secrets.yaml file.
+    headers (dict) : Headers to be used for API requests.
+    ha_url (str) : API endpoint to communicate with Home Assistant.
+    bbox (Bbox) : Object of Bbox class from pybbox_custom module.
+    bbox_cpu_json (dict) : Dictionary of information related to CPU usage.
+    bbox_cpu_usage (float) : CPU usage as a percentage.
+    bbox_mem_json (dict) : Dictionary of information related to memory usage.
+    bbox_mem_usage (float) : Memory usage as a percentage.
+    list_sensor (list) : List of dictionaries of information related to different Bbox information to be used as sensors in Home Assistant.
+
+Functions :
+    bytes_conversion_human(bytes) : Function to convert bytes to human-readable format.
+"""
 
 from pybbox_custom import Bbox
 import requests
@@ -28,16 +52,16 @@ with open('../secrets.yaml') as f:
     secrets = yaml.safe_load(f)
 
 headers = {
-    "Authorization": secrets['enedis_ha_api_token'],
+    "Authorization": secrets['bbox_ha_api_token'],
     "content-type": "application/json",
 }
-ha_url = secrets['external_url'] + '/api/states/'
+ha_url = secrets['internal_url'] + '/api/states/'
 
 # bbox login
 bbox = Bbox(ip="mabbox.bytel.fr")
 bbox.login(password=secrets['bbox_password'])
 
-# bbox get value from api
+# bbox value manipulation from api
 bbox_cpu_json = bbox.get_bbox_cpu()
 bbox_cpu_usage = round(bbox_cpu_json['total'] / bbox_cpu_json['idle'] * 100 - 100, 1)
 
@@ -152,4 +176,4 @@ list_sensor = [
 
 # requests post to ha
 for sensor in list_sensor:
-    requests.post(ha_url + '/sensor.' + sensor['name'], json=sensor['config'], headers=headers)
+    requests.post(ha_url + 'sensor.' + sensor['name'], json=sensor['config'], headers=headers)

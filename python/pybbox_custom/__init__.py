@@ -2,7 +2,7 @@ from .bboxConstant import BboxConstant
 from .bboxAuth import BboxAuth
 from .bboxApiURL import BboxAPIUrl
 from .bboxApiCall import BboxApiCall
-
+import json
 
 class Bbox:
     """
@@ -86,14 +86,15 @@ class Bbox:
         """
         This API returns Bbox memory information
         :return: numbers of info about the memory (see API doc)
+        .. fix a bug about committedas is empty 
         :rtype: dict
         """
+        token = self.get_token()
         self.bbox_auth.set_access(BboxConstant.AUTHENTICATION_LEVEL_PRIVATE, BboxConstant.AUTHENTICATION_LEVEL_PRIVATE)
         self.bbox_url.set_api_name(BboxConstant.API_DEVICE, "mem")
-        api = BboxApiCall(self.bbox_url, BboxConstant.HTTP_METHOD_GET, None,
-                          self.bbox_auth)
+        api = BboxApiCall(self.bbox_url, BboxConstant.HTTP_METHOD_GET, None, self.bbox_auth)
         resp = api.execute_api_request()
-        return resp.json()[0]['device']['mem']
+        return json.loads(resp.text.replace('"committedas":', '"committedas":0'))[0]['device']['mem']
 
     def reboot(self):
         """
@@ -107,6 +108,7 @@ class Bbox:
         api = BboxApiCall(self.bbox_url, BboxConstant.HTTP_METHOD_POST, None,
                           self.bbox_auth)
         api.execute_api_request()
+        
 
     def get_token(self):
         """

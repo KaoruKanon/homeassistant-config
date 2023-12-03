@@ -1,0 +1,35 @@
+loader:
+  custom_fields:
+    loader: >
+      <img src="/local/loader.svg" width="100%">
+  tap_action:
+    loader: >
+      [[[
+        if (entity) {
+            let elt = this.shadowRoot,
+                loader = (id, style, timeout) => {
+                  elt.getElementById(id) && (elt.getElementById(id).style.display = style,
+                    window.setTimeout(() => {
+                      elt.getElementById('loader').style.display = 'none'
+                    }, 20000))
+                };
+            loader('circle', 'none', 'initial'),
+            loader('loader', 'initial', 'none');
+        }
+      ]]]
+  styles:
+    custom_fields:
+      loader:
+        - display: none
+        - top: -6%
+        - right: -3.5%
+        - width: 52%
+        - position: absolute
+        - opacity: 0.5
+        - pointer-events: none
+        - filter: >
+            [[[
+              return variables.state_on
+                  ? 'none'
+                  : 'invert(1)';
+            ]]]

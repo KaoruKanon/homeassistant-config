@@ -1,0 +1,134 @@
+light:
+  - platform: group
+    name: CHAMBRE
+    entities: ['light.yeelight_stripe', 'light.plafond_1', 'light.plafond_2', 'light.lampe_japonaise']
+
+  - platform: group
+    name: BUREAU
+    entities: ['light.yeelight_stripe', 'light.lampe_japonaise']
+
+  - platform: group
+    name: PLAFOND
+    entities: ['light.plafond_1', 'light.plafond_2']
+
+  - platform: group
+    name: SALON
+    entities: ['light.salon_1', 'light.salon_2']
+
+  - platform: group
+    name: MAISON
+    entities: ['light.yeelight_stripe', 'light.plafond_1', 'light.plafond_2', 'light.lampe_japonaise', 'light.salon_1', 'light.salon_2']
+
+
+automation: 
+  - alias: toggle_bureau
+    trigger:
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_1
+          click_type: single
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_2
+          click_type: single
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_3
+          click_type: single
+    condition: []
+    action:
+      - type: toggle
+        device_id: 4e0b5d4dbf691fc12fa8de5238ef06a5
+        entity_id: light.bureau
+        domain: light
+    mode: single
+
+  - alias: toggle_plafond
+    trigger:
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_1
+          click_type: double
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_2
+          click_type: double
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_3
+          click_type: double
+    condition: []
+    action:
+      - type: toggle
+        device_id: abe1b32f1fb25591f891bab663c8510d
+        entity_id: light.plafond
+        domain: light
+
+  - alias: allumer_chambre
+    trigger:
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_1
+          click_type: long_click_press
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_2
+          click_type: long_click_press
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_3
+          click_type: long_click_press
+    condition:
+      - condition: and
+        conditions:
+          - condition: device
+            type: is_off
+            device_id: 4e0b5d4dbf691fc12fa8de5238ef06a5
+            entity_id: light.chambre
+            domain: light
+    action:
+      - type: turn_on
+        device_id: 4e0b5d4dbf691fc12fa8de5238ef06a5
+        entity_id: light.chambre
+        domain: light
+    mode: single
+
+  - alias: eteindre_chambre
+    trigger:
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_1
+          click_type: long_click_press
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_2
+          click_type: long_click_press
+      - platform: event
+        event_type: xiaomi_aqara.click
+        event_data:
+          entity_id: binary_sensor.switch_3
+          click_type: long_click_press
+    condition:
+      - condition: or
+        conditions:
+          - condition: device
+            type: is_on
+            device_id: 4e0b5d4dbf691fc12fa8de5238ef06a5
+            entity_id: light.chambre
+            domain: light
+    action:
+      - type: turn_off
+        device_id: 4e0b5d4dbf691fc12fa8de5238ef06a5
+        entity_id: light.chambre
+        domain: light

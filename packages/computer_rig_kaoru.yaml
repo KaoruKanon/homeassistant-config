@@ -1,0 +1,134 @@
+switch:
+  - platform: wake_on_lan
+    name: wol_rig_kaoru
+    mac: !secret wake_on_lan_kaoru_mac
+    host: !secret wake_on_lan_kaoru_host
+    broadcast_address: "192.168.1.255"
+
+  - platform: template
+    switches:
+      computer_rig_kaoru:
+        friendly_name: Kaoru
+        icon_template: cil:imac-alternative
+        value_template: "{{ is_state('switch.wol_rig_kaoru', 'on') }}"
+        turn_on:
+          - service: input_boolean.turn_on
+            entity_id: input_boolean.computer_rig_kaoru
+          - service: switch.turn_on
+            entity_id: switch.wol_rig_kaoru
+        turn_off:
+          - choose:
+            - conditions:
+                - condition: state
+                  entity_id: input_boolean.computer_rig_kaoru_lock
+                  state: 'on'
+              sequence:
+                - service: browser_mod.toast
+                  data:
+                    duration: 8000
+                    message: L'ordinateur est verrouillé...
+            default:
+              - service: input_boolean.turn_on
+                entity_id: input_boolean.computer_rig_kaoru
+              - service: script.computer_rig_kaoru_shutdown
+
+input_boolean:
+  computer_rig_kaoru_lock:
+    name: Verrouillage
+    icon: cil:lock
+
+binary_sensor:
+sensor:
+
+template: 
+  sensor:
+    - name: rig_kaoru_storage_c_used_space_percentage
+      unit_of_measurement: '%'
+      state: "{{ state_attr('sensor.rig_kaoru_storage_c', 'UsedSpacePercentage') }}"
+    - name: rig_kaoru_storage_d_used_space_percentage
+      unit_of_measurement: '%'
+      state: "{{ state_attr('sensor.rig_kaoru_storage_d', 'UsedSpacePercentage') }}"
+    - name: rig_kaoru_storage_g_used_space_percentage
+      unit_of_measurement: '%'
+      state: "{{ state_attr('sensor.rig_kaoru_storage_g', 'UsedSpacePercentage') }}"
+    - name: rig_kaoru_uptime
+      state: >
+        {% set startup_time_state = states('sensor.rig_kaoru_lastboot') %}
+        {% if startup_time_state not in ['unknown', 'unavailable'] %}
+          {% set now = as_timestamp(now()) %}
+          {% set startup_time = as_timestamp(strptime(startup_time_state, "%Y-%m-%dT%H:%M:%S%z")) %}
+          {% set uptime_seconds = now - startup_time %}
+          {% set uptime_hours = (uptime_seconds / 3600) | int %}
+          {% set uptime_minutes = ((uptime_seconds % 3600) / 60) | int %}
+          {{ "{:02d}:{:02d}".format(uptime_hours, uptime_minutes) }}
+        {% else %}
+          Pas encore disponible
+        {% endif %}
+
+homeassistant:
+  customize:
+    sensor.rig_kaoru_uptime:
+      friendly_name: Uptime
+      icon: mdi:calendar-clock
+
+    sensor.rig_kaoru_storage_c_used_space_percentage:
+      friendly_name: System NVME
+      icon: cil:imac-ssd
+
+    sensor.rig_kaoru_storage_d_used_space_percentage:
+      friendly_name: HDD
+      icon: mdi:harddisk
+
+    sensor.rig_kaoru_storage_g_used_space_percentage:
+      friendly_name: Games NVME
+      icon: cil:imac-ssd
+
+    sensor.rig_kaoru_cpuload:
+      friendly_name: Processeur
+      icon: mdi:chip
+
+    sensor.rig_kaoru_memoryusage:
+      friendly_name: Mémoire
+      icon: mdi:memory
+
+script:
+  computer_rig_kaoru_shutdown:
+    alias: "Kaoru computer - Shutdown"
+    sequence:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/switch/RIG-KAORU/RIG-KAORU_shutdown/set"
+          payload: "ON"
+
+  computer_rig_kaoru_suspend:
+    alias: "Kaoru computer - Suspend"
+    sequence:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/switch/RIG-KAORU/RIG-KAORU_sleep/set"
+          payload: "ON"
+
+  computer_rig_kaoru_hibernate:
+    alias: "Kaoru computer - Hibernate"
+    sequence:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/switch/RIG-KAORU/RIG-KAORU_hibernate/set"
+          payload: "ON"
+
+  computer_rig_kaoru_reboot:
+    alias: "Kaoru computer- Reboot"
+    sequence:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/switch/RIG-KAORU/RIG-KAORU_restart/set"
+          payload: "ON"
+
+  computer_rig_kaoru_lock:
+    alias: "Kaoru computer - Lock"
+    sequence:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/switch/RIG-KAORU/RIG-KAORU_lock/set"
+          payload: "ON"
+

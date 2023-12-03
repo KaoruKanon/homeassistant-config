@@ -1,9 +1,0 @@
-              action: fire-dom-event
-              browser_mod:
-                command: popup
-                title: "Media player"
-                card:
-                  type: entities
-                  entities:
-
-                    - entity: '[[[ return entity.entity_id ]]]'

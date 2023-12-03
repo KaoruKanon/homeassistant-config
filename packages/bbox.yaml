@@ -1,0 +1,11 @@
+shell_command:
+  bbox_update_data: !secret bbox_update_data
+
+automation:
+  - alias: bbox_update_data
+    trigger:
+      - platform: time_pattern
+        minutes: '/1'
+    action:
+      - service: shell_command.bbox_update_data
+

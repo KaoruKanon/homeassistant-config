@@ -3,133 +3,104 @@ homeassistant:
   latitude: !secret homeassistant_latitude
   longitude: !secret homeassistant_longitude
   elevation: !secret homeassistant_elevation
-  packages: !include_dir_named include
-  allowlist_external_dirs: [/config/]
+  unit_system: metric
+  temperature_unit: C
+  time_zone: Europe/Paris
+  language: fr
+  country: FR
+  currency: EUR
+  packages: !include_dir_named packages
+  customize_domain:
+    automation:
+      initial_state: true
+  allowlist_external_dirs:
+    - /config
   external_url: !secret external_url
   internal_url: !secret internal_url
 
-# Configure a default setup of Home Assistant (frontend, api, etc)
-default_config:
-
-group: !include groups.yaml
-automation: !include automations.yaml
-script: !include scripts.yaml
-scene: !include scenes.yaml
-switch: !include switches.yaml
-
-
 http:
   use_x_forwarded_for: true
-  trusted_proxies: !secret http_trusted_proxy
+  trusted_proxies:
+    - !secret proxy
+    
+default_config:
+
+frontend:
+  extra_module_url:
+    - /hacsfiles/lovelace-card-mod/card-mod.js
+  themes: !include_dir_merge_named themes
+
+template: !include sidebar.yaml
 
 lovelace:
   mode: yaml
   resources:
-    [ { url: /hacsfiles/bar-card/bar-card.js,                               type: module },
-      { url: /hacsfiles/button-card/button-card.js,                         type: module },
-      { url: /hacsfiles/kiosk-mode/kiosk-mode.js,                           type: module },
-      { url: /hacsfiles/light-entity-card/light-entity-card.js,             type: module },
-      { url: /hacsfiles/light-popup-card/light-popup-card.js,               type: module },
-      { url: /hacsfiles/lovelace-card-mod/card-mod.js,                      type: module },
-      { url: /hacsfiles/lovelace-layout-card/layout-card.js,                type: module },
-      { url: /hacsfiles/lovelace-slider-entity-row/slider-entity-row.js,    type: module },
-      { url: /hacsfiles/lovelace-valetudo-map-card/valetudo-map-card.js,    type: module },
-      { url: /hacsfiles/mini-graph-card/mini-graph-card-bundle.js,          type: module },
-      { url: /hacsfiles/swipe-card/swipe-card.js,                           type: module },
-      { url: /hacsfiles/lovelace-hui-element/hui-element.js,                type: module },
+    [
+      { url: /hacsfiles/apexcharts-card/apexcharts-card.js,                         type: module },
+      { url: /hacsfiles/bar-card/bar-card.js,                                       type: module },
+      { url: /hacsfiles/button-card/button-card.js,                                 type: module },
+      { url: /hacsfiles/custom-icons/custom-icons.js,                               type: module },
+      { url: /hacsfiles/kiosk-mode/kiosk-mode.js,                                   type: module },
+      { url: /hacsfiles/lovelace-layout-card/layout-card.js,                        type: module },
+      { url: /hacsfiles/lovelace-more-info-card/more-info-card.js,                  type: module },
+      { url: /hacsfiles/lovelace-mushroom/mushroom.js,                              type: module },
+      { url: /hacsfiles/lovelace-slider-entity-row/slider-entity-row.js,            type: module },
+      { url: /hacsfiles/lovelace-xiaomi-vacuum-map-card/xiaomi-vacuum-map-card.js,  type: module },
+      { url: /hacsfiles/swipe-card/swipe-card.js,                                   type: module },
+      { url: /hacsfiles/tabbed-card/tabbed-card.js,                                 type: module },
+      { url: /hacsfiles/mini-graph-card/mini-graph-card-bundle.js,                  type: module },
 
-      {url: /hacsfiles/spotify-card/spotify-card.js,                          type: module},
-      {url: /hacsfiles/mini-media-player/mini-media-player-bundle.js,         type: module},
-      {url: /hacsfiles/lovelace-valetudo-map-card/valetudo-map-card.js,       type: module},
+      { url: '/local/marked.min.js?v=4.3.0',                                        type: module },
+      { url: '/local/vanilla-tilt.min.js?v=1.8.0',                                  type: module },
+      { url: '/local/browser_mod_icon.js?v=0.5',                                    type: module },
+      { url: '/local/fonts.css?v=2.1',                                              type: css }
+    ]
 
-      {url: '/local/calendar-card.js?v=31091',                                type: module},
-      {url: '/local/stack-in-card.js?v=101',                                  type: module},
-      {url: '/local/custom_icons.js?v=25052001',                              type: module},
-      {url: /local/font.css,                                                     type: css} ]
+# recorder:
+#   db_url: !secret recorder_db_url
+#   exclude:
+#     entity_globs:
+#       - sensor.browser_*
+
+influxdb:
+  host: localhost
+  port: 8086
+  database: homeassistant
+  username: !secret influx_homeassistant_user
+  password: !secret influx_homeassistant_password
+  max_retries: 3
+  default_measurement: state
+  include:
+    entity_globs:
+      - sensor.*_temperature
+      - sensor.temperature_*
+      - sensor.smart_plug_*
 
 logger:
   default: warning
   logs:
-    homeassistant.components.homekit.type_media_players: error
+    homeassistant.components.websocket_api: fatal
+    custom_components.monitor_docker.helpers: error
+    homeassistant.setup: error
     homeassistant.components.command_line.sensor: error
     homeassistant.components.rest.sensor: error
-    homeassistant.components.websocket_api: fatal
     homeassistant.helpers.service: error
     homeassistant.components.media_player: error
     homeassistant.helpers.entity: error
     homeassistant.helpers.event: fatal
     homeassistant.components.ipp: fatal
     homeassistant.helpers.template: error
-    custom_components.spotcast: debug
-history:
+    custom_components.xiaomi_miio_fan.fan: critical
 
-recorder:
-  purge_keep_days: 5
-  include:
-    entities:
-      ['person.kaoru', 'person.papa', 'sensor.network_throughput_in_eth0', 'sensor.network_throughput_out_eth0',
-      'sensor.average_temperature']
-    entity_globs:
-      ['sensor.temperature_*', 'sensor.*_temperature', 'sensor.*_humidity', 'sensor.humidity_*']
-
-browser_mod:
-  devices:
-    cf12b84d-0a6706a1:
-      name: kaoru_chrome
-    9b63bbf0_40273ef4:
-      name: tablet
-    7892df5b-5535b94b:
-      name: app_chrome
-
-mqtt:
-  broker: !secret mqtt_broker
-  username: !secret mqtt_username
-  password: !secret mqtt_password
-  discovery: false
-
-google:
-  client_id: !secret google_client_id
-  client_secret: !secret google_client_secret
-
-spotify:
-  client_id: !secret spotify_id
-  client_secret: !secret spotify_secret
+sensor:
+  - platform: time_date
+    display_options:
+      - time
+      - date
 
 spotcast:
   sp_dc: !secret sp_dc
   sp_key: !secret sp_key
 
-tts:
-  - platform: google_translate
-    language: 'fr'
-
 meteo_france:
   - city: !secret cp
-
-fan:
-  - platform: xiaomi_miio_fan
-    name: Xiaomi Smart Fan 2
-    host: !secret xiaomi_smart_fan_ip
-    token: !secret xiaomi_smart_fan_token
-    model: dmaker.fan.p18
-
-light:
-  - platform: group
-    name: CHAMBRE
-    entities: ['light.yeelight_stripe', 'light.plafond_1', 'light.plafond_2', 'light.lampe_japonaise']
-
-  - platform: group
-    name: BUREAU
-    entities: ['light.yeelight_stripe', 'light.lampe_japonaise']
-
-  - platform: group
-    name: PLAFOND
-    entities: ['light.plafond_1', 'light.plafond_2']
-
-  - platform: group
-    name: SALON
-    entities: ['light.salon_1', 'light.salon_2']
-
-  - platform: group
-    name: MAISON
-    entities: ['light.yeelight_stripe', 'light.plafond_1', 'light.plafond_2', 'light.lampe_japonaise', 'light.salon_1', 'light.salon_2']

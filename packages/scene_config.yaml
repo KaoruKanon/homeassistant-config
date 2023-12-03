@@ -1,0 +1,46 @@
+scene:
+
+script:
+  home_arrive:
+    alias: Maison
+    sequence:
+      - choose:
+        - conditions:
+            - condition: state
+              entity_id: light.lenovotab_screen
+              state: 'on'
+            - condition: state
+              entity_id: switch.lenovotab_screensaver
+              state: 'off'
+          sequence:
+            - service: media_player.play_media
+              data:
+                entity_id: media_player.lenovotab
+                media_content_id: >
+                  {{ ['/local/sound/tts_custom/french/bien_bonjour.mp3',
+                  '/local/sound/tts_custom/french/bienvenue_maison.mp3',
+                  '/local/sound/tts_custom/french/bonjour.mp3',
+                  '/local/sound/tts_custom/french/salut.mp3'] | random }}
+                media_content_type: music
+
+  home_leave:
+    alias: Partir
+    sequence:
+      - choose:
+        - conditions:
+            - condition: state
+              entity_id: switch.lenovotab_screensaver
+              state: 'off'
+          sequence:
+            - service: media_player.play_media
+              data:
+                entity_id: media_player.lenovotab
+                media_content_id: >
+                  {{ ['/local/sound/tts_custom/french/a_bientot.mp3',
+                      '/local/sound/tts_custom/french/a_plus.mp3',
+                      '/local/sound/tts_custom/french/a_toute.mp3',
+                      '/local/sound/tts_custom/french/tout_a_heure.mp3',
+                      '/local/sound/tts_custom/french/passe_bon_moment.mp3'] | random }}
+                media_content_type: music
+      - service: light.turn_off
+        entity_id: light.MAISON

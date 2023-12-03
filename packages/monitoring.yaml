@@ -1,0 +1,119 @@
+binary_sensor:
+
+  - platform: command_line
+    name: plex_availability
+    command: !secret plex_availability
+    scan_interval: 300
+    payload_on: 'on'
+    payload_off: 'off'
+
+  - platform: command_line
+    name: deluge_availability
+    command: !secret deluge_availability
+    scan_interval: 300
+    payload_on: 'on'
+    payload_off: 'off'
+
+  - platform: command_line
+    name: nextcloud_availability
+    command: !secret nextcloud_availability
+    scan_interval: 300
+    payload_on: 'on'
+    payload_off: 'off'
+
+  - platform: command_line
+    name: grafana_availability
+    command: !secret grafana_availability
+    scan_interval: 300
+    payload_on: 'on'
+    payload_off: 'off'
+
+  - platform: ping
+    name: internet_access
+    host: 8.8.8.8
+
+  - platform: ping
+    name: ping_gateway
+    host: 192.168.1.100
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_oneplus_8_pro
+    host: 192.168.1.115
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_samsung_s10e
+    host: 192.168.1.150
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_shiro
+    host: 192.168.1.200
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_dlink_wifi
+    host: 192.168.1.250
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_switch
+    host: 192.168.1.253
+    scan_interval: 30
+
+  - platform: ping
+    name: ping_bbox
+    host: 192.168.1.254
+    scan_interval: 30
+
+homeassistant:
+  customize:
+    binary_sensor.internet_access:
+      icon: mdi:web
+      friendly_name: Internet
+
+    binary_sensor.plex_availability:
+      icon: mdi:plex
+      friendly_name: Plex
+
+    binary_sensor.deluge_availability:
+      icon: cil:deluge
+      friendly_name: Deluge
+
+    binary_sensor.grafana_availability:
+      icon: cil:grafana
+      friendly_name: Grafana
+
+    binary_sensor.nextcloud_availability:
+      icon: mdi:cloud
+      friendly_name: Nextcloud
+
+    sensor.myip:
+      friendly_name: IP Publique
+      icon: mdi:web
+
+sensor:
+  - platform: template
+    sensors:
+      bbox_uptime_human:
+        friendly_name: Uptime
+        icon_template: mdi:update
+        value_template: >
+          {% if states.sensor.bbox_uptime.state is defined %}
+            {% set time = states.sensor.bbox_uptime.state | int %}
+            {% if time < 60 %}
+               {{ time | timestamp_custom('%S s') }}
+            {% elif time > 60 and time < 3600 %}
+               {{ time | timestamp_custom('%M m %S s') }}
+            {% elif time >= 3600 and time < 86400 %}
+               {{ time | timestamp_custom('%H h %M m %S s') }}
+            {% elif time >= 86400 %}
+               {{ time // 86400 }} j{{ (time | timestamp_custom('%d j %H h %M m %S s'))[4:] }}
+            {% endif %}
+          {% endif %}
+
+  - platform: command_line
+    name: myip
+    command: curl -s -4 ifconfig.io
+    scan_interval: 86000

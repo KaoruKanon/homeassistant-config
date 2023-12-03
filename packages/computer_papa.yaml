@@ -1,0 +1,127 @@
+switch:
+  - platform: wake_on_lan
+    name: wol_papa
+    mac: !secret wake_on_lan_papa_mac
+    host: !secret wake_on_lan_papa_host
+    broadcast_address: 192.168.1.255
+
+  - platform: template
+    switches:
+      computer_papa:
+        friendly_name: Papa
+        icon_template: custom:imac-alternative
+        value_template: "{{ is_state('switch.wol_papa', 'on') }}"
+        turn_on:
+          - service: input_boolean.turn_on
+            entity_id: input_boolean.computer_papa
+          - service: switch.turn_on
+            entity_id: switch.wol_papa
+        turn_off:
+          - choose:
+            - conditions:
+                - condition: state
+                  entity_id: input_boolean.computer_papa_lock
+                  state: 'on'
+              sequence:
+                - service: browser_mod.toast
+                  data:
+                    duration: 8000
+                    message: L'ordinateur est verrouillé...
+            default:
+              - service: input_boolean.turn_on
+                entity_id: input_boolean.computer_papa
+              - service: script.computer_papa_shutdown
+
+input_boolean:
+  computer_papa_lock:
+    name: Verrouillage
+    icon: cil:lock
+
+binary_sensor:
+sensor:
+
+template: 
+  sensor:
+    - name: bruno_storage_c_used_space_percentage
+      unit_of_measurement: '%'
+      state: "{{ state_attr('sensor.bruno_storage_c', 'UsedSpacePercentage') }}"
+    - name: bruno_storage_d_used_space_percentage
+      unit_of_measurement: '%'
+      state: "{{ state_attr('sensor.bruno_storage_d', 'UsedSpacePercentage') }}"
+    - name: bruno_uptime
+      state: >
+        {% set startup_time_state = states('sensor.bruno_lastboot') %}
+        {% if startup_time_state not in ['unknown', 'unavailable'] %}
+          {% set now = as_timestamp(now()) %}
+          {% set startup_time = as_timestamp(strptime(startup_time_state, "%Y-%m-%dT%H:%M:%S%z")) %}
+          {% set uptime_seconds = now - startup_time %}
+          {% set uptime_hours = (uptime_seconds / 3600) | int %}
+          {% set uptime_minutes = ((uptime_seconds % 3600) / 60) | int %}
+          {{ "{:02d}:{:02d}".format(uptime_hours, uptime_minutes) }}
+        {% else %}
+          Pas encore disponible
+        {% endif %}
+
+
+homeassistant:
+  customize:
+    sensor.bruno_uptime:
+      friendly_name: Uptime
+      icon: mdi:calendar-clock
+
+    sensor.bruno_storage_c_used_space_percentage:
+      friendly_name: System SSD
+      icon: cil:imac-ssd
+
+    sensor.bruno_storage_d_used_space_percentage:
+      friendly_name: HDD
+      icon: mdi:harddisk
+
+    sensor.bruno_cpuload:
+      friendly_name: Processeur
+      icon: mdi:chip
+
+    sensor.bruno_memoryusage:
+      friendly_name: Mémoire
+      icon: mdi:memory
+
+script:
+  computer_papa_shutdown:
+    alias: "Papa computer - Shutdown"
+    sequence:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/switch/BRUNO/BRUNO_shutdown/set"
+          payload: "ON"
+
+  computer_papa_suspend:
+    alias: "Papa computer - Suspend"
+    sequence:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/switch/BRUNO/BRUNO_sleep/set"
+          payload: "ON"
+
+  computer_papa_hibernate:
+    alias: "Papa computer - Hibernate"
+    sequence:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/switch/BRUNO/BRUNO_hibernate/set"
+          payload: "ON"
+
+  computer_papa_reboot:
+    alias: "Papa computer- Reboot"
+    sequence:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/switch/BRUNO/BRUNO_restart/set"
+          payload: "ON"
+
+  computer_papa_lock:
+    alias: "Papa computer - Lock"
+    sequence:
+      - service: mqtt.publish
+        data:
+          topic: "homeassistant/switch/BRUNO/BRUNO_lock/set"
+          payload: "ON"
