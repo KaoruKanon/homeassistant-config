@@ -97,7 +97,7 @@ script:
     sequence:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/switch/RIG-KAORU/RIG-KAORU_shutdown/set"
+          topic: "homeassistant/switch/RIG-KAORU/shutdown/set"
           payload: "ON"
 
   computer_rig_kaoru_suspend:
@@ -105,7 +105,7 @@ script:
     sequence:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/switch/RIG-KAORU/RIG-KAORU_sleep/set"
+          topic: "homeassistant/switch/RIG-KAORU/sleep/set"
           payload: "ON"
 
   computer_rig_kaoru_hibernate:
@@ -113,7 +113,7 @@ script:
     sequence:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/switch/RIG-KAORU/RIG-KAORU_hibernate/set"
+          topic: "homeassistant/switch/RIG-KAORU/hibernate/set"
           payload: "ON"
 
   computer_rig_kaoru_reboot:
@@ -121,7 +121,7 @@ script:
     sequence:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/switch/RIG-KAORU/RIG-KAORU_restart/set"
+          topic: "homeassistant/switch/RIG-KAORU/restart/set"
           payload: "ON"
 
   computer_rig_kaoru_lock:
@@ -129,6 +129,6 @@ script:
     sequence:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/switch/RIG-KAORU/RIG-KAORU_lock/set"
+          topic: "homeassistant/switch/RIG-KAORU/lock/set"
           payload: "ON"
 

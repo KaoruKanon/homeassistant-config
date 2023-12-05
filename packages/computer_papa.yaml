@@ -91,7 +91,7 @@ script:
     sequence:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/switch/BRUNO/BRUNO_shutdown/set"
+          topic: "homeassistant/switch/BRUNO/shutdown/set"
           payload: "ON"
 
   computer_papa_suspend:
@@ -99,7 +99,7 @@ script:
     sequence:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/switch/BRUNO/BRUNO_sleep/set"
+          topic: "homeassistant/switch/BRUNO/sleep/set"
           payload: "ON"
 
   computer_papa_hibernate:
@@ -107,7 +107,7 @@ script:
     sequence:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/switch/BRUNO/BRUNO_hibernate/set"
+          topic: "homeassistant/switch/BRUNO/hibernate/set"
           payload: "ON"
 
   computer_papa_reboot:
@@ -115,7 +115,7 @@ script:
     sequence:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/switch/BRUNO/BRUNO_restart/set"
+          topic: "homeassistant/switch/BRUNO/restart/set"
           payload: "ON"
 
   computer_papa_lock:
@@ -123,5 +123,5 @@ script:
     sequence:
       - service: mqtt.publish
         data:
-          topic: "homeassistant/switch/BRUNO/BRUNO_lock/set"
+          topic: "homeassistant/switch/BRUNO/lock/set"
           payload: "ON"
