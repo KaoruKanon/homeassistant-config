@@ -34,7 +34,7 @@ browser_mod:
           show_state: false
           entities:
 
-            - entity: device_tracker.oneplus_8_pro
+            - entity: device_tracker.oneplus12
               name: GPS
               icon: mdi:map-marker
               style: &state |
@@ -42,7 +42,7 @@ browser_mod:
                   color: {{ '#3182b7' if is_state(config.entity, 'home') else '#3c3f3f' }};
                 }
 
-            - entity: binary_sensor.ping_oneplus_8_pro
+            - entity: binary_sensor.ping_oneplus12
               name: WiFi LAN
               icon: mdi:wifi
               style: *state
@@ -64,7 +64,7 @@ browser_mod:
               template: icon_name
               tap_action:
                 action: call-service
-                service: notify.mobile_app_oneplus_8_pro
+                service: notify.mobile_app_oneplus12
                 service_data:
                   title: Trouver mon téléphone
                   message: ""
@@ -78,7 +78,7 @@ browser_mod:
           default_zoom: 16
           dark_mode: true
           entities:
-            - device_tracker.oneplus_8_pro
+            - device_tracker.oneplus12
           card_mod:
             style:
               .: |

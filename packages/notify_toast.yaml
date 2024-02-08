@@ -2,7 +2,7 @@ notify:
   - name: all_devices
     platform: group
     services:
-      - service: mobile_app_oneplus_8_pro
+      - service: mobile_app_oneplus12
 
 homeassistant:
   customize:

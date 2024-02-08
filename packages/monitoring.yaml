@@ -38,7 +38,7 @@ binary_sensor:
     scan_interval: 30
 
   - platform: ping
-    name: ping_oneplus_8_pro
+    name: ping_oneplus12
     host: 192.168.1.115
     scan_interval: 30
 

@@ -11,7 +11,7 @@ person:
   - name: Kaoru
     id: kaoru
     device_trackers:
-      - device_tracker.oneplus_8_pro
+      - device_tracker.oneplus12
   - name: Papa
     id: papa
     device_trackers:
