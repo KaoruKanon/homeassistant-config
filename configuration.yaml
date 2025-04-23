@@ -22,38 +22,70 @@ http:
   use_x_forwarded_for: true
   trusted_proxies:
     - !secret proxy
-    
+
 default_config:
+automation: !include automations.yaml
 
 frontend:
   extra_module_url:
     - /hacsfiles/lovelace-card-mod/card-mod.js
   themes: !include_dir_merge_named themes
 
-template: !include sidebar.yaml
-
 lovelace:
   mode: yaml
   resources:
     [
-      { url: /hacsfiles/apexcharts-card/apexcharts-card.js,                         type: module },
-      { url: /hacsfiles/bar-card/bar-card.js,                                       type: module },
-      { url: /hacsfiles/button-card/button-card.js,                                 type: module },
-      { url: /hacsfiles/custom-icons/custom-icons.js,                               type: module },
-      { url: /hacsfiles/kiosk-mode/kiosk-mode.js,                                   type: module },
-      { url: /hacsfiles/lovelace-layout-card/layout-card.js,                        type: module },
-      { url: /hacsfiles/lovelace-more-info-card/more-info-card.js,                  type: module },
-      { url: /hacsfiles/lovelace-mushroom/mushroom.js,                              type: module },
-      { url: /hacsfiles/lovelace-slider-entity-row/slider-entity-row.js,            type: module },
-      { url: /hacsfiles/lovelace-xiaomi-vacuum-map-card/xiaomi-vacuum-map-card.js,  type: module },
-      { url: /hacsfiles/swipe-card/swipe-card.js,                                   type: module },
-      { url: /hacsfiles/tabbed-card/tabbed-card.js,                                 type: module },
-      { url: /hacsfiles/mini-graph-card/mini-graph-card-bundle.js,                  type: module },
-
-      { url: '/local/marked.min.js?v=4.3.0',                                        type: module },
-      { url: '/local/vanilla-tilt.min.js?v=1.8.0',                                  type: module },
-      { url: '/local/browser_mod_icon.js?v=0.5',                                    type: module },
-      { url: '/local/fonts.css?v=2.1',                                              type: css }
+      { url: /hacsfiles/apexcharts-card/apexcharts-card.js, type: module },
+      { url: /hacsfiles/bar-card/bar-card.js, type: module },
+      { url: /hacsfiles/button-card/button-card.js, type: module },
+      { url: /hacsfiles/custom-icons/custom-icons.js, type: module },
+      { url: /hacsfiles/kiosk-mode/kiosk-mode.js, type: module },
+      { url: /hacsfiles/lovelace-layout-card/layout-card.js, type: module },
+      {
+        url: /hacsfiles/lovelace-more-info-card/more-info-card.js,
+        type: module,
+      },
+      { url: /hacsfiles/lovelace-mushroom/mushroom.js, type: module },
+      {
+        url: /hacsfiles/lovelace-slider-entity-row/slider-entity-row.js,
+        type: module,
+      },
+      {
+        url: /hacsfiles/lovelace-xiaomi-vacuum-map-card/xiaomi-vacuum-map-card.js,
+        type: module,
+      },
+      { url: /hacsfiles/swipe-card/swipe-card.js, type: module },
+      { url: /hacsfiles/tabbed-card/tabbed-card.js, type: module },
+      {
+        url: /hacsfiles/mini-graph-card/mini-graph-card-bundle.js,
+        type: module,
+      },
+      {
+        url: /hacsfiles/vertical-stack-in-card/vertical-stack-in-card.js,
+        type: module,
+      },
+      { url: /hacsfiles/stack-in-card/stack-in-card.js, type: module },
+      { url: /hacsfiles/decluttering-card/decluttering-card.js, type: module },
+      {
+        url: /hacsfiles/lovelace-hourly-weather/hourly-weather.js,
+        type: module,
+      },
+      { url: /hacsfiles/lovelace-card-tools/card-tools.js, type: module },
+      { url: /hacsfiles/search-card/search-card.js, type: module },
+      {
+        url: /hacsfiles/mini-media-player/mini-media-player-bundle.js,
+        type: module,
+      },
+      {
+        url: /hacsfiles/lovelace-horizon-card/lovelace-horizon-card.js,
+        type: module,
+      },
+      { url: /hacsfiles/calendar-card-pro/calendar-card-pro.js, type: module },
+      { url: "/local/marked.min.js?v=4.3.0", type: module },
+      { url: "/local/vanilla-tilt.min.js?v=1.8.0", type: module },
+      { url: "/local/browser_mod_icon.js?v=0.5", type: module },
+      { url: "/local/fonts.css?v=2.1", type: css },
+      { url: "/local/scrollbar.css?v=1.0", type: css },
     ]
 
 # recorder:
@@ -63,11 +95,15 @@ lovelace:
 #       - sensor.browser_*
 
 influxdb:
-  host: localhost
+  api_version: 2
+  ssl: false
+  host: !secret influx_homeassistant_host
   port: 8086
-  database: homeassistant
-  username: !secret influx_homeassistant_user
-  password: !secret influx_homeassistant_password
+  token: !secret influx_homeassistant_token
+  organization: !secret influx_homeassistant_org
+  bucket: !secret influx_homeassistant_bucket
+  tags:
+    source: HA
   max_retries: 3
   default_measurement: state
   include:
@@ -75,6 +111,9 @@ influxdb:
       - sensor.*_temperature
       - sensor.temperature_*
       - sensor.smart_plug_*
+      - sensor.lixee_*
+      - sensor.openweathermap_*
+      - sensor.metro_france_*
 
 logger:
   default: warning
@@ -102,5 +141,13 @@ spotcast:
   sp_dc: !secret sp_dc
   sp_key: !secret sp_key
 
-meteo_france:
-  - city: !secret cp
+yahoofinance:
+  symbols:
+    - AAPL
+    - NVDA
+    - NTOA.F
+    - SXR8.DE
+    - BTC-EUR
+  show_trending_icon: true
+  scan_interval:
+    minutes: 30

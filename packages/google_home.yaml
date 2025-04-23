@@ -34,20 +34,21 @@ automation:
       - service: homeassistant.update_entity
         entity_id: sensor.next_timer_human
 
-sensor:
-  - platform: command_line
-    command: !secret google_home_next_timer
-    name: next_timer
-    value_template: >
-      {% if value_json is defined %}
-        {% set timer = value_json.timer|sort(attribute='fire_time') %}
-        {% if timer[0] is defined %}
-          {{ timer[0].fire_time }}
-        {% else %}
-          None
+command_line:
+  - sensor: 
+      command: !secret google_home_next_timer
+      name: next_timer
+      value_template: >
+        {% if value_json is defined %}
+          {% set timer = value_json.timer|sort(attribute='fire_time') %}
+          {% if timer[0] is defined %}
+            {{ timer[0].fire_time }}
+          {% else %}
+            None
+          {% endif %}
         {% endif %}
-      {% endif %}
 
+sensor:
   - platform: template
     scan_interval: 1
     sensors:

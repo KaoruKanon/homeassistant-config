@@ -2,9 +2,18 @@
 [![Demandez moi n'importe quoi !](https://img.shields.io/badge/Demandez%20moi-n'%20importe%20quoi-1abc9c.svg)](https://github.com/KaoruKanon/homeassistant-config) [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity) [![Twitter](https://img.shields.io/twitter/follow/kaorussh?style=social)](https://twitter.com/kaorussh)   [![GitHub stars](https://img.shields.io/github/stars/KaoruKanon/homeassistant-config?style=social)](https://github.com/KaoruKanon/homeassistant-config)
 
 
-Cette configuration est basée sur celle de matt8707 [ [github](https://github.com/matt8707/hass-config) / [forum anglais](https://community.home-assistant.io/t/a-different-take-on-designing-a-lovelace-ui/162594) ]
+Cette configuration est basée sur ce repo [ [github](https://github.com/sga-noud/adaptive-mushroom) / [forum anglais](https://community.home-assistant.io/t/adaptive-mushroom/640308) ]
 
-Mon Home assistant tourne sous un Raspberry Pi 3B+, avec lequel j'utilise une tablette Lenovo wall mounted avec [Fullykiosk](https://play.google.com/store/apps/details?id=de.ozerov.fully&hl=fr&gl=US), avec un chageur magnétique.
+Initialement, ma config était basée sur https://github.com/matt8707/hass-config. Depuis 2025, ma config home assistant a migré vers Adaptative Mushroom. De plus matt8707 ne maintient plus sa config inspiré de homekit pour se consacrer sur un autre projet.
+
+Point fort du projet Adaptive Mushroom :
+
+* Meilleur responsive
+* Personalisation des dashboard par user plus facile
+* Système de menu pour naviguer entre dashboard
+* Modularité par dahsboard plus importante 
+
+Mon Home assistant tourne sous un PC dell pro récupéré, avec lequel j'utilise une tablette Lenovo wall mounted sous [Fullykiosk](https://play.google.com/store/apps/details?id=de.ozerov.fully&hl=fr&gl=US). La tablette est raccordé avec un chageur magnétique.
 
 T'aimes mon repo ? Laisse une ⭐.
 * [![Twitter](https://img.shields.io/twitter/follow/kaorussh?style=social)](https://twitter.com/kaorussh)
@@ -14,10 +23,16 @@ T'aimes mon repo ? Laisse une ⭐.
 ![dashboard]
 ![tablette-jour]
 
+<img src="/images/mobile-home.png" height="500">
+<img src="/images/mobile-appareil.png" height="500">
+<img src="/images/mobile-notif.png" height="500">
+<img src="/images/mobile-automation.png" height="500">
+<img src="/images/mobile-system.png" height="500">
+
 
 ## Equipement et configuration
 
-- HASS supervised tourne sur mon Raspberry 3B+
+- HASS supervised tourne avec debian 11 sur machine DELL de récupération. 
 
 | Icon | Device | Total |
 |------|:--------------:|:------:|
@@ -29,37 +44,114 @@ T'aimes mon repo ? Laisse une ⭐.
 | 💡 | Bulb E27 yeelight & yeelight strip | 7 |
 | 🔘 | Switch Xiaomi | 3 |
 | 📺 | Samsung TV | 1 |
-| ⚡ | Enedis | 1 |
+| ⚡ | Lixee Zlinky TIC | 1 |
 | 🔌 | Tuya Smart Plug Zigbee 3.0 | 4 |
 | 🗝️ | Sonoff Zigbee 3.0 USB Dongle Plus | 1 |
 
-D'autres ampoules et boutons sans-fil devraient arriver d'ici prochainement pour terminer la domotisation des lumières
+D'autres ampoules et boutons et interrupteur zigbee devraient arriver d'ici prochainement pour terminer la domotisation des lumières
 
-## Les fonctionnalités créées par moi
-Je vous invite à consulter son repo github pour y voir les fonctionalités de bases proposées par son dashboard. J'ai créé de nouvelles fonctionallités pour répondre à mes besoins.
+## Liste des intégrations et frontend HASS : 
+
+| Dépendance | Usage |
+| --- | --- |
+|Mushroom| Collection de cartes pour home assistant |
+|mini-graph-card| Carte basique pour des graphiques |
+|button-card| Bouton custom |
+|Mini Media Player| Carte pour les appareils de type mediaplayer |
+|browser_mod| Affichage de popup |
+|apexcharts-card| Carte pour les graphiques avancées
+|card_mod| Modification de l'apparence avec du CSS pour Home assistant
+|layout-card| Création de layout pour les cartes
+|Spotcast| Intégration de spotify supplémentaire |
+|Calendar Card Pro| Carte pour calendrier |
+|Horizon Card| Carte pour les événements 
+|Kiosk Mode| Transforme home assistant en kiosk |
+|Xiaomi Mi Smart Pedestal Fan Integration| Integration pour ventalitateur xiaomi connecté | 
+|Bar Card| Carte pour des barres de progression |
+|Decluterring Card| Template de carte réutilsable | 
+|Average Sensor| Capteur pour faire des moyennes de capteur |
+|Hourly Weather Card| Prévision météo en forme de barres |
+|Stack in Card| Carte pour combiner en pile les cartes |
+|Swipe Card| Carte swipable |
+|card-tools| Dépendance pour d'autres modules |
+|search-card| Barre de recherche d'entités |
+|Plex Recently Added| Module pour récupérer les derniers nouveautés de plex |
+|Yahoo Finance| Module pour récupérer les actions en bourses |
+
+## Liste des fonctionnalités de Home assistant  
+* Suivi de la météo
+* Suivi de la consommation du linky
+* Suivi de plex 
+* Suivi de la température intérieure
+* Suivi de la consommation des appareils sous batteries
+* Suivi des personnes 
+* Suivi rapide des cours de la bourse
+* Dashboard personnalisable par personne 
+* Gestion des lampes et automatisation associés
+* Gestion de spotify, des googles home et TV.
+* Gestion des prises connectées
+* Gestion des ordinateurs 
+* Gestion des Télévisions et Audio/Spotify 
+* Gestion du ventilateur connecté
+* Autres : Affiche le QR Code pour le wifi, agenda perso..
+
+## Détails de certaines fonctionalités pour vos inspirations 
+### Animation 
+
+Un certains nombres d'animation dans le dahsboard ont été mis en place pour le rendre un peu plus vivant.
+
+Source des inspirations : https://community.home-assistant.io/t/mushroom-cards-build-a-beautiful-dashboard-easily-part-1/388590/3238
+
+* Blink de l'icone TV quand la TV est allumé 
+
+![](/images/tv-blink.mp4)
+
+* Chargement de la barre quand le téléphone se charge 
+
+![](/images/smartphone-charging.mp4)
+
+* L'icon du mediaplayer qui se secoue lorsqu'une musique est joué 
+
+![](/images/audio-boom.mp4)
+
+* L'icone des boutons des automations scintille qunand elle est activé (pas en cours d'exécution forcément)
+
+![](/images/automation-enabled-blink.mp4)
+
+* Respiration du badge en fonction de la couleur, vert pour la présence ou rouge pour l'absence 
+
+![](/images/person-live.mp4)
+
+* Led du PC qui clignote quand il est allumé 
+
+![](/images/computer-led.mp4)
+
+* Boucle de chargement quand le pc s'éteint ou s'allume
+
+![](/images/computer-stop.mp4)
+
+Les icons SVG utiliser pour la météo provient de ce repo : https://github.com/basmilius/weather-icons
 
 ### Thermomètre
-`custom:button-card` des thermomètre avec un `custom:mini-graph-card`. Il affiche le graph de la température des 12 dernières heures. Il est accompagné d'un popup avec témpérature et humidité à l'instant T, avec un graphique des 48 dernières heures.
+Inspiration des boutons thermomètre : https://community.home-assistant.io/t/mushroom-cards-build-a-beautiful-dashboard-easily-part-1/388590/1034?u=kaoru
 
-![thermometre]
-![thermometre-popup]
+![thermometer]
+
+Popup custom pour mieux suivre les indicateurs du thermomètres 
+
+![thermometer-popup]
 
 ### Météo
 
 Popup météo qui donne la prévision des prochains jours `weather-forecast`,`custom:mini-graph-card` de la témpérature et humidité des ces dernières 24h et les images satellites grâce à  [Windy](https://windy.com) contenu dans un `iframe`. Plus d'information via ce [lien](https://www.youtube.com/watch?v=U8j5p-DUdAE)
 
-### Popup automation
-
-Popup accessible depuis le bouton Partir, qui permet via un switch de couper l'automation qui éteint les lumières pour éviter les démarrage d'automation lorsque des invités sont présents chez soi.
-
-<img src="/images/automation-popup.jpg" height="200">
-
-
 ### Afficher le timer en cours du google home de la cuisne
 
-Affichage du timer du google home en bas de l'interface grâce au travail [chvancooten](https://github.com/chvancooten/homeassistant-googletokenretriever)
+Affichage du timer du google home avec les badges se trouvant en haut du dashboard [chvancooten](https://github.com/chvancooten/homeassistant-googletokenretriever)
 
-<img src="/images/google-timer.jpg" height="100"> <img src="/images/google-timer-no-timer.jpg" height="100">
+<img src="/images/google-timer.jpg" height="100"> <img src="/images/google-timer-no-timer.png" height="100">
+
+Celui clignote chaque seconde grâce au card_mod quand  un timer est actif.
 
 ### Sidebar
 
@@ -69,73 +161,66 @@ Affichage du timer du google home en bas de l'interface grâce au travail [chvan
 
 <img src="/images/bouton-snapshot.jpg" height="300">
 
-#### Monitoring des batteries, services, systèmes et réseaux
-
-Création d'un popup qui me permet de monitorer rapidement l'infrascture et la domotique :
-
-* Réseaux et systèmes des équipements grâce à la platform ping.
-* Monitoring des services web hébergés
-* Barre de progression des équipements domotiques sous batterie
-
-![monitoring](https://github.com/KaoruKanon/homeassistant-config/tree/master/imagesmonitoring-battery-service.jpg)
-
-#### Monitoring de la bbox
-
-Ajout d'un pop qui le monitoring la bbox avec les différentes stats accessible via son API.
-La platerform [bbox](https://www.home-assistant.io/integrations/bbox/) officiel de home assistant ne fonctionne pas correctement. J'ai créé un script python qui utilise l'API d'HA et [ppybox](https://github.com/HydrelioxGitHub/pybbox). Ce dernier a été modifié pour le débugger mais également créer de nouvelles méthodes pour mon utilisation.  
-
-<img src="/images/bbox-monitoring.jpg" height="500">
-
 #### QR-CODE du WiFi
 
 Ajout d'un QR-Code du WiFi accessible facilement depuis la tablette pour les invités. Le SSID et le password est accessible en clair également.
 
-<img src="/images/wifi-qrcode.jpg" height="500">
-
-## Ma façon d'implémenter son code
-
-matt8707 est suédois et nous n'avons pas les mêmes équipements et services pour la notre domotique.
+<img src="/images/wifi-qrcode.png" height="500">
 
 ### Consomation électrique
 
-matt8707 utilisait un script python qui récupère sa consommation chez son fourniseur et rempli un fichier dont le contenu est lu par home assistant. La consommation de chaque mois est découpé par un capteur qui lui est dédié (12 captures).
-Pour garder cette base, j'ai créé un script python qui fait la même chose, mais je ne récupère pas les stats d'Enedis depuis leur API moi-même mais grâce au custom component [myEnedis](https://github.com/saniho/apiEnedis) depuis l'API d'Home Assistant.  
+La consommation est récupérée avec le module tic Lixee Zlinky qui fonctionne en zigbee. Fonctionnement plus faible que l'API Enedis. 
 
-Home Assistant lance le script toutes les heures via une automation. Possible de le faire manuellement depuis un boutton.
+https://www.gotronic.fr/art-module-zlinky-tic-avec-antenne-38788.htm
 
 ### Météo
 
-Météo avec l'api [Météo-France](https://www.home-assistant.io/integrations/meteo_france/) et son intégration officiel.
+Météo avec l'api [Météo-France](https://www.home-assistant.io/integrations/meteo_france/) + [Openweathermap](https://www.home-assistant.io/integrations/openweathermap/) en complément.
 
-### Monitoring des PC
+### Monitoring et gestion des PCs
 
-Utilisation de [HASS Agent](https://github.com/LAB02-Research/HASS.Agent) pour contrôler les PC sous Windows car matt8707 est sous mac et utilise du SSH.
+Utilisation de [HASS Agent](https://github.com/LAB02-Research/HASS.Agent) pour contrôler les PC Windows.
+
+Mise en place du screenshot : 
+
+Source : https://hassagent.readthedocs.io/en/latest/examples/#command-grab-screenshot-using-powershell
+
+* Création d'un script powershell (voir dossier du repo. cf adapter le powe)
+* Mise en place d'un button screenshot dans HASS.agent qui exécute le script powershell
+* Automation qui executer l'entity screenshot disponible via mqtt
+* Création d'une entity camera via fichier 
+
+### Spotify 
+
+Création d'une carte qui combine mushroom-media-player-card et la barre du mini-media-player. La pochette de la musique s'affiche en album. Le concept est repris pour les google home.
+
+![spotify-active]
 
 ## TODO et idées..
 
-### Implémentations restantes à finir
-* TV samsung (en cours)
+### Road-map 
+* Vielle smartTV samsung (en cours)
+* Consommation eau et chauffage (Proof of conception dans le premier semestre)
+* Conservation des métriques sur le long terme dans influxdb (projet en cours avec migration sous proxmox)
 
-### Problèmes
-* Améliorer les cards thermomètre : En cas de forte différence de température entre le minimum et le maximum, la courbe est coupée par la card.
+### Problèmes à fix
+
+* TBD
 
 ### Idées
 * Prise en charge par le dashboard de futures caméras.
 * Système d'alarme
 * Robot aspirateur
-* Consommation eau et chauffage
-* Amélioratio Enedis
+* Vanne thermostatique connecté
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[dashboard]: /images/dashboard.jpg
+[dashboard]: /images/main_tablet.png
+[mobile-dasboard]: /images/main_mobile.png
 [media-player-control]: /images/media-player-control.jpg
-[spotify-active]: /images/spotify-active.jpg
-[spotify-card]: /images/spotify-card.jpg
+[spotify-active]: /images/spotify-active.png
 [spotify-popup]: /images/spotify-popup.jpg
 [tablette-jour]: /images/tablette-jour.jpg
-[tablette-nuit]: /images/tablette-nuit.jpg
-[thermometre-popup]: /images/thermometre-popup.jpg
-[thermometre]: /images/thermometre.gif
-[automation-popup]: /images/automation-popup.jpg
+[thermometer-popup]: /images/thermometer-popup.png
+[thermometer]: /images/thermometer.png
 [bouton-snapshot]: images/bouton-snapshot.jpg
 [weather]: images/weather.jpg

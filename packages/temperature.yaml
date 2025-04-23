@@ -1,3 +1,177 @@
+## Custom template sensors
+template:
+  # Set weather status depending on rain, clouds
+  - sensor:
+      - name: "Weather frog status"
+        state: >-
+
+          {% set raw_state = states("weather.meteo_france") %}
+
+          {% set condition_map = {
+            "Nuit Claire": "clear-night",
+            "Nuit claire": "clear-night",
+            "Très nuageux": "cloudy",
+            "Couvert": "cloudy",
+            "Brume ou bancs de brouillard": "fog",
+            "Brume": "fog",
+            "Brouillard": "fog",
+            "Brouillard givrant": "fog",
+            "Bancs de Brouillard": "fog",
+            "Risque de grêle": "hail",
+            "Risque de grèle": "hail",
+            "Risque d'orages": "lightning",
+            "Orages": "lightning",
+            "Pluie orageuses": "lightning-rainy",
+            "Pluies orageuses": "lightning-rainy",
+            "Averses orageuses": "lightning-rainy",
+            "Ciel voilé": "partlycloudy",
+            "Ciel voilé nuit": "partlycloudy",
+            "Éclaircies": "partlycloudy",
+            "Eclaircies": "partlycloudy",
+            "Peu nuageux": "partlycloudy",
+            "Pluie forte": "pouring",
+            "Bruine / Pluie faible": "rainy",
+            "Bruine": "rainy",
+            "Pluie faible": "rainy",
+            "Pluies éparses / Rares averses": "rainy",
+            "Pluies éparses": "rainy",
+            "Rares averses": "rainy",
+            "Pluie modérée": "rainy",
+            "Pluie / Averses": "rainy",
+            "Averses": "rainy",
+            "Averses faibles": "rainy",
+            "Pluie": "rainy",
+            "Neige / Averses de neige": "snowy",
+            "Neige": "snowy",
+            "Averses de neige": "snowy",
+            "Neige forte": "snowy",
+            "Neige faible": "snowy",
+            "Quelques flocons": "snowy",
+            "Pluie et neige": "snowy-rainy",
+            "Pluie verglaçante": "snowy-rainy",
+            "Ensoleillé": "sunny",
+            "Ciel clair": "sunny"
+          } %}
+
+          {% set entity = condition_map.get(raw_state, raw_state) %}
+
+          {% if entity == "clear-night" %}
+            clear-night
+          {% elif entity == "cloudy" %}
+            cloudy
+          {% elif entity == "fog" %}
+            fog
+          {% elif entity == "hail" %}
+            hail
+          {% elif entity == "lightning" %}
+            lightning
+          {% elif entity == "lightning-rainy" %}
+            lightning
+          {% elif entity == "partlycloudy" %}
+            {% if states("sun.sun") == "below_horizon" %}
+              partly-cloudy-night
+            {% else %}
+              partly-cloudy-day
+            {% endif %}
+          {% elif entity == "pouring" %}
+            rainy
+          {% elif entity == "rainy" %}
+            rainy
+          {% elif entity == "snowy" %}
+            snowy
+          {% elif entity == "snowy-rainy" %}
+            snowy
+          {% elif entity == "sunny" %}
+            sunny
+          {% elif entity == "windy" %}
+            windy
+          {% elif entity == "windy-variant" %}
+            windy
+          {% elif entity == "exceptional" %}
+            extreme
+          {% else %}
+            unknown
+          {% endif %}
+        icon: mdi:weather-partly-cloudy
+
+  - trigger:
+      - platform: time_pattern
+        minutes: /1
+    action:
+      - service: weather.get_forecasts
+        data:
+          type: daily
+        target:
+          entity_id: weather.openweathermap
+        response_variable: daily
+    sensor:
+      - name: Weather Forecast Daily
+        unique_id: weather_forecast_daily
+        state: "{{ now().isoformat() }}"
+        attributes:
+          forecast: "{{ daily }}"
+
+  - trigger:
+      - platform: time_pattern
+        minutes: /1
+    action:
+      - service: weather.get_forecasts
+        data:
+          type: hourly
+        target:
+          entity_id: weather.openweathermap
+        response_variable: hourly
+    sensor:
+      - name: Weather Forecast Hourly
+        unique_id: weather_forecast_hourly
+        state: "{{ now().isoformat() }}"
+        attributes:
+          forecast: "{{ hourly }}"
+
+    # Change frog location every night
+  - trigger:
+      - platform: time
+        at: "04:00:00"
+    sensor:
+      - name: "Weather frog location"
+        state: '{{ ["city", "creek", "field", "hills", "home", "orchard"] | random()}}' # ToDo: add beach location in summer
+        icon: mdi:map-marker
+
+    # Set frog image depending on weather status and frog location
+  - sensor:
+      - name: "Weather frog image wide"
+        state: >-
+          {% set weather_status = states("sensor.weather_frog_status") %}
+          {% set frog_location = states("sensor.weather_frog_location") %}
+          {% set dict = {'sunny': {'beach':['01-sunny-beach-reading.png','01-sunny-beach-sandcastle.png','01-sunny-beach-sunscreen.png']|random(), 'city':['01-sunny-citypark-sunbathing.png','01-sunny-rooftop-pinacolada.png']|random(), 'creek':'01-sunny-creek-swimming.png', 'field':'01-sunny-field-kite.png', 'hills':'01-sunny-hills-sunbathing.png', 'home':'01-sunny-home-laundry.png', 'orchard':'01-sunny-orchard-picking.png'},
+          'mostly-sunny': {'beach':['02-mostly-sunny-beach-reading.png','02-mostly-sunny-beach-sandcastle.png','02-mostly-sunny-beach-sunscreen.png']|random(), 'city':['02-mostly-sunny-citypark-picnic.png','02-mostly-sunny-rooftop-pinacolada.png']|random(), 'creek':'02-mostly-sunny-creek-swimming.png', 'field':'02-mostly-sunny-field-kite.png', 'hills':'02-mostly-sunny-hills-sunbathing.png', 'home':'02-mostly-sunny-home-laundry.png', 'orchard':'02-mostly-sunny-orchard-picking.png'},
+          'partly-cloudy-day': {'beach':'03-partly-cloudy-day-beach-shells.png', 'city':'03-partly-cloudy-day-citypark-ukelele.png', 'creek':'03-partly-cloudy-day-creek-feet.png', 'field':['03-partly-cloudy-day-field-biking.png','03-partly-cloudy-day-field-hiking.png']|random(), 'hills':['03-partly-cloudy-day-hills-painting.png','03-partly-cloudy-day-hills-reading.png']|random(), 'home':'03-partly-cloudy-day-home-flowers.png', 'orchard':['03-partly-cloudy-day-orchard-butterflies.png','03-partly-cloudy-day-orchard-treeswing.png']|random()},
+          'mostly-cloudy-day': {'beach':'04-mostly-cloudy-day-beach-shells.png', 'city':'04-mostly-cloudy-day-citypark-ukelele.png', 'creek':'04-mostly-cloudy-day-creek-feet.png', 'field':['04-mostly-cloudy-day-field-biking.png','04-mostly-cloudy-day-field-hiking.png']|random(), 'hills':['04-mostly-cloudy-day-hills-painting.png','04-mostly-cloudy-day-hills-reading.png']|random(), 'home':'04-mostly-cloudy-day-home-flowers.png', 'orchard':['04-mostly-cloudy-day-orchard-butterflies.png','04-mostly-cloudy-day-orchard-treeswing.png']|random()},
+          'clear': {'city':'05-clear-home-lounging.png', 'creek':'05-clear-creek-stars.png', 'field':'05-clear-field-lanterns.png', 'hills':['05-clear-hills-camping.png','05-clear-hills-telescope.png']|random(), 'home':'05-clear-home-lounging.png', 'orchard':'05-clear-orchard-fireflies.png'},
+          'mostly-clear': {'city':'06-mostly-clear-home-lounging.png', 'creek':'06-mostly-clear-creek-stars.png', 'field':'06-mostly-clear-field-lanterns.png', 'hills':['06-mostly-clear-hills-camping.png','06-mostly-clear-hills-telescope.png']|random(), 'home':'06-mostly-clear-home-lounging.png', 'orchard':'06-mostly-clear-orchard-fireflies.png'},
+          'partly-cloudy-night': {'city':'07-partly-cloudy-night-home-inside.png', 'creek':'07-partly-cloudy-night-creek-fireflies.png', 'field':'07-partly-cloudy-night-field-fireflies.png', 'hills':'07-partly-cloudy-night-hills-smores.png', 'home':'07-partly-cloudy-night-home-inside.png', 'orchard':'07-partly-cloudy-night-orchard-eating.png'},
+          'mostly-cloudy-night': {'city':'08-mostly-cloudy-night-home-inside.png', 'creek':'08-mostly-cloudy-night-creek-fireflies.png', 'field':'08-mostly-cloudy-night-field-fireflies.png', 'hills':'08-mostly-cloudy-night-hills-smores.png', 'home':'08-mostly-cloudy-night-home-inside.png', 'orchard':'08-mostly-cloudy-night-orchard-eating.png'},
+          'cloudy': {'city':'26-haze-fog-dust-smoke-fruit-stand.png', 'creek':'26-haze-fog-dust-smoke-bridge.png', 'field':'26-haze-fog-dust-smoke-mountain.png', 'hills':'09-cloudy-hills-coffee.png', 'home':'09-cloudy-home-flowers.png', 'orchard':'09-cloudy-orchard-watching.png'},
+          'drizzle': {'city':'10-drizzle-home-laundry.png', 'creek':'10-drizzle-creek-leaf.png', 'field':'10-drizzle-field-leaf.png', 'hills':'10-drizzle-hills-umbrella.png', 'home':'10-drizzle-home-laundry.png', 'orchard':'10-drizzle-orchard-reading.png'},
+          'rainy': {'city':'12-heavy-rain-busstop-umbrella.png', 'creek':['11-rain-creek-leaf.png','12-heavy-rain-creek-leaf.png']|random(), 'field':'10-drizzle-field-leaf.png', 'hills':'11-rain-hills-umbrella.png', 'home':['11-rain-home-inside.png','11-rain-home-laundry.png']|random(), 'orchard':['11-rain-home-inside.png','11-rain-home-laundry.png']|random()},
+          'snowy': {'city':['13-flurries-citypark-snowman.png','15-snow-showers-snow-citypark-snowman.png','20-rain-snow-wintry-mix-citypark-snowman.png']|random(), 'creek':['13-flurries-creek-iceskating.png','15-snow-showers-snow-creek-iceskating.png']|random(), 'field':'16-blowing-snow-field-snowman.png', 'home':'15-snow-showers-snow-home-shoveling.png'},
+          'snow-storm': {'home':['17-heavy-snow-blizzard-home-inside.png','17-heavy-snow-blizzard-home-shoveling.png']|random(), 'field':'16-blowing-snow-field-snowman.png'},
+          'hail': {'city':['19-mixed-rain-hail-rain-sleet-busstop-waiting.png','19-mixed-rain-hail-rain-sleet-cafe-entering.png']|random()},
+          'lightning': {'city':'22-iso-thunderstorm-cafe-looking-outside.png', 'home':['22-iso-thunderstorms-home-inside.png','24-strong-thunderstorms-home-inside.png']|random()},
+          'fog': {'city':['26-haze-fog-dust-smoke-busstop-waiting.png','26-haze-fog-dust-smoke-fruit-stand.png','26-haze-fog-dust-smoke-pier.png']|random(), 'creek':'26-haze-fog-dust-smoke-bridge.png', 'field':'26-haze-fog-dust-smoke-field-lantern.png', 'hills':'26-haze-fog-dust-smoke-hills-cocoa.png', 'home':'26-haze-fog-dust-smoke-rooftop.png', 'orchard':'26-haze-fog-dust-smoke-mountain.png'}} %}
+
+          {% if weather_status == "snowy" %}
+              {% set other_location = ['13-flurries-citypark-snowman.png', '15-snow-showers-snow-citypark-snowman.png', '20-rain-snow-wintry-mix-citypark-snowman.png', '13-flurries-creek-iceskating.png', '15-snow-showers-snow-creek-iceskating.png', '16-blowing-snow-field-snowman.png', '15-snow-showers-snow-home-shoveling.png'] | random() %}
+          {% elif weather_status == "snow-storm" %}
+              {% set other_location = ['17-heavy-snow-blizzard-home-inside.png', '17-heavy-snow-blizzard-home-shoveling.png', '16-blowing-snow-field-snowman.png'] | random() %}
+          {% elif weather_status == "lightning" %}
+              {% set other_location = ['22-iso-thunderstorm-cafe-looking-outside.png', '22-iso-thunderstorms-home-inside.png', '24-strong-thunderstorms-home-inside.png'] | random() %}
+          {% elif weather_status == "hail" %}
+              {% set other_location = ['19-mixed-rain-hail-rain-sleet-busstop-waiting.png','19-mixed-rain-hail-rain-sleet-cafe-entering.png'] | random() %}
+          {% endif %}
+          {{ 'https://raw.githubusercontent.com/Senexis/Google-Weather-Frog/master/images/wide/' + dict[weather_status][frog_location] | default(other_location) }}
+        icon: mdi:image
+
 sensor:
   - platform: average
     precision: 1
@@ -16,15 +190,3 @@ sensor:
       - sensor.humidity_chambre_papa
       - sensor.humidity_salon
       - sensor.humidity_cuisine
-
-template: 
-  sensor:
-    - unique_id: weather_temperature
-      unit_of_measurement: '°C'
-      state: >
-        {{ state_attr('weather.villeneuve_d_ascq', 'temperature') }}
-
-    - unique_id: weather_humidity
-      unit_of_measurement: '°C'
-      state: >
-        {{ state_attr('weather.villeneuve_d_ascq', 'humidity') }}

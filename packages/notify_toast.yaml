@@ -1,12 +1,3 @@
-notify:
-  - name: all_devices
-    platform: group
-    services:
-      - service: mobile_app_oneplus12
-
-homeassistant:
-  customize:
-
 automation:
 
   - alias: dismiss_lovelace_updated
@@ -42,7 +33,7 @@ automation:
             - sensor.hass_release_notes_beta
       - delay:
           minutes: 15
-      - service: notify.mobile_app_iphone
+      - service: notify.mobile_app_oneplus12
         data:
           title: >
             {% set installed = states('sensor.current_version') %}
@@ -62,5 +53,9 @@ automation:
       event_type: mobile_app_notification_action
       event_data:
         action: START_HA_UPDATE
-    action:
-      service: shell_command.ha_update
+    actions:
+      - action: update.install
+        data:
+          backup: true
+        target:
+          entity_id: update.home_assistant_core_update

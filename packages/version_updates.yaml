@@ -17,9 +17,6 @@ rest:
         - body
     scan_interval: 21600
 
-shell_command:
-  ha_update: !secret ha_update
-
 template:
   - sensor:
       - unique_id: hass_next_release
@@ -102,23 +99,3 @@ sensor:
       - repositories
     scan_interval: 86400
 
-script: 
-  trigerred_snapshot:
-    sequence:
-      - service: hassio.backup_full
-        data:
-          name: >-
-            trigerred_backup_{{ states("sensor.date") | replace("-", "")}}_{{
-            states("sensor.time") | replace(":", "") }}
-
-automation:
-  - alias: auto_snapshot
-    trigger:
-      - platform: time
-        at : "00:00:00"
-    action:
-      - service: hassio.backup_full
-        data:
-          name: >-
-            auto_backup_{{ states("sensor.date") | replace("-", "")}}_{{
-            states("sensor.time") | replace(":", "") }}

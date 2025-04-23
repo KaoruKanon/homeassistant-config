@@ -30,7 +30,7 @@ template:
         attributes:
           friendly_name: Stockage
           icon: mdi:sd
-          unit_of_measurement: '%'
+          unit_of_measurement: "%"
 
       - unique_id: fullykiosk_memory
         state: >
@@ -42,12 +42,11 @@ template:
         attributes:
           friendly_name: RAM
           icon: mdi:memory
-          unit_of_measurement: '%'
+          unit_of_measurement: "%"
 
 automation:
-
   - alias: homeassistant_start
-    id: '7426848686945'
+    id: "7426848686945"
     trigger:
       platform: homeassistant
       event: start
@@ -56,8 +55,8 @@ automation:
         target:
           entity_id: button.lenovotab_load_start_url
 
-  - alias: ios_notify_tablet_unplugged
-    id: '3972668118831'
+  - alias: notify_tablet_unplugged
+    id: "3972668118831"
     trigger:
       platform: numeric_state
       entity_id: sensor.lenovotab_batterie
@@ -68,6 +67,38 @@ automation:
         title: Chargement de la tablette...
         message: >
           Batterie {{ states(trigger.entity_id) }}%
+
+  - alias: back_home_tablet
+    id: "345538118831"
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - sensor.tablet_browser_path
+        for:
+          hours: 0
+          minutes: 5
+          seconds: 0
+    conditions:
+      - condition: and
+        conditions:
+          - condition: not
+            conditions:
+              - condition: state
+                entity_id: sensor.tablet_browser_path
+                state: /lovelace/home
+          - condition: not
+            conditions:
+              - condition: state
+                entity_id: sensor.tablet_browser_path
+                state: /lovelace/default_view
+    actions:
+      - action: browser_mod.navigate
+        metadata: {}
+        data:
+          browser_id:
+            - 6c1e502969ee705227e70afe410e1349
+          path: /lovelace/default_view?kiosk
 
   # - alias: fullykiosk_screensaver
   #   id: '9452750674803'

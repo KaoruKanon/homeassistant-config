@@ -9,44 +9,49 @@ switch:
     switches:
       computer_papa:
         friendly_name: Papa
-        icon_template: custom:imac-alternative
+        icon_template: cli:imac-alternative
         value_template: "{{ is_state('switch.wol_papa', 'on') }}"
         turn_on:
-          - service: input_boolean.turn_on
-            entity_id: input_boolean.computer_papa
-          - service: switch.turn_on
-            entity_id: switch.wol_papa
+          - action: switch.turn_on
+            target:
+              entity_id: switch.wol_papa
+          - action: script.turn_on
+            target:
+              entity_id: script.computer_papa_load
         turn_off:
           - choose:
-            - conditions:
-                - condition: state
-                  entity_id: input_boolean.computer_papa_lock
-                  state: 'on'
-              sequence:
-                - service: browser_mod.toast
-                  data:
-                    duration: 8000
-                    message: L'ordinateur est verrouillé...
+              - conditions:
+                  - condition: state
+                    entity_id: input_boolean.computer_papa_lock
+                    state: "on"
+                sequence:
+                  - service: browser_mod.toast
+                    data:
+                      duration: 8000
+                      message: L'ordinateur est verrouillé...
             default:
-              - service: input_boolean.turn_on
-                entity_id: input_boolean.computer_papa
-              - service: script.computer_papa_shutdown
+              - action: switch.turn_on
+                target:
+                  entity_id: switch.bruno_shutdown
+              - service: script.turn_on
+                target:
+                  entity_id: script.computer_papa_load
 
 input_boolean:
   computer_papa_lock:
     name: Verrouillage
-    icon: cil:lock
+    icon: mdi:lock
+  computer_papa_load:
+    name: Load
+    icon: mdi:reload
 
-binary_sensor:
-sensor:
-
-template: 
+template:
   sensor:
     - name: bruno_storage_c_used_space_percentage
-      unit_of_measurement: '%'
+      unit_of_measurement: "%"
       state: "{{ state_attr('sensor.bruno_storage_c', 'UsedSpacePercentage') }}"
     - name: bruno_storage_d_used_space_percentage
-      unit_of_measurement: '%'
+      unit_of_measurement: "%"
       state: "{{ state_attr('sensor.bruno_storage_d', 'UsedSpacePercentage') }}"
     - name: bruno_uptime
       state: >
@@ -61,7 +66,6 @@ template:
         {% else %}
           Pas encore disponible
         {% endif %}
-
 
 homeassistant:
   customize:
@@ -86,42 +90,37 @@ homeassistant:
       icon: mdi:memory
 
 script:
-  computer_papa_shutdown:
-    alias: "Papa computer - Shutdown"
+  computer_papa_load:
+    alias: computer_papa_load
     sequence:
-      - service: mqtt.publish
-        data:
-          topic: "homeassistant/switch/BRUNO/shutdown/set"
-          payload: "ON"
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.computer_papa_load
+      - wait_for_trigger:
+          - platform: state
+            entity_id: switch.computer_papa
+        timeout: "00:10:00"
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.computer_papa_load
+    mode: single
 
-  computer_papa_suspend:
-    alias: "Papa computer - Suspend"
-    sequence:
-      - service: mqtt.publish
-        data:
-          topic: "homeassistant/switch/BRUNO/sleep/set"
-          payload: "ON"
+automation:
+  - alias: bruno_screenshot
+    mode: single
+    triggers:
+      - trigger: time_pattern
+        minutes: "/5"
+    actions:
+      - action: button.press
+        target:
+          entity_id: button.bruno_screenshot
+    conditions:
+      - condition: state
+        entity_id: switch.computer_papa
+        state: "on"
 
-  computer_papa_hibernate:
-    alias: "Papa computer - Hibernate"
-    sequence:
-      - service: mqtt.publish
-        data:
-          topic: "homeassistant/switch/BRUNO/hibernate/set"
-          payload: "ON"
-
-  computer_papa_reboot:
-    alias: "Papa computer- Reboot"
-    sequence:
-      - service: mqtt.publish
-        data:
-          topic: "homeassistant/switch/BRUNO/restart/set"
-          payload: "ON"
-
-  computer_papa_lock:
-    alias: "Papa computer - Lock"
-    sequence:
-      - service: mqtt.publish
-        data:
-          topic: "homeassistant/switch/BRUNO/lock/set"
-          payload: "ON"
+#camera:
+#  - platform: local_file
+#    file_path: /media/BRUNO-screenshot.png
+#    name: "bruno"

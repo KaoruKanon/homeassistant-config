@@ -8,15 +8,14 @@ homeassistant:
       entity_picture: /local/papa.jpg
 
 person:
-  - name: Kaoru
-    id: kaoru
-    device_trackers:
-      - device_tracker.oneplus12
-  - name: Papa
-    id: papa
-    device_trackers:
-      - device_tracker.samsung_s10e
-
+  # - name: Kaoru
+  #   id: kaoru
+  #   device_trackers:
+  #     - device_tracker.oneplus12
+  # - name: Papa
+  #   id: papa
+  #   device_trackers:
+  #     - device_tracker.samsung_s24
 
 automation:
   - alias: turn_off_gps_home_absence
@@ -57,11 +56,12 @@ automation:
         entity_id: person.papa
         state: not_home
       - condition: state
-        state: 'on'
+        state: "on"
         entity_id: switch.computer_papa
     action:
-      - service: script.computer_papa_shutdown
-        data: {}
+      - action: switch.turn_off
+        target:
+          entity_id: switch.computer_papa
 
   - alias: turn_off_gps_william_absence
     trigger:
@@ -73,11 +73,11 @@ automation:
       - condition: state
         entity_id: person.kaoru
         state: not_home
-    action:
-      - service: fan.turn_off
+    actions:
+      - action: fan.turn_off
         target:
           entity_id: fan.xiaomi_smart_fan_2
-      - service: light.turn_off
+      - action: light.turn_off
         target:
           entity_id: light.chambre
     mode: single

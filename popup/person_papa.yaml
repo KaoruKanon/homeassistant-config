@@ -1,0 +1,145 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Papa
+    content:
+      type: vertical-stack
+      cards:
+        - type: entities
+          card_mod:
+            style: |
+              ha-card {
+                box-shadow: none;
+                background: none;
+              }
+          entities:
+            - entity: person.papa
+              secondary_info: last-changed
+
+        - type: history-graph
+          card_mod:
+            style: |
+              ha-card {
+                box-shadow: none;
+                background: none;
+              }
+          entities:
+            - entity: person.papa
+        - square: false
+          columns: 2
+          type: grid
+          cards:
+            - type: custom:mushroom-template-card
+              entity: device_tracker.samsung_s24
+              primary: GPS
+              icon: mdi:map-marker
+              icon_color: |
+                {% if is_state('device_tracker.samsung_s24', 'home') %}
+                  green
+                {% endif %}
+              layout: vertical
+              card_mod:
+                style: |
+                  ha-card {
+                    box-shadow: none;
+                    background: none;
+                  }
+            - type: custom:mushroom-template-card
+              entity: binary_sensor.ping_samsung_s10e
+              primary: WiFi LAN
+              icon: mdi:wifi
+              icon_color: |
+                {% if is_state('binary_sensor.ping_samsung_s24', 'on') %}
+                  blue
+                {% endif %}
+              layout: vertical
+              card_mod:
+                style: |
+                  ha-card {
+                    box-shadow: none;
+                    background: none;
+                  }
+        - type: custom:mod-card
+          card:
+            type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Trouver mon téléphone
+                icon: mdi:volume-high
+                icon_color: red
+                template: icon_name
+                tap_action:
+                  action: call-service
+                  service: notify.mobile_app_samsung_s24
+                  service_data:
+                    title: Trouver mon téléphone
+                    message: ""
+                    data:
+                      ttl: 0
+                      priority: high
+                      channel: alarm_stream
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: #FFFFFF10;
+                      box-shadow: none;
+                    }
+                    ha-card:active {
+                      transform: scale(0.95);
+                      transition: 0s
+                    }
+          card_mod:
+            style: |
+              ha-card {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 20%;
+                margin-left: 20%;
+                transition: background-color 0.3s, transform 0.3s;
+              }
+              .primary {
+                text-align: center;
+              }
+        - type: map
+          default_zoom: 14
+          dark_mode: true
+          entities:
+            - person.papa
+          card_mod:
+            style:
+              .: |
+                #root {
+                  height: 25em;
+                  padding-bottom: 0 !important;
+                }
+                ha-icon-button {
+                  color: var(--primary-color);
+                  zoom: 100%;
+                  margin-left: -0.2em;
+                }
+                ha-card {
+                  border-radius: 12px;
+                  transition: none;
+                  height: 25em !important;
+                }
+              ha-map$: |
+                #map {
+                  background-color: #191919 !important;
+                }
+                .leaflet-control-attribution {
+                  display: none;
+                }
+                .leaflet-bar a {
+                  background-color: rgba(115, 123, 124, 0.2) !important;
+                  color: #9da0a2 !important;
+                  backdrop-filter: blur(0.25em);
+                  zoom: 100%;
+                }
+                a.leaflet-control-zoom-in {
+                  border-bottom: 1px solid #181818 !important;
+                }
+                .leaflet-pane.leaflet-tile-pane {
+                  filter: invert(0.95) grayscale(0.95) contrast(95%);
+                }

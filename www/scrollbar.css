@@ -1,0 +1,11 @@
+@media (max-width: 600px) {
+    ::-webkit-scrollbar {
+        display: none;
+    }
+    @-moz-document url-prefix() {
+        html,
+        body {
+          scrollbar-width: none;
+        }
+      }
+}

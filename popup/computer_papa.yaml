@@ -16,7 +16,6 @@ browser_mod:
     content:
       type: vertical-stack
       cards:
-
         ### ON ###
         - type: conditional
           conditions:
@@ -26,9 +25,12 @@ browser_mod:
             type: vertical-stack
             cards:
               - type: entities
-                state_color: true
-                card_mod:
-                  class: content
+                card_mod: 
+                  style: |
+                    ha-card {
+                      box-shadow: none;
+                      background: none;
+                    } 
                 entities:
 
                   - entity: switch.computer_papa
@@ -51,7 +53,7 @@ browser_mod:
                     entity_row: true
                     entities:
 
-                      #disabled issue with windows 
+                      # issue with hass agent 
                       # - entity: sensor.bruno_cpuload
                       #   tap_action:
                       #     action: call-service
@@ -84,39 +86,87 @@ browser_mod:
 
                   - entity: input_boolean.computer_papa_lock
 
+                  - type: custom:mod-card
+                    card:
+                        type: picture-entity
+                        show_state: false
+                        show_name: false
+                        camera_view: auto
+                        entity: camera.bruno
+                        tap_action: 
+                          action: call-service
+                          service: automation.trigger
+                          service_data:
+                            entity_id: automation.bruno_screenshot
+                        card_mod:
+                          style: |
+                            ha-card:active {
+                              transform: scale(0.95);
+                              transition: 0s
+                            }   
               - type: custom:mod-card
                 card_mod:
                   style:
                     hui-horizontal-stack-card$: |
-                      #root {
-                        justify-content: space-evenly !important;
-                        padding: var(--tablet-popup-button-padding);
+                      @media (max-width: 600px) {
+                        #root {
+                          justify-content: space-evenly !important;
+                        }
+                      }
+                      @media (min-width: 600px) {
+                        #root {
+                          justify-content: space-evenly !important;
+                          padding: var(--tablet-popup-button-padding);
+                        }
                       }
                 card:
 
+              - type: custom:mod-card
+                card_mod: 
+                  style: 
+                    hui-horizontal-stack-card$: |
+                      @media (max-width: 600px) {
+                        #root {
+                          justify-content: space-evenly !important;
+                        }
+                      }
+                      @media (min-width: 600px) {
+                        #root {
+                          justify-content: space-evenly !important;
+                          padding: var(--tablet-popup-button-padding);
+                        }
+                      }
+                card:
                   type: horizontal-stack
                   cards:
-
-                    - type: custom:button-card
-                      name: Mettre en veille
+                    - type: custom:mushroom-template-card
+                      primary: Mettre en veille 
                       icon: mdi:power-sleep
                       tap_action:
                         action: call-service
                         service: switch.turn_on
                         service_data:
                           entity_id: switch.bruno_sleep
-                      template: icon_name
-
-                    - type: custom:button-card
-                      name: Redémarrer
+                      card_mod:
+                        style: |
+                          ha-card:active {
+                            transform: scale(0.95);
+                            transition: 0s
+                          }       
+                    - type: custom:mushroom-template-card
+                      primary: Redémarrer
                       icon: mdi:restart
                       tap_action:
                         action: call-service
                         service: switch.turn_on
                         service_data:
                           entity_id: switch.bruno_reboot
-                      template: icon_name
-
+                      card_mod:
+                        style: |
+                          ha-card:active {
+                            transform: scale(0.95);
+                            transition: 0s
+                          }       
 
         ### OFF ###
         - type: conditional
@@ -127,35 +177,40 @@ browser_mod:
             type: vertical-stack
             cards:
               - type: entities
-                state_color: true
-                show_header_toggle: false
-                card_mod:
-                  class: content
+                card_mod: 
+                  style: |
+                    ha-card {
+                      box-shadow: none;
+                      background: none;
+                    } 
                 entities:
-
                   - entity: switch.computer_papa
                     secondary_info: last-changed
                   - entity: input_boolean.computer_papa_lock
 
               - type: custom:mod-card
-                card_mod:
-                  style:
-                    hui-horizontal-stack-card$: |
-                      #root {
-                        justify-content: space-evenly !important;
-                        padding: var(--tablet-popup-button-padding);
-                      }
                 card:
-
                   type: horizontal-stack
                   cards:
-
-                    - type: custom:button-card
-                      name: Démarrer Bruno PC
+                    - type: custom:mushroom-template-card
+                      primary: Démarrer Bruno PC
                       icon: mdi:power
                       tap_action:
                         action: call-service
                         service: switch.turn_on
                         service_data:
                           entity_id: switch.wol_papa
-                      template: icon_name
+                card_mod:
+                  style:
+                    hui-horizontal-stack-card$: |
+                      @media (max-width: 600px) {
+                        #root {
+                          justify-content: space-evenly !important;
+                        }
+                      }
+                      @media (min-width: 600px) {
+                        #root {
+                          justify-content: space-evenly !important;
+                          padding: var(--tablet-popup-button-padding);
+                        }
+                      }

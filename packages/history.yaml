@@ -1,94 +1,16 @@
-rest:
-  #SELECT ROUND(SUM("kW") * 100) / 100 AS kw FROM "myelectricaldata"."prod"."consumption_detail GROUP BY time(1d) fill(none)"
-
-  - resource: !secret influx_linky_consumption_current_year
-    sensor:
-      name: linky_consumption_current_year
-      value_template: "{{ 'On' if value_json else 'Off' }}"
-      json_attributes_path: results[0].series[0]
-      json_attributes:
-        - values
-    scan_interval: 3600
-
-  - resource: !secret influx_linky_consumption_last_year
-    sensor:
-      name: linky_consumption_last_year
-      value_template: "{{ 'On' if value_json else 'Off' }}"
-      json_attributes_path: results[0].series[0]
-      json_attributes:
-        - values
-    scan_interval: 3600
-
-  - resource: !secret influx_linky_consumption_last_12month
-    sensor:
-      name: linky_consumption_last_12month
-      value_template: "{{ 'On' if value_json else 'Off' }}"
-      json_attributes_path: results[0].series[0]
-      json_attributes:
-        - values
-    scan_interval: 3600
-
 sensor:
-  - platform: template
-    sensors:
-      #SUM
-      linky_consumption_sum_current_year:
-        friendly_name: "Linky Consumption Sum (Current Year)"
-        value_template: >
-          {{ state_attr('sensor.linky_consumption_current_year', 'values') | map(attribute=1) | list | sum | round }}
-        unit_of_measurement: "kW"
+  - platform: average
+    precision: 1
+    name: average_consumption
+    entities:
+      - sensor.lixee_zlinky_tic_apparent_power
+    duration:
+      days: 1
 
-      linky_consumption_sum_last_year:
-        friendly_name: "Linky Consumption Sum (Last Year)"
-        value_template: >
-          {{ state_attr('sensor.linky_consumption_last_year', 'values') | map(attribute=1) | list | sum | round }}
-        unit_of_measurement: "kW"
-
-      linky_consumption_sum_last_12month:
-        friendly_name: "Linky Consumption Sum (Last 12month)"
-        value_template: >
-          {{ state_attr('sensor.linky_consumption_last_12month', 'values') | map(attribute=1) | list | sum | round }}
-        unit_of_measurement: "kW"
-
-      linky_consumption_sum_current_month:
-        friendly_name: "Linky Consumption Sum (Current month)"
-        value_template: >
-          {% set sum_consumption = namespace(value=0) %}
-          {% set current_month = now().strftime('%Y-%m') %}
-          {% set values = state_attr('sensor.linky_consumption_current_year', 'values') | default([]) %}
-          {% for item in values %}
-            {% set timestamp = ((item[0] | int) / 1000) | timestamp_custom('%Y-%m', true) %}
-            {% if timestamp == current_month %}
-              {% set sum_consumption.value = sum_consumption.value + item[1] %}
-            {% endif %}
-          {% endfor %}
-          {{ sum_consumption.value }}
-        unit_of_measurement: "kW"
-
-      #COST
-      linky_cost_current_year:
-        friendly_name: "Linky Cost (Current Year)"
-        value_template: >
-          {% set linky_consumption_sum_year = states('sensor.linky_consumption_sum_current_year') | float %}
-          {% set current_month = now().month %}
-          {{ ((linky_consumption_sum_year * 0.2276) + (12.44 * current_month) )| round }}
-        unit_of_measurement: "€"
-
-      linky_cost_last_year:
-        friendly_name: "Linky Cost (Last Year)"
-        value_template: >
-          {% set linky_consumption_sum_year = states('sensor.linky_consumption_sum_last_year') | float %}
-          {{ ((linky_consumption_sum_year * 0.2276) + (12.44 * 12) )| round }}
-        unit_of_measurement: "€"
-
-      linky_cost_current_month:
-        friendly_name: "Linky Cost (Last Month)"
-        value_template: >
-          {% set linky_consumption_sum_year = states('sensor.linky_consumption_sum_current_month') %}
-          {% if linky_consumption_sum_year != 'unavailable' %}
-            {% set linky_consumption_sum_year = linky_consumption_sum_year | float %}
-            {{ ((linky_consumption_sum_year * 0.2276) + 12.44) | round }}
-          {% else %}
-            0
-          {% endif %}
-        unit_of_measurement: "€"
+utility_meter:
+  monthly_energy:
+    source: sensor.lixee_zlinky_tic_summation_delivered
+    cycle: monthly
+  daily_energy:
+    source: sensor.lixee_zlinky_tic_summation_delivered
+    cycle: daily
