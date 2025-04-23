@@ -23,12 +23,7 @@ T'aimes mon repo ? Laisse une ⭐.
 ![dashboard]
 ![tablette-jour]
 
-<img src="/images/mobile-home.png" height="500">
-<img src="/images/mobile-appareil.png" height="500">
-<img src="/images/mobile-notif.png" height="500">
-<img src="/images/mobile-automation.png" height="500">
-<img src="/images/mobile-system.png" height="500">
-
+<img src="/images/mobile-home.png" height="500"> <img src="/images/mobile-appareil.jpg" height="500"> <img src="/images/mobile-notif.jpg" height="500"> <img src="/images/mobile-automation.jpg" height="500"> <img src="/images/mobile-system.jpg" height="500">
 
 ## Equipement et configuration
 
@@ -104,31 +99,31 @@ Source des inspirations : https://community.home-assistant.io/t/mushroom-cards-b
 
 * Blink de l'icone TV quand la TV est allumé 
 
-![](/images/tv-blink.mp4)
+![](/images/tv-blink.gif)
 
 * Chargement de la barre quand le téléphone se charge 
 
-![](/images/smartphone-charging.mp4)
+![](/images/smartphone-charging.gif)
 
 * L'icon du mediaplayer qui se secoue lorsqu'une musique est joué 
 
-![](/images/audio-boom.mp4)
+![](/images/audio-boom.gif)
 
 * L'icone des boutons des automations scintille qunand elle est activé (pas en cours d'exécution forcément)
 
-![](/images/automation-enabled-blink.mp4)
+![](/images/automation-enabled-blink.gif)
 
 * Respiration du badge en fonction de la couleur, vert pour la présence ou rouge pour l'absence 
 
-![](/images/person-live.mp4)
+![](/images/person-live.gif)
 
 * Led du PC qui clignote quand il est allumé 
 
-![](/images/computer-led.mp4)
+![](/images/computer-led.gif)
 
 * Boucle de chargement quand le pc s'éteint ou s'allume
 
-![](/images/computer-stop.mp4)
+![](/images/computer-stop.gif)
 
 Les icons SVG utiliser pour la météo provient de ce repo : https://github.com/basmilius/weather-icons
 
@@ -152,14 +147,6 @@ Affichage du timer du google home avec les badges se trouvant en haut du dashboa
 <img src="/images/google-timer.jpg" height="100"> <img src="/images/google-timer-no-timer.png" height="100">
 
 Celui clignote chaque seconde grâce au card_mod quand  un timer est actif.
-
-### Sidebar
-
-#### Bouton et automation des snapshots.
-* Ajout dans le menu update de la sidebar d'un bouton pour faire une snapshot manuelle depuis le dashboard.
-* Mise en place une automation qui fait un snapshot tous les jours à miniuit.
-
-<img src="/images/bouton-snapshot.jpg" height="300">
 
 #### QR-CODE du WiFi
 
