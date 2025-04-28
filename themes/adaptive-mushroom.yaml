@@ -184,7 +184,7 @@ Adaptive Mushroom:
     frog-rgb-mostly-sunny: 68, 176, 214
     frog-rgb-partly-cloudy-day: 100, 165, 208
     frog-rgb-mostly-cloudy-day: 114, 164, 209
-    frog-rgb-clear: 124, 76, 242
+    frog-rgb-clear-night: 124, 76, 242
     frog-rgb-mostly-clear: 133, 109, 229
     frog-rgb-partly-cloudy-night: 137, 135, 218
     frog-rgb-mostly-cloudy-night: 144, 152, 213
