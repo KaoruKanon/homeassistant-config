@@ -3819,6 +3819,126 @@ views:
                       mushroom-shape-icon {
                         --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
                       }
+                - type: custom:mushroom-template-card
+                  primary: PIR Couloir 1
+                  secondary: "{{ states(entity) | round() }}%"
+                  icon: >
+                    {% set battery_level = (states(entity) | int / 10) | round(0)
+                    | int * 10 %}
+
+                    {% if battery_level > 60 %}
+                      mdi:battery
+                    {% elif battery_level > 0 %}
+                      mdi:battery-{{ battery_level }}
+                    {% else %}
+                      mdi:battery-alert-variant-outline
+                    {% endif %}
+                  icon_color: >
+                    {% set battery_level = (states(entity) | int / 10) | round(0)
+                    | int * 10 %}
+                    {% if battery_level > 60 %}
+                      green
+                    {% elif battery_level > 20 %}
+                      orange
+                    {% elif battery_level > 0 %}
+                      red
+                    {% else %}
+                      grey
+                    {% endif %}
+                  layout: horizontal
+                  tap_action:
+                    action: more-info
+                  badge_color: blue
+                  entity: sensor.pir_couloir1_batterie
+                  card_mod:
+                    style: |
+                      ha-card:active {
+                        transform: scale(0.95);
+                        transition: 0s;
+                      }
+                      mushroom-shape-icon {
+                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
+                      }
+                - type: custom:mushroom-template-card
+                  primary: PIR Couloir 2
+                  secondary: "{{ states(entity) | round() }}%"
+                  icon: >
+                    {% set battery_level = (states(entity) | int / 10) | round(0)
+                    | int * 10 %}
+
+                    {% if battery_level > 60 %}
+                      mdi:battery
+                    {% elif battery_level > 0 %}
+                      mdi:battery-{{ battery_level }}
+                    {% else %}
+                      mdi:battery-alert-variant-outline
+                    {% endif %}
+                  icon_color: >
+                    {% set battery_level = (states(entity) | int / 10) | round(0)
+                    | int * 10 %}
+                    {% if battery_level > 60 %}
+                      green
+                    {% elif battery_level > 20 %}
+                      orange
+                    {% elif battery_level > 0 %}
+                      red
+                    {% else %}
+                      grey
+                    {% endif %}
+                  layout: horizontal
+                  tap_action:
+                    action: more-info
+                  badge_color: blue
+                  entity: sensor.pir_couloir2_batterie
+                  card_mod:
+                    style: |
+                      ha-card:active {
+                        transform: scale(0.95);
+                        transition: 0s;
+                      }
+                      mushroom-shape-icon {
+                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
+                      }
+                - type: custom:mushroom-template-card
+                  primary: PIR WC
+                  secondary: "{{ states(entity) | round() }}%"
+                  icon: >
+                    {% set battery_level = (states(entity) | int / 10) | round(0)
+                    | int * 10 %}
+
+                    {% if battery_level > 60 %}
+                      mdi:battery
+                    {% elif battery_level > 0 %}
+                      mdi:battery-{{ battery_level }}
+                    {% else %}
+                      mdi:battery-alert-variant-outline
+                    {% endif %}
+                  icon_color: >
+                    {% set battery_level = (states(entity) | int / 10) | round(0)
+                    | int * 10 %}
+                    {% if battery_level > 60 %}
+                      green
+                    {% elif battery_level > 20 %}
+                      orange
+                    {% elif battery_level > 0 %}
+                      red
+                    {% else %}
+                      grey
+                    {% endif %}
+                  layout: horizontal
+                  tap_action:
+                    action: more-info
+                  badge_color: blue
+                  entity: sensor.pir_wc_batterie
+                  card_mod:
+                    style: |
+                      ha-card:active {
+                        transform: scale(0.95);
+                        transition: 0s;
+                      }
+                      mushroom-shape-icon {
+                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
+                      }
         view_layout:
           grid-area: batteries
   - theme: Adaptive Mushroom
