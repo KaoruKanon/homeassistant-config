@@ -100,41 +100,51 @@ automation:
             - 6c1e502969ee705227e70afe410e1349
           path: /lovelace/default_view?kiosk
 
-  # - alias: fullykiosk_screensaver
-  #   id: '9452750674803'
-  #   mode: restart
-  #   trigger:
-  #     - platform: state
-  #       entity_id: binary_sensor.hall_motion_motion
-  #       from: 'off'
-  #       to: 'on'
-  #     - platform: state
-  #       entity_id: light.hall
-  #       from: 'on'
-  #       to: 'off'
-  #   action:
-  #     if: >
-  #       {{ 'hall_motion_motion' in trigger.entity_id }}
-  #     then:
-  #       - service: switch.turn_off
-  #         target:
-  #           entity_id: switch.lenovotab_screensaver
-  #       - service: number.set_value
-  #         target:
-  #           entity_id: number.lenovotab_screen_brightness
-  #         data:
-  #           value: >
-  #             {% set day_percent = 90 %}
-  #             {% set night_percent = 65 %}
-  #             {% set day_convert = ((day_percent * 255) / 100) | int %}
-  #             {% set night_convert = ((night_percent * 255) / 100) | int %}
-  #             {{ iif(is_state('sun.sun', 'above_horizon'), day_convert, night_convert) }}
-  #     else:
-  #       - service: switch.turn_on
-  #         target:
-  #           entity_id: switch.lenovotab_screensaver
-  #       - delay:
-  #           minutes: 15
-  #       - service: browser_mod.close_popup
-  #         data:
-  #           browser_id: tablet
+  - alias: tablet_turn_on_screen
+    id: '1745838569322'
+    description: "turn on tab screen if pir detect human"
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.pir_couloir1
+        to: "on"
+      - trigger: state
+        entity_id:
+          - binary_sensor.pir_couloir2
+        to: "on"
+    actions:
+      - action: switch.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: switch.lenovotab_screen
+    mode: single
+    
+  - alias: tablet_turn_off_screen
+    id: '1745838644904'
+    description: "turn off tab screen if pir detect no one"
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.pir_couloir1
+        to: "off"
+      - trigger: state
+        entity_id:
+          - binary_sensor.pir_couloir2
+        to: "off"
+    conditions:
+      - condition: and
+        conditions:
+          - condition: state
+            entity_id: binary_sensor.pir_couloir1
+            state: "off"
+          - condition: state
+            entity_id: binary_sensor.pir_couloir2
+            state: "off"
+    actions:
+      - action: switch.turn_off
+        metadata: {}
+        data: {}
+        target:
+          entity_id: switch.lenovotab_screen
+    mode: single

@@ -42,8 +42,9 @@ T'aimes mon repo ? Laisse une ⭐.
 | ⚡ | Lixee Zlinky TIC | 1 |
 | 🔌 | Tuya Smart Plug Zigbee 3.0 | 4 |
 | 🗝️ | Sonoff Zigbee 3.0 USB Dongle Plus | 1 |
+| 👁️ | Zigbee PIR Module TS0202 | 3 | 
 
-D'autres ampoules et boutons et interrupteur zigbee devraient arriver d'ici prochainement pour terminer la domotisation des lumières
+D'autres ampoules et boutons et interrupteur zigbee, etc devraient arriver d'ici prochainement pour terminer la domotisation des lumières
 
 ## Liste des intégrations et frontend HASS : 
 
