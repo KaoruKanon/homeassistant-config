@@ -41,21 +41,21 @@ template:
 automation:
   - alias: toggle_bureau
     trigger:
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_1
-          click_type: single
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_2
-          click_type: single
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_3
-          click_type: single
+      - device_id: 3f7bf0b1d53cb13c4212ef835580c4ca
+        domain: zha
+        type: remote_button_short_press
+        subtype: remote_button_short_press
+        trigger: device
+      - device_id: d9bf413036f7a7482d2681625d07bf0d
+        domain: zha
+        type: remote_button_short_press
+        subtype: remote_button_short_press
+        trigger: device
+      - device_id: 880038593f81e164554c496e37d93153
+        domain: zha
+        type: remote_button_short_press
+        subtype: remote_button_short_press
+        trigger: device
     condition: []
     action:
       - action: light.toggle
@@ -65,21 +65,21 @@ automation:
 
   - alias: toggle_plafond
     trigger:
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_1
-          click_type: double
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_2
-          click_type: double
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_3
-          click_type: double
+      - device_id: 3f7bf0b1d53cb13c4212ef835580c4ca
+        domain: zha
+        type: remote_button_double_press
+        subtype: remote_button_double_press
+        trigger: device
+      - device_id: d9bf413036f7a7482d2681625d07bf0d
+        domain: zha
+        type: remote_button_double_press
+        subtype: remote_button_double_press
+        trigger: device
+      - device_id: 880038593f81e164554c496e37d93153
+        domain: zha
+        type: remote_button_double_press
+        subtype: remote_button_double_press
+        trigger: device
     condition: []
     action:
       - action: light.toggle
@@ -88,21 +88,21 @@ automation:
 
   - alias: allumer_chambre
     trigger:
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_1
-          click_type: long_click_press
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_2
-          click_type: long_click_press
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_3
-          click_type: long_click_press
+      - device_id: 3f7bf0b1d53cb13c4212ef835580c4ca
+        domain: zha
+        type: remote_button_long_press
+        subtype: button
+        trigger: device
+      - device_id: d9bf413036f7a7482d2681625d07bf0d
+        domain: zha
+        type: remote_button_long_press
+        subtype: button
+        trigger: device
+      - device_id: 880038593f81e164554c496e37d93153
+        domain: zha
+        type: remote_button_long_press
+        subtype: button
+        trigger: device
     condition:
       - condition: state
         state: "off"
@@ -115,21 +115,21 @@ automation:
 
   - alias: eteindre_chambre
     trigger:
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_1
-          click_type: long_click_press
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_2
-          click_type: long_click_press
-      - trigger: event
-        event_type: xiaomi_aqara.click
-        event_data:
-          entity_id: binary_sensor.switch_3
-          click_type: long_click_press
+      - device_id: 3f7bf0b1d53cb13c4212ef835580c4ca
+        domain: zha
+        type: remote_button_long_press
+        subtype: button
+        trigger: device
+      - device_id: d9bf413036f7a7482d2681625d07bf0d
+        domain: zha
+        type: remote_button_long_press
+        subtype: button
+        trigger: device
+      - device_id: 880038593f81e164554c496e37d93153
+        domain: zha
+        type: remote_button_long_press
+        subtype: button
+        trigger: device
     condition:
       - condition: state
         state: "on"
