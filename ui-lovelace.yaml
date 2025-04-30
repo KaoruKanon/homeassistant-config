@@ -3649,7 +3649,7 @@ views:
                   tap_action:
                     action: more-info
                   badge_color: blue
-                  entity: sensor.battery_thermometre_chambre_papa
+                  entity: sensor.thermometer_chambre_papa_batterie
                   card_mod:
                     style: |
                       ha-card:active {
@@ -3689,7 +3689,7 @@ views:
                   tap_action:
                     action: more-info
                   badge_color: blue
-                  entity: sensor.battery_thermometre_chambre_william
+                  entity: sensor.thermometer_chambre_william_batterie
                   card_mod:
                     style: |
                       ha-card:active {
@@ -3729,7 +3729,7 @@ views:
                   tap_action:
                     action: more-info
                   badge_color: blue
-                  entity: sensor.battery_thermometre_cuisine
+                  entity: sensor.thermometer_cuisine_batterie
                   card_mod:
                     style: |
                       ha-card:active {
@@ -3769,7 +3769,7 @@ views:
                   tap_action:
                     action: more-info
                   badge_color: blue
-                  entity: sensor.battery_thermometre_salle_de_bain
+                  entity: sensor.thermometer_salle_de_bain_batterie
                   card_mod:
                     style: |
                       ha-card:active {
@@ -3809,7 +3809,7 @@ views:
                   tap_action:
                     action: more-info
                   badge_color: blue
-                  entity: sensor.battery_thermometre_salon
+                  entity: sensor.thermometer_salon_batterie
                   card_mod:
                     style: |
                       ha-card:active {
@@ -4890,7 +4890,7 @@ views:
                   - primary: Cusine
                   - temperature: sensor.thermometer_cuisine_temperature
                   - humidity: sensor.thermometer_cuisine_humidite
-                  - battery: sensor.thermometer_cusine_battery
+                  - battery: sensor.thermometer_cusine_batterie
                   - color: var(--mush-rgb-red)
                   - icon: mdi:fridge
               - type: custom:decluttering-card
