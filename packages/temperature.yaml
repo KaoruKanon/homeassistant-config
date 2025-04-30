@@ -177,16 +177,16 @@ sensor:
     precision: 1
     name: average_temperature
     entities:
-      - sensor.temperature_chambre_william
-      - sensor.temperature_chambre_papa
-      - sensor.temperature_salon
-      - sensor.temperature_cuisine
+      - sensor.thermometer_chambre_william_temperature
+      - sensor.thermometer_chambre_papa_temperature
+      - sensor.thermometer_salon_temperature
+      - sensor.thermometer_cuisine_temperature
 
   - platform: average
     name: average_humidity
     precision: 1
     entities:
-      - sensor.humidity_chambre_william
-      - sensor.humidity_chambre_papa
-      - sensor.humidity_salon
-      - sensor.humidity_cuisine
+      - sensor.thermometer_chambre_william_humidite
+      - sensor.thermometer_chambre_papa_humidite
+      - sensor.thermometer_salon_humidite
+      - sensor.therommeter_cuisine_humidite

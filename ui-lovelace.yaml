@@ -4861,45 +4861,45 @@ views:
                 template: thermometer_template
                 variables:
                   - primary: William
-                  - temperature: sensor.temperature_chambre_william
-                  - humidity: sensor.humidity_chambre_william
-                  - battery: sensor.battery_thermometre_chambre_william
+                  - temperature: sensor.thermometer_chambre_william_temperature
+                  - humidity: sensor.thermometer_chambre_william_humidite
+                  - battery: sensor.thermometer_chambre_william_batterie
                   - color: var(--mush-rgb-purple)
                   - icon: mdi:bed
               - type: custom:decluttering-card
                 template: thermometer_template
                 variables:
                   - primary: Papa
-                  - temperature: sensor.temperature_chambre_papa
-                  - humidity: sensor.humidity_chambre_papa
-                  - battery: sensor.battery_thermometre_chambre_papa
+                  - temperature: sensor.thermometer_chambre_papa_temperature
+                  - humidity: sensor.thermometer_chambre_papa_humidite
+                  - battery: sensor.thermometer_chambre_papa_batterie
                   - color: var(--mush-rgb-green)
                   - icon: mdi:bed
               - type: custom:decluttering-card
                 template: thermometer_template
                 variables:
                   - primary: Salon
-                  - temperature: sensor.temperature_salon
-                  - humidity: sensor.humidity_salon
-                  - battery: sensor.battery_thermometre_salon
+                  - temperature: sensor.thermometer_salon_temperature
+                  - humidity: sensor.thermometer_salon_humidite
+                  - battery: sensor.thermometer_salon_batterie
                   - color: var(--mush-rgb-amber)
                   - icon: mdi:sofa
               - type: custom:decluttering-card
                 template: thermometer_template
                 variables:
                   - primary: Cusine
-                  - temperature: sensor.temperature_cuisine
-                  - humidity: sensor.humidity_cuisine
-                  - battery: sensor.battery_thermometre_cuisine
+                  - temperature: sensor.thermometer_cuisine_temperature
+                  - humidity: sensor.thermometer_cuisine_humidite
+                  - battery: sensor.thermometer_cusine_battery
                   - color: var(--mush-rgb-red)
                   - icon: mdi:fridge
               - type: custom:decluttering-card
                 template: thermometer_template
                 variables:
                   - primary: Salle de bain
-                  - temperature: sensor.temperature_salle_de_bain
-                  - humidity: sensor.humidity_salle_de_bain
-                  - battery: sensor.battery_thermometre_salle_de_bain
+                  - temperature: sensor.thermometer_chambre_papa_temperature
+                  - humidity: sensor.thermometer_chambre_papa_humidite
+                  - battery: sensor.thermometer_chambre_papa_batterie
                   - color: var(--mush-rgb-cyan)
                   - icon: mdi:shower
               - type: custom:stack-in-card
