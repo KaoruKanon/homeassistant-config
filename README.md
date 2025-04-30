@@ -31,7 +31,6 @@ T'aimes mon repo ? Laisse une ⭐.
 
 | Icon | Device | Total |
 |------|:--------------:|:------:|
-| 🌉 | Gateway Xiaomi V2  | 1 |
 | 🖥️ |️ Ordinateurs | 2 |
 | 🌡️ | Xiaomi mijia Temperature Humidity 2019 | 5 |
 | 📱 | Smartphone | 2 |
