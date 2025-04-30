@@ -4890,7 +4890,7 @@ views:
                   - primary: Cusine
                   - temperature: sensor.thermometer_cuisine_temperature
                   - humidity: sensor.thermometer_cuisine_humidite
-                  - battery: sensor.thermometer_cusine_batterie
+                  - battery: sensor.thermometer_cuisine_batterie
                   - color: var(--mush-rgb-red)
                   - icon: mdi:fridge
               - type: custom:decluttering-card
