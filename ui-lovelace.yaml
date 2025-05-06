@@ -1802,100 +1802,115 @@ views:
         cards:
           - type: custom:mushroom-title-card
             title: Lumières
-          - type: horizontal-stack
+          - square: false
+            columns: 2
+            type: grid
             cards:
-              - type: vertical-stack
-                cards:
-                  - type: custom:mushroom-light-card
-                    entity: light.plafond
-                    icon_type: icon
-                    use_light_color: true
-                    show_brightness_control: true
-                    show_color_control: false
-                    show_color_temp_control: true
-                    collapsible_controls: true
-                    primary_info: name
-                    secondary_info: state
-                    name: Plafond
-                    tap_action:
-                      action: toggle
-                    hold_action:
-                      action: more-info
-                    double_tap_action:
-                      action: more-info
-                    icon: mdi:lightbulb-variant
-                    fill_container: false
-                    card_mod:
-                      style:
-                        .: |
-                          ha-card {
-                            {{ 'background: rgba(var(--mush-rgb-amber), 0.2);' if is_state(config.entity, 'on') }}
-                          }
-                        mushroom-button$: |
-                          .button:active {
-                                transform: scale(0.95);
-                                transition: 0s;
-                          }
-                  - type: custom:mushroom-light-card
-                    entity: light.bureau
-                    use_light_color: true
-                    show_brightness_control: true
-                    show_color_control: false
-                    show_color_temp_control: true
-                    collapsible_controls: true
-                    primary_info: name
-                    secondary_info: state
-                    name: Bureau
-                    tap_action:
-                      action: toggle
-                    hold_action:
-                      action: more-info
-                    double_tap_action:
-                      action: more-info
-                    icon: mdi:bed
-                    fill_container: false
-                    card_mod:
-                      style:
-                        .: |
-                          ha-card {
-                            {{ 'background: rgba(var(--mush-rgb-amber), 0.2);' if is_state(config.entity, 'on') }}
-                          }
-                        mushroom-button$: |
-                          .button:active {
-                                transform: scale(0.95);
-                                transition: 0s;
-                          }
-              - type: vertical-stack
-                cards:
-                  - type: custom:mushroom-light-card
-                    entity: light.chambre
-                    icon_type: icon
-                    show_brightness_control: true
-                    show_color_control: false
-                    show_color_temp_control: true
-                    collapsible_controls: true
-                    primary_info: name
-                    secondary_info: state
-                    name: Chambre
-                    tap_action:
-                      action: toggle
-                    hold_action:
-                      action: more-info
-                    double_tap_action:
-                      action: more-info
-                    icon: mdi:desk
-                    fill_container: false
-                    card_mod:
-                      style:
-                        .: |
-                          ha-card {
-                            {{ 'background: rgba(var(--mush-rgb-amber), 0.2);' if is_state(config.entity, 'on') }}
-                          }
-                        mushroom-button$: |
-                          .button:active {
-                                transform: scale(0.95);
-                                transition: 0s;
-                          }
+              - type: custom:mushroom-light-card
+                entity: light.plafond
+                use_light_color: true
+                show_brightness_control: true
+                show_color_control: false
+                show_color_temp_control: true
+                collapsible_controls: true
+                name: Plafond
+                icon: mdi:lightbulb-variant
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card {
+                      {{ 'background: rgba(var(--mush-rgb-amber), 0.2);' if is_state(config.entity, 'on') }}
+                    }
+                    ha-card:active {
+                      transform: scale(0.95);
+                      transition: 0s;
+                    }
+              - type: custom:mushroom-light-card
+                entity: light.chambre
+                use_light_color: true
+                show_brightness_control: true
+                show_color_control: false
+                show_color_temp_control: true
+                collapsible_controls: true
+                primary_info: name
+                secondary_info: state
+                name: Chambre
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: more-info
+                icon: mdi:desk
+                fill_container: false
+                card_mod:
+                  style: |
+                    ha-card {
+                      {{ 'background: rgba(var(--mush-rgb-amber), 0.2);' if is_state(config.entity, 'on') }}
+                    }
+                    ha-card:active {
+                      transform: scale(0.95);
+                      transition: 0s;
+                    }
+              - type: custom:mushroom-light-card
+                entity: light.bureau
+                icon_type: icon
+                show_brightness_control: true
+                show_color_control: false
+                show_color_temp_control: true
+                collapsible_controls: true
+                primary_info: name
+                secondary_info: state
+                name: Bureau
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: more-info
+                icon: mdi:bed
+                fill_container: false
+                card_mod:
+                  style: |
+                    ha-card {
+                      {{ 'background: rgba(var(--mush-rgb-amber), 0.2);' if is_state(config.entity, 'on') }}
+                    }
+                    ha-card:active {
+                      transform: scale(0.95);
+                      transition: 0s;
+                    }
+              - type: custom:mushroom-light-card
+                entity: light.switch_wall_cuisine
+                icon_type: icon
+                show_brightness_control: true
+                show_color_control: false
+                show_color_temp_control: true
+                collapsible_controls: true
+                primary_info: name
+                secondary_info: state
+                name: Cuisine
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: more-info
+                icon: mdi:microwave
+                fill_container: false
+                card_mod:
+                  style: |
+                    ha-card {
+                      {{ 'background: rgba(var(--mush-rgb-amber), 0.2);' if is_state(config.entity, 'on') }}
+                    }
+                    ha-card:active {
+                      transform: scale(0.95);
+                      transition: 0s;
+                    }
           - type: custom:mushroom-title-card
             title: Energie
             subtitle: ""
@@ -3175,6 +3190,33 @@ views:
                 double_tap_action:
                   action: more-info
                 icon: mdi:bed
+                fill_container: false
+                card_mod:
+                  style: |
+                    ha-card {
+                      {{ 'background: rgba(var(--mush-rgb-amber), 0.2);' if is_state(config.entity, 'on') }}
+                    }
+                    ha-card:active {
+                      transform: scale(0.95);
+                      transition: 0s;
+                    }
+              - type: custom:mushroom-light-card
+                entity: light.switch_wall_cuisine
+                icon_type: icon
+                show_brightness_control: true
+                show_color_control: false
+                show_color_temp_control: true
+                collapsible_controls: true
+                primary_info: name
+                secondary_info: state
+                name: Cuisine
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: more-info
+                icon: mdi:microwave
                 fill_container: false
                 card_mod:
                   style: |
