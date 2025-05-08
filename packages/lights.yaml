@@ -139,3 +139,32 @@ automation:
       - action: light.turn_off
         target:
           entity_id: light.chambre
+
+          alias: auto_turn_off_cuisine
+
+  - alias: auto_turn_off_cuisine
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - light.switch_wall_cuisine
+        from: "off"
+        to: "on"
+        for:
+          hours: 0
+          minutes: 20
+          seconds: 0
+    conditions:
+      - condition: time
+        after: "22:00:00"
+        before: "07:00:00"
+      - condition: state
+        entity_id: light.switch_wall_cuisine
+        state: "on"
+    actions:
+      - action: light.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: light.switch_wall_cuisine
+    mode: single
