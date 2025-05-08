@@ -139,9 +139,7 @@ automation:
       - action: light.turn_off
         target:
           entity_id: light.chambre
-
-          alias: auto_turn_off_cuisine
-
+          
   - alias: auto_turn_off_cuisine
     description: ""
     triggers:
