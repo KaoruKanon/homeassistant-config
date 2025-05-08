@@ -112,6 +112,10 @@ automation:
         entity_id:
           - binary_sensor.pir_couloir2
         to: "on"
+    conditions:
+      - condition: state
+        entity_id: switch.lenovotab_screen
+        state: "off"
     actions:
       - action: switch.turn_on
         metadata: {}
