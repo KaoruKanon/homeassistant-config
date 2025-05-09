@@ -2206,11 +2206,11 @@ views:
                           transition: 0s
                         }
                   - type: template
-                    entity: sensor.next_timer_human
+                    entity: sensor.next_timer_cuisine_remaining
                     icon: mdi:google-assistant
                     icon_color: white
                     content: >-
-                      {{states("sensor.next_timer_human")}}
+                      {{states("sensor.next_timer_cuisine_remaining")}}
                     tap_action:
                       action: more-info
                     card_mod:
@@ -2218,7 +2218,7 @@ views:
                         ha-card {
                           float: left;
                           margin: 5px 5px;
-                          {% if not is_state('sensor.next_timer_human', 'Pas de timer') %}
+                          {% if is_state('timer.timer_cuisine', 'active') %}
                           animation: ping 1.2s ease-in-out infinite;
                           {% endif %}
                         }
@@ -2341,7 +2341,7 @@ views:
                       }
                     mushroom-template-chip:nth-child(2)$: |
                       ha-state-icon {
-                        {% if not is_state('sensor.next_timer_human', 'Pas de timer') %}
+                        {% if is_state('timer.timer_cuisine', 'active') %}
                         animation: ping 1.2s ease-in-out infinite;
                         {% endif %}
                       }

@@ -1,6 +1,6 @@
 shell_command:
   google_home_get_token: !secret google_home_get_token
-#give www/google_home_tracker/ permission for hass linux account 
+#give www/google_home_tracker/ permission for hass linux account
 
 automation:
   - alias: get_google_home_token_at_ha_restart
@@ -13,31 +13,49 @@ automation:
   - alias: get_google_home_token_every_hour
     trigger:
       - platform: time_pattern
-        hours: '*'
+        hours: "*"
     action:
       - service: shell_command.google_home_get_token
 
-  - alias: update_timer
-    trigger:
-      - platform: time_pattern
-        seconds: '*'
-    condition:
-      - condition: not
-        conditions:
-          - condition: state
-            entity_id: sensor.next_timer_human
-            state: 'Google Home indisponible'
-          - condition: state
-            entity_id: sensor.next_timer_human
-            state: 'Pas de timer'
-    action:
-      - service: homeassistant.update_entity
-        entity_id: sensor.next_timer_human
+  - alias: google_home_cuisine_start_timer
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - sensor.next_timer_cusine
+        to: null
+    conditions: []
+    actions:
+      - action: timer.start
+        metadata: {}
+        data:
+          duration: >-
+            {{ ( states('sensor.next_timer_cusine')|int/1000 - as_timestamp(now())) | round() }}
+        target:
+          entity_id: timer.timer_cuisine
+    mode: single
+
+  - alias: google_home_cuisine_stop_timer
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - sensor.next_timer_cusine
+        from: null
+        to: None
+    conditions: []
+    actions:
+      - action: timer.finish
+        metadata: {}
+        data: {}
+        target:
+          entity_id: timer.timer_cuisine
+    mode: single
 
 command_line:
-  - sensor: 
-      command: !secret google_home_next_timer
-      name: next_timer
+  - sensor:
+      command: !secret google_home_next_timer_cuisine
+      name: next_timer_cusine
       value_template: >
         {% if value_json is defined %}
           {% set timer = value_json.timer|sort(attribute='fire_time') %}
@@ -48,21 +66,29 @@ command_line:
           {% endif %}
         {% endif %}
 
-sensor:
-  - platform: template
-    scan_interval: 1
-    sensors:
-      next_timer_human:
-        value_template: >
-          {% if states('sensor.next_timer') == "None" or states('sensor.next_timer') == "" %}
-            Pas de timer
-          {% elif states('sensor.next_timer') == "unavailable" or states('sensor.next_timer') == "unknown" %}
-            Google Home indisponible
-          {% elif (( states('sensor.next_timer')|int/1000 - as_timestamp(now()) - 3600) | timestamp_custom('%H') | int ) >= 1 %}
-            {{ ( states('sensor.next_timer')|int/1000 - as_timestamp(now()) - 3600) | timestamp_custom('%Hh %Mm %Ss') }}
-          {% elif (( states('sensor.next_timer')|int/1000 - as_timestamp(now()) - 3600) | timestamp_custom('%M') | int ) >= 1 %}  {{ ( states('sensor.next_timer')|int/1000 - as_timestamp(now()) - 3600) | timestamp_custom('%Mm %Ss') }}
+timer:
+  timer_cuisine:
+    duration: "00:00:00"
+
+template:
+  - trigger:
+      - platform: time_pattern
+        seconds: "/1"
+    sensor:
+      - name: next_timer_cuisine_remaining
+        state: >
+          {% set t = 'timer.timer_cuisine' %}
+          {% set state = states(t) %}
+          {% set finish = state_attr(t, 'finishes_at') %}
+          {% set remain = state_attr(t, 'remaining') %}
+          {% set seconds = (as_timestamp(finish, 0) - as_timestamp(now())) | int %}
+          {% set left = iif(finish == None, iif(remain == None, 0, as_timedelta('0 ' ~ remain).seconds), seconds) %}
+
+          {% if left == 0 %}
+            Off
           {% else %}
-            {{ ( states('sensor.next_timer')|int/1000 - as_timestamp(now()) - 3600) | timestamp_custom('%Ss') }}
+            {% set h = (left // 3600) %}
+            {% set m = ((left % 3600) // 60) %}
+            {% set s = (left % 60) %}
+            {{ '' if h == 0 else '{}h '.format(h) }}{{ '' if m == 0 and h == 0 else '{}m '.format(m) }}{{ '{}s'.format(s) }}
           {% endif %}
-        friendly_name: Next timer
-        icon_template: 'mdi:server'
