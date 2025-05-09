@@ -1,0 +1,141 @@
+notify:
+  - name: mobile_app_phone
+    platform: group
+    services:
+      - action: mobile_app_oneplus12
+      - action: mobile_app_samsung_s24
+
+automation:
+
+  - alias: dismiss_lovelace_updated
+    id: '1309195316329'
+    mode: restart
+    trigger:
+      platform: event
+      event_type: lovelace_updated
+    action:
+      repeat:
+        count: 5
+        sequence:
+          - delay: 0.5
+          - service: browser_mod.notification
+            data:
+              duration: 1
+              message: ' '
+
+  - alias: notify_hass_update
+    id: '7958228563778'
+    trigger:
+      platform: state
+      entity_id:
+        - sensor.hass_release_notes
+        - sensor.hass_release_notes_beta
+    condition: >
+      {{ state_attr('sensor.template_updates', 'home_assistant') == 1 }}
+    action:
+      - service: homeassistant.update_entity
+        target:
+          entity_id:
+            - sensor.hass_release_notes
+            - sensor.hass_release_notes_beta
+      - delay:
+          minutes: 15
+      - service: notify.mobile_app_oneplus12
+        data:
+          title: >
+            {% set installed = states('sensor.current_version') %}
+            {{ states('sensor.hass_release_notes') if version(installed).beta
+            else states('sensor.hass_release_notes') }} disponible {{ '\U0001F389' }}
+          message: Maintenir la touche enfoncée pour mettre à jour
+          data:
+            url: https://www.home-assistant.io/latest-release-notes/
+            actions:
+              - action: START_HA_UPDATE
+                title: Mise à jour
+
+  - alias: notify_hass_update_action
+    id: '0694774018396'
+    trigger:
+      platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: START_HA_UPDATE
+    actions:
+      - action: update.install
+        data:
+          backup: true
+        target:
+          entity_id: update.home_assistant_core_update
+
+  - alias: notify_away_windows_open
+    description: "send a notification if windows are opened while people are away"
+    triggers:
+      - trigger: state
+        entity_id:
+          - person.kaoru
+          - person.papa
+        from: home
+        to: not_home
+    conditions:
+      - condition: and
+        conditions:
+          - condition: state
+            entity_id: person.kaoru
+            state: not_home
+          - condition: state
+            entity_id: person.papa
+            state: not_home
+      - condition: template
+        value_template: |-
+          {{ states.binary_sensor
+            | selectattr('entity_id', 'match', '^binary_sensor\.fenetre_')
+            | selectattr('state', 'equalto', 'on')
+            | list
+            | count > 0 }}
+    actions:
+      - action: notify.mobile_app_phone
+        metadata: {}
+        data:
+          message: >-
+            {% set ouvertures = states.binary_sensor      | selectattr('entity_id',
+            'match', '^binary_sensor\.fenetre_')     | selectattr('state',
+            'equalto', 'on')     | map(attribute='entity_id')     | list  %}  {% set
+            noms = ouvertures      | map('replace', 'binary_sensor.fenetre_',
+            '')      | map('replace', '_', ' ')      | map('title')      | list  %} 
+            {% if noms | length == 1 %}   La fenêtre {{ noms[0] }} est ouverte. {%
+            else %}   Les fenêtres {{ noms[:-1] | join(', ') }} et {{ noms[-1] }}
+            sont ouvertes. {% endif %}
+          title: " Attention fenêtre encore ouverte ⚠️"
+    mode: single
+
+  - alias: notify_rainy_windows_open
+    description: "send a notification if the windows are open the next time it rains"
+    triggers:
+      - trigger: state
+        entity_id:
+          - sensor.meteo_france_next_rain
+        from: unknown
+        to: null
+    conditions:
+      - condition: template
+        value_template: |-
+          {{ states.binary_sensor
+            | selectattr('entity_id', 'match', '^binary_sensor\.fenetre_')
+            | selectattr('state', 'equalto', 'on')
+            | list
+            | count > 0 }}
+    actions:
+      - action: notify.mobile_app_phone
+        metadata: {}
+        data:
+          title: Il va pleuvoir 🌧️
+          message: >-
+            {% set ouvertures = states.binary_sensor      | selectattr('entity_id',
+            'match', '^binary_sensor\.fenetre_')     | selectattr('state',
+            'equalto', 'on')     | map(attribute='entity_id')     | list  %}  {% set
+            noms = ouvertures      | map('replace', 'binary_sensor.fenetre_',
+            '')      | map('replace', '_', ' ')      | map('title')      | list  %} 
+            {% if noms | length == 1 %}   La fenêtre {{ noms[0] }} est ouverte. {%
+            else %}   Les fenêtres {{ noms[:-1] | join(', ') }} et {{ noms[-1] }}
+            sont ouvertes. {% endif %}
+    mode: single
