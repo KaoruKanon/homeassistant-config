@@ -42,6 +42,9 @@ T'aimes mon repo ? Laisse une ⭐.
 | 🔌 | Tuya Smart Plug Zigbee 3.0 | 4 |
 | 🗝️ | Sonoff Zigbee 3.0 USB Dongle Plus | 1 |
 | 👁️ | Zigbee PIR Module TS0202 | 3 | 
+| ☀️ | Zigbee Tyua PIR Luminance TS0601 | 1 | 
+| 🔛 | Zigbee E1 Wall Switch QBKG38LM  | 1 | 
+| 🚪 | Zigbee Déctereur Ouverture Porte et Fenêtre eWeLink SNZB-04 | 6 |
 
 D'autres ampoules et boutons et interrupteur zigbee, etc devraient arriver d'ici prochainement pour terminer la domotisation des lumières
 
