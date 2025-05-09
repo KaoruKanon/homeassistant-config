@@ -142,11 +142,13 @@ Popup météo qui donne la prévision des prochains jours `weather-forecast`,`cu
 
 ### Afficher le timer en cours du google home de la cuisne
 
-Affichage du timer du google home avec les badges se trouvant en haut du dashboard [chvancooten](https://github.com/chvancooten/homeassistant-googletokenretriever)
+Affichage du timer du google home avec les badges se trouvant en haut du dashboard
 
-<img src="/images/google-timer.jpg" height="100"> <img src="/images/google-timer-no-timer.png" height="100">
+Source de la récupération des timer : [chvancooten](https://github.com/chvancooten/homeassistant-googletokenretriever)
 
-Celui clignote chaque seconde grâce au card_mod quand  un timer est actif.
+<img src="/images/google-timer.gif" height="100"> <img src="/images/google-timer-no-timer.png" height="100">
+
+Celui-ci clignote chaque seconde grâce au card_mod lorsque le timer est actif.
 
 #### QR-CODE du WiFi
 
