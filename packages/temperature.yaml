@@ -189,4 +189,4 @@ sensor:
       - sensor.thermometer_chambre_william_humidite
       - sensor.thermometer_chambre_papa_humidite
       - sensor.thermometer_salon_humidite
-      - sensor.therommeter_cuisine_humidite
+      - sensor.thermometer_cuisine_humidite
