@@ -2192,7 +2192,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px 8px;
+                          margin: 5px;
                           {% if states("sensor.average_temperature") | round(1) < 18 %}
                             --chip-background: rgba(var(--mush-rgb-blue), 0.2);
                           {% elif states("sensor.average_temperature") | round(1) < 28 %}
@@ -2217,7 +2217,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px 5px;
+                          margin: 5px;
                           {% if is_state('timer.timer_cuisine', 'active') %}
                           animation: ping 1.2s ease-in-out infinite;
                           {% endif %}
@@ -2270,7 +2270,7 @@ views:
                       style:
                         .: |
                           ha-card {
-                            margin: 5px 5px;
+                            margin: 5px;
                             {% if is_state('person.kaoru', 'home') %}
                               --chip-background: rgba(var(--rgb-state-person-home), 0.2);
                               animation: ping 5.0s ease-in-out infinite;
@@ -2300,7 +2300,7 @@ views:
                       style:
                         .: |
                           ha-card {
-                            margin: 5px 5px;
+                            margin: 5px;
                             {% if is_state('person.papa', 'home') %}
                               --chip-background: rgba(var(--rgb-state-person-home), 0.2);
                               animation: ping 5.0s ease-in-out infinite;
@@ -2326,7 +2326,7 @@ views:
                   style:
                     .: |
                       ha-card {
-                        margin-right: -8px;
+                        margin: 5px;
                         overflow: hidden; /* Clear float */
                       }
                       .chip-container {
