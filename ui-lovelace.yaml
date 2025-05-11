@@ -794,7 +794,7 @@ views:
       grid-template-rows: grid-title-row-height auto auto auto
       grid-gap: 0.5em
       grid-template-areas: |
-        ". . title title people ."
+        ". . title badge badge ."
         ". nav favorites lights weather ."
         ". nav favorites plugs weather ."
       mediaquery:
@@ -804,7 +804,7 @@ views:
           grid-gap: 0em
           grid-template-areas: |
             ". title ."
-            ". people ."
+            ". badge ."
             ". favorites ."
             ". lights ."
             ". plugs ."
@@ -2363,7 +2363,7 @@ views:
                         100% {color: white;}
                       }
         view_layout:
-          grid-area: people
+          grid-area: badge
   - theme: Adaptive Mushroom
     title: Appareil
     path: apparaten
