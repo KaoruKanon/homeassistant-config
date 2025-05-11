@@ -85,7 +85,7 @@ template:
           {% set left = iif(finish == None, iif(remain == None, 0, as_timedelta('0 ' ~ remain).seconds), seconds) %}
 
           {% if left == 0 %}
-            Off
+            Pas de timer
           {% else %}
             {% set h = (left // 3600) %}
             {% set m = ((left % 3600) // 60) %}
