@@ -1,0 +1,104 @@
+alarm_control_panel:
+  - platform: manual
+    name: Home Alarm
+    code: !secret code_alarm
+    arming_time: 60
+    delay_time: 60
+    trigger_time: 60
+    arming_states:
+      - armed_away
+      - armed_home
+    disarmed:
+      trigger_time: 0
+    armed_home:
+      arming_time: 0
+      delay_time: 0
+
+automation:
+  - alias: armed_away_alarm_when_people_away
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - person.kaoru
+          - person.papa
+        from: home
+        to: not_home
+    conditions:
+      - condition: and
+        conditions:
+          - condition: state
+            entity_id: person.kaoru
+            state: not_home
+          - condition: state
+            entity_id: person.papa
+            state: not_home
+    actions:
+      - action: alarm_control_panel.alarm_arm_away
+        metadata: {}
+        data:
+          code: !secret code_alarm
+        target:
+          entity_id: alarm_control_panel.home_alarm
+    mode: single
+
+  - alias: disarm_alarm_when_people_home
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - person.kaoru
+          - person.papa
+        from: not_home
+        to: home
+    actions:
+      - action: alarm_control_panel.alarm_disarm
+        metadata: {}
+        data:
+          code: !secret code_alarm
+        target:
+          entity_id: alarm_control_panel.home_alarm
+    mode: single
+
+  - alias: "notify_when_alarm_triggered"
+    triggers:
+      - trigger: state
+        entity_id: alarm_control_panel.home_alarm
+        to: "triggered"
+    actions:
+      - action: notify.mobile_app_phone
+        data:
+          message: "ALARME! L'alarm a été délenchée 🚨🚨"
+          data:
+            ttl: 0
+            priority: high
+            channel: alarm_stream
+
+  - alias: "notify_when_alarm_armedaway"
+    triggers:
+      - trigger: state
+        entity_id: alarm_control_panel.home_alarm
+        to: "armed_away"
+    actions:
+      - action: notify.mobile_app_phone
+        data:
+          message: "ALARME: L'alarme est armée 🚨🔒"
+
+  - alias: "trigger_alarm_armedaway_when_door_open"
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.porte_couloir_entree
+        to: "on"
+    conditions:
+      - condition: state
+        entity_id: alarm_control_panel.home_alarm
+        state: armed_away
+    actions:
+      - action: alarm_control_panel.alarm_trigger
+        metadata: {}
+        data: {}
+        target:
+          entity_id: alarm_control_panel.home_alarm
+    mode: single
