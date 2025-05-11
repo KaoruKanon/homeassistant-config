@@ -2231,17 +2231,29 @@ views:
                             100% {background: rgba(var(--rgb-card-background-color)); --text-color: white;}
                             30% {background: white; --text-color: rgba(var(--rgb-card-background-color));}
                         }
-                  - type: entity
-                    entity: sensor.total_lights_count_template
-                    icon: mdi:lightbulb
-                    icon_color: amber
+                  - type: template
+                    entity: sensor.total_lights_on
+                    content: "{{ states(entity) }}"
+                    tap_action: none
+                    icon: >
+                      {% if states("sensor.total_lights_on") | int > 0 %}
+                        mdi:lightbulb
+                      {% else %}
+                        mdi:lightbulb-off
+                      {% endif %}
+                    icon_color: >
+                      {% if states("sensor.total_lights_on") | int > 0 %}
+                        amber
+                      {% else %}
+                        disabled
+                      {% endif %}
                     name: Lights On
                     card_mod:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px 5px;
-                          {% if states("sensor.total_lights_count_template") | int > 0 %}
+                          margin: 5px;
+                          {% if states("sensor.total_lights_on") | int > 0 %}
                             --chip-background: rgba(var(--mush-rgb-yellow), 0.3);
                           {% endif %}
                         }
