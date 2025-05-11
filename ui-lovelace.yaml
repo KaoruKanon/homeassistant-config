@@ -2261,6 +2261,36 @@ views:
                           transform: scale(0.95);
                           transition: 0s
                         }
+                  - type: template
+                    entity: sensor.total_open_windows
+                    content: "{{ states(entity) }}"
+                    tap_action: none
+                    icon: >
+                        {% if states(entity) | int > 0 %}
+                          mdi:window-open-variant
+                        {% else %}
+                          mdi:window-closed-variant
+                        {% endif %}
+                    icon_color: >
+                      {% if states(entity) | int > 0 %}
+                        rgb(var(--mush-rgb-grey))
+                      {% else %}
+                        disabled
+                      {% endif %}                    
+                    name: Open windows
+                    card_mod:
+                      style: |
+                        ha-card {
+                          float: left;
+                          margin: 5px;
+                          {% if states("sensor.total_open_windows") | int > 0 %}
+                            --chip-background: rgba(var(--mush-rgb-white), 0.3);
+                          {% endif %}
+                        }
+                        ha-card:active {
+                          transform: scale(0.95);
+                          transition: 0s
+                        }
                   - type: alarm-control-panel
                     entity: alarm_control_panel.home_alarm
                     content_info: state
