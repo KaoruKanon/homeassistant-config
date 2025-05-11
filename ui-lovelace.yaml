@@ -2333,7 +2333,7 @@ views:
                         display: block !important;
                         position: relative;
                       }
-                      .type-custom-mushroom-chips-card .chip-container > mushroom-entity-chip:nth-child(4) {
+                      .type-custom-mushroom-chips-card .chip-container > mushroom-entity-chip:nth-child(6) {
                         {% if is_state('person.kaoru', 'home') %}
                           float: left;
                         {% elif is_state('person.kaoru', 'not_home') or is_state('person.kaoru', 'unknown') %}
@@ -2342,7 +2342,7 @@ views:
                           float: right;
                         {% endif %}
                         }
-                      .type-custom-mushroom-chips-card .chip-container > mushroom-entity-chip:nth-child(5) {
+                      .type-custom-mushroom-chips-card .chip-container > mushroom-entity-chip:nth-child(7) {
                         {% if is_state('person.papa', 'home') %}
                           float: left;
                         {% elif is_state('person.papa', 'not_home') or is_state('person.papa', 'unknown') %}
