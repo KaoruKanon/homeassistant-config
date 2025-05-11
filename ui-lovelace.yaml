@@ -5055,13 +5055,6 @@ views:
                               z-index: 2;
                               box-shadow: none;
                             }
-                card_mod:
-                  style: |
-                    @media (max-width: 600px) {
-                      ha-card {
-                        margin-bottom: 80px; /* add margin before footer */
-                      }
-                    }
             layout:
               column_widths: 51% 51%
               width: 145
@@ -5086,6 +5079,13 @@ views:
               - device_tracker.sac_photo
               - device_tracker.velo_de_course
             aspect_ratio: 50%
+            card_mod:
+              style: |
+                @media (max-width: 600px) {
+                  ha-card {
+                    margin-bottom: 80px; /* add margin before footer */
+                  }
+                }
         view_layout:
           grid-area: right1
   - theme: Adaptive Mushroom
