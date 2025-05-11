@@ -102,3 +102,13 @@ automation:
         target:
           entity_id: alarm_control_panel.home_alarm
     mode: single
+
+template:
+  - sensor:
+      - name: total_open_windows
+        state: >
+          {{ states.binary_sensor      | selectattr('entity_id',
+          'match', '^binary_sensor\.fenetre_')     | selectattr('state',
+          'equalto', 'on')     | map(attribute='entity_id')     | list  | length }}
+        attributes: 
+          friendly_name: Total open windows
