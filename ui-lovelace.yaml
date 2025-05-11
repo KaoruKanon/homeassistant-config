@@ -2261,6 +2261,25 @@ views:
                           transform: scale(0.95);
                           transition: 0s
                         }
+                  - type: alarm-control-panel
+                    entity: alarm_control_panel.home_alarm
+                    content_info: state
+                    card_mod:
+                      style: |
+                        ha-card {
+                          float: left;
+                          margin: 5px;
+                          ping 5.0s ease-in-out infinite;
+                        }
+                        ha-card:active {
+                          transform: scale(0.95);
+                          transition: 0s
+                        }
+                        @keyframes ping {
+                            100% {--chip-background: rgba(var(--rgb-state-person-home), 0.2);}
+                            50% {--chip-background: rgba(var(--rgb-state-person-home), 0.8);}
+                            100% {--chip-background: rgba(var(--rgb-state-person-home), 0.2);}
+                        }
                   - type: entity
                     entity: person.kaoru
                     content_info: kaoru
