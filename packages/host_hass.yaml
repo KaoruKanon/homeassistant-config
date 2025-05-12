@@ -92,7 +92,13 @@ automation:
     condition: >
       {{ now().day == 1 }}
     action:
-      service: backup.create
+      - action: hassio.backup_full
+        metadata: {}
+        data:
+          compressed: true
+          name: >-
+            auto_monthly_backup_{{ states("sensor.date") | replace("-", "")}}_{{
+            states("sensor.time") | replace(":", "") }}
 
   - alias: auto_snapshot
     trigger:
