@@ -3671,451 +3671,250 @@ views:
           cards:
             - type: custom:mushroom-title-card
               title: Appareil et batteries
-            - square: false
-              columns: 2
-              type: grid
-              cards:
-                - type: custom:mushroom-template-card
-                  entity: sensor.oneplus12_battery_level
-                  primary: OnePlus 12
-                  secondary: "{{ states(entity) }}%"
-                  icon: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0) | int * 10 %}
-                    {% if battery_level == 100 %}
-                      mdi:battery
-                    {% elif battery_level > 0 %}
-                      mdi:battery-{{ battery_level }}
-                    {% else %}
-                      mdi:battery-alert-variant-outline
-                    {% endif %}
-                  icon_color: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-                    {% if battery_level > 60 %}
-                      green
-                    {% elif battery_level > 20 %}
-                      orange
-                    {% elif battery_level > 0 %}
-                      red
-                    {% else %}
-                      grey
-                    {% endif %}
-                  layout: horizontal
-                  tap_action:
-                    action: more-info
-                  badge_color: blue
-                  badge_icon: |-
-                    {% if is_state('binary_sensor.oneplus12_is_charging', 'on') %}
-                      mdi:lightning-bolt
-                    {% endif %}
-                  card_mod:
-                    style: |
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      mushroom-shape-icon {
-                        {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
-                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
-                        {% if is_state('binary_sensor.oneplus12_is_charging','on') and not battery_level == 100 %}
-                            animation: charging-animation 4s infinite;
+            - type: custom:mod-card
+              card_mod:
+                style:
+                  swipe-card$: |
+                    .swiper-wrapper {
+                      padding-bottom: 12% !important;
+                    }
+                    div > div.swiper-pagination.swiper-pagination-bullets > span.swiper-pagination-bullet.swiper-pagination-bullet-active {
+                      background: white;
+                    }
+                    div > div.swiper-pagination.swiper-pagination-bullets > span {
+                      background: white;
+                    }
+              card:
+                type: custom:swipe-card
+                parameters:
+                  spaceBetween: 8
+                  pagination:
+                    type: bullets
+                    color: white
+                cards:
+                - square: false
+                  columns: 2
+                  type: grid
+                  cards:
+                    - type: custom:mushroom-template-card
+                      entity: sensor.oneplus12_battery_level
+                      primary: OnePlus 12
+                      secondary: "{{ states(entity) }}%"
+                      icon: >
+                        {% set battery_level = (states(entity) | int / 10) | round(0) | int * 10 %}
+                        {% if battery_level == 100 %}
+                          mdi:battery
+                        {% elif battery_level > 0 %}
+                          mdi:battery-{{ battery_level }}
+                        {% else %}
+                          mdi:battery-alert-variant-outline
                         {% endif %}
-                      }
-                      @keyframes charging-animation {
-                        0% { --card-mod-icon: mdi:battery-outline; }
-                        10% { --card-mod-icon: mdi:battery-10; }
-                        20% { --card-mod-icon: mdi:battery-20; }
-                        30% { --card-mod-icon: mdi:battery-30; }
-                        40% { --card-mod-icon: mdi:battery-40; }
-                        50% { --card-mod-icon: mdi:battery-50; }
-                        60% { --card-mod-icon: mdi:battery-60; }
-                        70% { --card-mod-icon: mdi:battery-70; }
-                        80% { --card-mod-icon: mdi:battery-80; }
-                        90% { --card-mod-icon: mdi:battery-90; }
-                        100% { --card-mod-icon: mdi:battery; }
-                      }
-                - type: custom:mushroom-template-card
-                  entity: sensor.samsung_s24_battery_level
-                  primary: Samsung s24
-                  secondary: "{{ states(entity) }}%"
-                  icon: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-
-                    {% if battery_level == 100 %}
-                      mdi:battery
-                    {% elif battery_level > 0 %}
-                      mdi:battery-{{ battery_level }}
-                    {% else %}
-                      mdi:battery-alert-variant-outline
-                    {% endif %}
-                  icon_color: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-                    {% if battery_level > 60 %}
-                      green
-                    {% elif battery_level > 20 %}
-                      orange
-                    {% elif battery_level > 0 %}
-                      red
-                    {% else %}
-                      grey
-                    {% endif %}
-                  layout: horizontal
-                  tap_action:
-                    action: more-info
-                  badge_icon: >-
-                    {% if is_state('sensor.samsung_s10e_is_charging', 'Charging')
-                    %}
-                      mdi:lightning-bolt
-                    {% endif %}
-                  badge_color: blue
-                  card_mod:
-                    style: |
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      mushroom-shape-icon {
-                        {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
-                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
-                        {% if is_state('binary_sensor.samsung_s10e_is_charging','on') and not battery_level == 100 %}
-                            animation: charging-animation 4s infinite;
+                      icon_color: >
+                        {% set battery_level = (states(entity) | int / 10) | round(0)
+                        | int * 10 %}
+                        {% if battery_level > 60 %}
+                          green
+                        {% elif battery_level > 20 %}
+                          orange
+                        {% elif battery_level > 0 %}
+                          red
+                        {% else %}
+                          grey
                         {% endif %}
-                      }
-                      @keyframes charging-animation {
-                        0% { --card-mod-icon: mdi:battery-outline; }
-                        10% { --card-mod-icon: mdi:battery-10; }
-                        20% { --card-mod-icon: mdi:battery-20; }
-                        30% { --card-mod-icon: mdi:battery-30; }
-                        40% { --card-mod-icon: mdi:battery-40; }
-                        50% { --card-mod-icon: mdi:battery-50; }
-                        60% { --card-mod-icon: mdi:battery-60; }
-                        70% { --card-mod-icon: mdi:battery-70; }
-                        80% { --card-mod-icon: mdi:battery-80; }
-                        90% { --card-mod-icon: mdi:battery-90; }
-                        100% { --card-mod-icon: mdi:battery; }
-                      }
-                - type: custom:mushroom-template-card
-                  primary: Ch. Papa Thermomètre
-                  secondary: "{{ states(entity) | round() }}%"
-                  icon: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
+                      layout: horizontal
+                      tap_action:
+                        action: more-info
+                      badge_color: blue
+                      badge_icon: |-
+                        {% if is_state('binary_sensor.oneplus12_is_charging', 'on') %}
+                          mdi:lightning-bolt
+                        {% endif %}
+                      card_mod:
+                        style: |
+                          ha-card:active {
+                            transform: scale(0.95);
+                            transition: 0s;
+                          }
+                          mushroom-shape-icon {
+                            {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
+                            --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
+                            {% if is_state('binary_sensor.oneplus12_is_charging','on') and not battery_level == 100 %}
+                                animation: charging-animation 4s infinite;
+                            {% endif %}
+                          }
+                          @keyframes charging-animation {
+                            0% { --card-mod-icon: mdi:battery-outline; }
+                            10% { --card-mod-icon: mdi:battery-10; }
+                            20% { --card-mod-icon: mdi:battery-20; }
+                            30% { --card-mod-icon: mdi:battery-30; }
+                            40% { --card-mod-icon: mdi:battery-40; }
+                            50% { --card-mod-icon: mdi:battery-50; }
+                            60% { --card-mod-icon: mdi:battery-60; }
+                            70% { --card-mod-icon: mdi:battery-70; }
+                            80% { --card-mod-icon: mdi:battery-80; }
+                            90% { --card-mod-icon: mdi:battery-90; }
+                            100% { --card-mod-icon: mdi:battery; }
+                          }
+                    - type: custom:mushroom-template-card
+                      entity: sensor.samsung_s24_battery_level
+                      primary: Samsung s24
+                      secondary: "{{ states(entity) }}%"
+                      icon: >
+                        {% set battery_level = (states(entity) | int / 10) | round(0)
+                        | int * 10 %}
 
-                    {% if battery_level > 60 %}
-                      mdi:battery
-                    {% elif battery_level > 0 %}
-                      mdi:battery-{{ battery_level }}
-                    {% else %}
-                      mdi:battery-alert-variant-outline
-                    {% endif %}
-                  icon_color: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-                    {% if battery_level > 60 %}
-                      green
-                    {% elif battery_level > 20 %}
-                      orange
-                    {% elif battery_level > 0 %}
-                      red
-                    {% else %}
-                      grey
-                    {% endif %}
-                  layout: horizontal
-                  tap_action:
-                    action: more-info
-                  badge_color: blue
-                  entity: sensor.thermometer_chambre_papa_batterie
-                  card_mod:
-                    style: |
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      mushroom-shape-icon {
-                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
-                      }
-                - type: custom:mushroom-template-card
-                  primary: Ch. William Thermomètre
-                  secondary: "{{ states(entity) | round() }}%"
-                  icon: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-
-                    {% if battery_level > 60 %}
-                      mdi:battery
-                    {% elif battery_level > 0 %}
-                      mdi:battery-{{ battery_level }}
-                    {% else %}
-                      mdi:battery-alert-variant-outline
-                    {% endif %}
-                  icon_color: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-                    {% if battery_level > 60 %}
-                      green
-                    {% elif battery_level > 20 %}
-                      orange
-                    {% elif battery_level > 0 %}
-                      red
-                    {% else %}
-                      grey
-                    {% endif %}
-                  layout: horizontal
-                  tap_action:
-                    action: more-info
-                  badge_color: blue
-                  entity: sensor.thermometer_chambre_william_batterie
-                  card_mod:
-                    style: |
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      mushroom-shape-icon {
-                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
-                      }
-                - type: custom:mushroom-template-card
-                  primary: Cuisine Thermomètre
-                  secondary: "{{ states(entity) | round() }}%"
-                  icon: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-
-                    {% if battery_level > 60 %}
-                      mdi:battery
-                    {% elif battery_level > 0 %}
-                      mdi:battery-{{ battery_level }}
-                    {% else %}
-                      mdi:battery-alert-variant-outline
-                    {% endif %}
-                  icon_color: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-                    {% if battery_level > 60 %}
-                      green
-                    {% elif battery_level > 20 %}
-                      orange
-                    {% elif battery_level > 0 %}
-                      red
-                    {% else %}
-                      grey
-                    {% endif %}
-                  layout: horizontal
-                  tap_action:
-                    action: more-info
-                  badge_color: blue
-                  entity: sensor.thermometer_cuisine_batterie
-                  card_mod:
-                    style: |
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      mushroom-shape-icon {
-                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
-                      }
-                - type: custom:mushroom-template-card
-                  primary: Salle de bain Thermomètre
-                  secondary: "{{ states(entity) | round() }}%"
-                  icon: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-
-                    {% if battery_level > 60 %}
-                      mdi:battery
-                    {% elif battery_level > 0 %}
-                      mdi:battery-{{ battery_level }}
-                    {% else %}
-                      mdi:battery-alert-variant-outline
-                    {% endif %}
-                  icon_color: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-                    {% if battery_level > 60 %}
-                      green
-                    {% elif battery_level > 20 %}
-                      orange
-                    {% elif battery_level > 0 %}
-                      red
-                    {% else %}
-                      grey
-                    {% endif %}
-                  layout: horizontal
-                  tap_action:
-                    action: more-info
-                  badge_color: blue
-                  entity: sensor.thermometer_salle_de_bain_batterie
-                  card_mod:
-                    style: |
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      mushroom-shape-icon {
-                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
-                      }
-                - type: custom:mushroom-template-card
-                  primary: Salon Thermomètre
-                  secondary: "{{ states(entity) | round() }}%"
-                  icon: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-
-                    {% if battery_level > 60 %}
-                      mdi:battery
-                    {% elif battery_level > 0 %}
-                      mdi:battery-{{ battery_level }}
-                    {% else %}
-                      mdi:battery-alert-variant-outline
-                    {% endif %}
-                  icon_color: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-                    {% if battery_level > 60 %}
-                      green
-                    {% elif battery_level > 20 %}
-                      orange
-                    {% elif battery_level > 0 %}
-                      red
-                    {% else %}
-                      grey
-                    {% endif %}
-                  layout: horizontal
-                  tap_action:
-                    action: more-info
-                  badge_color: blue
-                  entity: sensor.thermometer_salon_batterie
-                  card_mod:
-                    style: |
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      mushroom-shape-icon {
-                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
-                      }
-                - type: custom:mushroom-template-card
-                  primary: PIR Couloir 1
-                  secondary: "{{ states(entity) | round() }}%"
-                  icon: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-
-                    {% if battery_level > 60 %}
-                      mdi:battery
-                    {% elif battery_level > 0 %}
-                      mdi:battery-{{ battery_level }}
-                    {% else %}
-                      mdi:battery-alert-variant-outline
-                    {% endif %}
-                  icon_color: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-                    {% if battery_level > 60 %}
-                      green
-                    {% elif battery_level > 20 %}
-                      orange
-                    {% elif battery_level > 0 %}
-                      red
-                    {% else %}
-                      grey
-                    {% endif %}
-                  layout: horizontal
-                  tap_action:
-                    action: more-info
-                  badge_color: blue
-                  entity: sensor.pir_couloir1_batterie
-                  card_mod:
-                    style: |
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      mushroom-shape-icon {
-                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
-                      }
-                - type: custom:mushroom-template-card
-                  primary: PIR Couloir 2
-                  secondary: "{{ states(entity) | round() }}%"
-                  icon: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-
-                    {% if battery_level > 60 %}
-                      mdi:battery
-                    {% elif battery_level > 0 %}
-                      mdi:battery-{{ battery_level }}
-                    {% else %}
-                      mdi:battery-alert-variant-outline
-                    {% endif %}
-                  icon_color: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-                    {% if battery_level > 60 %}
-                      green
-                    {% elif battery_level > 20 %}
-                      orange
-                    {% elif battery_level > 0 %}
-                      red
-                    {% else %}
-                      grey
-                    {% endif %}
-                  layout: horizontal
-                  tap_action:
-                    action: more-info
-                  badge_color: blue
-                  entity: sensor.pir_couloir2_batterie
-                  card_mod:
-                    style: |
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      mushroom-shape-icon {
-                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
-                      }
-                - type: custom:mushroom-template-card
-                  primary: PIR WC
-                  secondary: "{{ states(entity) | round() }}%"
-                  icon: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-
-                    {% if battery_level > 60 %}
-                      mdi:battery
-                    {% elif battery_level > 0 %}
-                      mdi:battery-{{ battery_level }}
-                    {% else %}
-                      mdi:battery-alert-variant-outline
-                    {% endif %}
-                  icon_color: >
-                    {% set battery_level = (states(entity) | int / 10) | round(0)
-                    | int * 10 %}
-                    {% if battery_level > 60 %}
-                      green
-                    {% elif battery_level > 20 %}
-                      orange
-                    {% elif battery_level > 0 %}
-                      red
-                    {% else %}
-                      grey
-                    {% endif %}
-                  layout: horizontal
-                  tap_action:
-                    action: more-info
-                  badge_color: blue
-                  entity: sensor.pir_wc_batterie
-                  card_mod:
-                    style: |
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      mushroom-shape-icon {
-                        --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
-                      }
+                        {% if battery_level == 100 %}
+                          mdi:battery
+                        {% elif battery_level > 0 %}
+                          mdi:battery-{{ battery_level }}
+                        {% else %}
+                          mdi:battery-alert-variant-outline
+                        {% endif %}
+                      icon_color: >
+                        {% set battery_level = (states(entity) | int / 10) | round(0)
+                        | int * 10 %}
+                        {% if battery_level > 60 %}
+                          green
+                        {% elif battery_level > 20 %}
+                          orange
+                        {% elif battery_level > 0 %}
+                          red
+                        {% else %}
+                          grey
+                        {% endif %}
+                      layout: horizontal
+                      tap_action:
+                        action: more-info
+                      badge_icon: >-
+                        {% if is_state('sensor.samsung_s10e_is_charging', 'Charging')
+                        %}
+                          mdi:lightning-bolt
+                        {% endif %}
+                      badge_color: blue
+                      card_mod:
+                        style: |
+                          ha-card:active {
+                            transform: scale(0.95);
+                            transition: 0s;
+                          }
+                          mushroom-shape-icon {
+                            {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
+                            --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
+                            {% if is_state('binary_sensor.samsung_s10e_is_charging','on') and not battery_level == 100 %}
+                                animation: charging-animation 4s infinite;
+                            {% endif %}
+                          }
+                          @keyframes charging-animation {
+                            0% { --card-mod-icon: mdi:battery-outline; }
+                            10% { --card-mod-icon: mdi:battery-10; }
+                            20% { --card-mod-icon: mdi:battery-20; }
+                            30% { --card-mod-icon: mdi:battery-30; }
+                            40% { --card-mod-icon: mdi:battery-40; }
+                            50% { --card-mod-icon: mdi:battery-50; }
+                            60% { --card-mod-icon: mdi:battery-60; }
+                            70% { --card-mod-icon: mdi:battery-70; }
+                            80% { --card-mod-icon: mdi:battery-80; }
+                            90% { --card-mod-icon: mdi:battery-90; }
+                            100% { --card-mod-icon: mdi:battery; }
+                          }
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.thermometer_chambre_papa_batterie
+                        - primary: Ch. Papa Thermomètre
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.thermometer_chambre_william_batterie
+                        - primary: Ch. William Thermomètre
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.thermometer_cuisine_batterie
+                        - primary: Cuisine Thermomètre
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.thermometer_salon_batterie
+                        - primary: Salon Thermomètre
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.thermometer_salle_de_bain_batterie
+                        - primary: Bain Thermomètre
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.pir_couloir1_batterie
+                        - primary: PIR Couloir 1
+                - square: false
+                  columns: 2
+                  type: grid
+                  cards:
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.pir_couloir2_batterie
+                        - primary: PIR Couloir 2
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.pir_wc_batterie
+                        - primary: PIR WC
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.lux_pir_couloir_batterie
+                        - primary: Lux PIR Couloir
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.switch_chambre_william_1_batterie
+                        - primary: Switch William 1
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.switch_chambre_william_2_batterie
+                        - primary: Switch William 2
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.switch_chambre_william_2_batterie
+                        - primary: Switch William 3
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.fenetre_salon_1_batterie
+                        - primary: Fenêtre Salon 1
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.fenetre_salon_1_batterie
+                        - primary: Fenêtre Salon 2
+                - square: false
+                  columns: 2
+                  type: grid
+                  cards:
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.fenetre_cuisine_batterie
+                        - primary: Fenêtre Cusine
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.fenetre_chambre_william_batterie
+                        - primary: Fenêtre Chambre William
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.fenetre_chambre_papa_batterie
+                        - primary: Fenêtre Chambre Papa
+                    - type: custom:decluttering-card
+                      template: batterie_template
+                      variables:
+                        - entity: sensor.porte_couloir_entree_batterie
+                        - primary: Porte d'entrée
         view_layout:
           grid-area: batteries
   - theme: Adaptive Mushroom
