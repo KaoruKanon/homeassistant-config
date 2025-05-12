@@ -2489,7 +2489,7 @@ views:
               states.switch.computer_papa,
               states.switch.computer_rig_kaoru,
             ] %}
-            {%- set lights_on = states.light| selectattr('state','eq','on') | list %}
+            {%- set lights_on = states.light| selectattr('state','eq','on') | rejectattr('attributes.type', 'equalto', 'browser_mod') | list %}
             {%- set lights_name = lights_on | selectattr('state','eq','on') | map(attribute='name') | join(', ') %}
             {%- set switches_on = switches | selectattr('state','eq','on') | list %}
             {%- set switches_name = switches | selectattr('state','eq','on') | map(attribute='name') | join(', ') %}
