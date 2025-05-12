@@ -139,3 +139,54 @@ automation:
             else %}   Les fenêtres {{ noms[:-1] | join(', ') }} et {{ noms[-1] }}
             sont ouvertes. {% endif %}
     mode: single
+
+  - alias: notify_low_battery
+    description: ""
+    triggers:
+      - trigger: time
+        at: "07:00:00"
+    conditions:
+      - condition: template
+        value_template: >-
+          {% set batteries = states.sensor
+            | selectattr('entity_id', 'match', '^sensor\..*_batterie')
+            | selectattr('state','<', '10')
+            | map(attribute='entity_id')
+            | list %}
+    actions:
+      - action: notify.mobile_app_oneplus12
+        metadata: {}
+        data:
+          message: >-
+            {% set batteries = states.sensor 
+            | selectattr('entity_id', 'match','^sensor\..*_batterie') 
+            | selectattr('state','<', '10') 
+            | map(attribute='entity_id')
+            | list %}
+
+            {% set noms = batteries | map('replace', 'sensor.', '') 
+            | map('replace','batterie', '') 
+            | map('replace', '_', ' ')  
+            | map('title') 
+            | list  %}
+
+            {% if noms | length == 1 %}
+              La batterie {{ noms[0] }} est inférieure à 10%.
+            {% else %}
+              Les batteries sont inférieures à 10% :
+            {% for nom in noms %}
+              • {{ nom }}{% endfor %}
+            {% endif %}
+          title: >-
+            {% set batteries = states.sensor *
+            | selectattr('entity_id', 'match', '^sensor\..*_batterie') 
+            | selectattr('state','<', '10') 
+            | map(attribute='entity_id') 
+            | list  %}
+
+            {% if noms | length == 1 %}
+              Batterie faible 🪫⚠️
+            {% else %}
+              Batteries faibles 🪫⚠️
+            {% endif %}
+    mode: single
