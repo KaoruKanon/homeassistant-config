@@ -5011,7 +5011,7 @@ views:
                     entity: sensor.average_temperature
                     primary: "Maison"
                     secondary: >
-                      {{states(entity) | round(1)}}°C/{{ states('sensor.average_humidity') | round(1) }}%
+                      {{states("sensor.average_temperature") | round(1)}}º / {{states("sensor.average_humidity") | round(1)}}%
                     icon: mdi:home
                     icon_color: var(--mush-rgb-orange)
                     tap_action:
