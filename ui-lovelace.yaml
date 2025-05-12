@@ -36,7 +36,7 @@ decluttering_templates:
             - type: template
               icon: mdi:devices
               icon_color: |
-                {% if '[[active-view]]' == 'apparaten' %}
+                {% if '[[active-view]]' == 'device' %}
                   var(--cstm-rgb-bottom-nav)
                 {% else %}
                   disabled
@@ -44,11 +44,11 @@ decluttering_templates:
               content: ""
               tap_action:
                 action: navigate
-                navigation_path: /[[dashboard-name]]/apparaten
+                navigation_path: /[[dashboard-name]]/device
               card_mod:
                 style: |
                   ha-card {
-                    {% if '[[active-view]]' == 'apparaten' %}
+                    {% if '[[active-view]]' == 'device' %}
                     --chip-background: rgba(var(--cstm-rgb-on), 0.8);
                     {% endif %}
                   }
@@ -192,7 +192,7 @@ decluttering_templates:
         - type: custom:mushroom-template-card
           icon: mdi:devices
           icon_color: |
-            {% if '[[active-view]]' == 'apparaten' %}
+            {% if '[[active-view]]' == 'device' %}
               var(--cstm-rgb-on)
             {% else %}
               grey
@@ -200,11 +200,11 @@ decluttering_templates:
           layout: vertical
           tap_action:
             action: navigate
-            navigation_path: /[[dashboard-name]]/apparaten
+            navigation_path: /[[dashboard-name]]/device
           card_mod:
             style: |
               ha-card {
-                {% if '[[active-view]]' == 'apparaten' %}
+                {% if '[[active-view]]' == 'device' %}
                 --chip-background: rgba(var(--cstm-rgb-on), 0.8);
                 {% endif %}
               }
@@ -977,7 +977,7 @@ views:
               title: Media
               title_tap_action:
                 action: navigate
-                navigation_path: /lovelace/apparaten
+                navigation_path: /lovelace/device
           - type: conditional
             conditions:
               - entity: media_player.spotify
@@ -2489,7 +2489,7 @@ views:
           grid-area: badge
   - theme: Adaptive Mushroom
     title: Appareil
-    path: apparaten
+    path: device
     icon: mdi:devices
     type: custom:grid-layout
     layout:
@@ -2525,7 +2525,7 @@ views:
             template: side-nav
             variables:
               - dashboard-name: lovelace
-              - active-view: apparaten
+              - active-view: device
         view_layout:
           grid-area: nav
           show:
@@ -2537,7 +2537,7 @@ views:
             template: bottom-nav
             variables:
               - dashboard-name: lovelace
-              - active-view: apparaten
+              - active-view: device
         card_mod:
           style: |
             ha-card {
