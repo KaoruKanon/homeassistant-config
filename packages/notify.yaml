@@ -194,7 +194,7 @@ automation:
               • {{ nom }}{% endfor %}
             {% endif %}
           title: >-
-            {% set batteries = states.sensor *
+            {% set batteries = states.sensor
             | selectattr('entity_id', 'match', '^sensor\..*_batterie') 
             | selectattr('state','<', '10') 
             | map(attribute='entity_id') 
