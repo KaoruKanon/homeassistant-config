@@ -2299,16 +2299,48 @@ views:
                         ha-card {
                           float: left;
                           margin: 5px;
-                          ping 5.0s ease-in-out infinite;
+                          {% if states("alarm_control_panel.home_alarm") == "arming" %}
+                          --chip-background: rgba(var(--rgb-orange), 0.1);
+                          animation: ping-arming 1.0s ease-in-out infinite;
+                          {% elif states("alarm_control_panel.home_alarm") == "armed_away" %}
+                          --chip-background: rgba(var(--rgb-red), 0.1);
+                          animation: ping-armed-away 5.0s ease-in-out infinite;          
+                          {% elif states("alarm_control_panel.home_alarm") == "armed_home" %}
+                          --chip-background: rgba(var(--rgb-red), 0.2);
+                          animation: ping-armed-away 5.0s ease-in-out infinite;
+                          {% elif states("alarm_control_panel.home_alarm") == "pending" %}
+                          --chip-background: rgba(var(--rgb-red), 0.2);
+                          animation: ping-pending 1.0s ease-in-out infinite;
+                          {% elif states("alarm_control_panel.home_alarm") == "triggered" %}
+                          --chip-background: rgba(var(--rgb-red), 0.2);
+                          animation: ping-triggered 0.4s ease-in-out infinite;
+                          {% else %}
+                          --chip-background: rgba(var(--rgb-blue), 0.2);
+                          {% endif %}
                         }
                         ha-card:active {
                           transform: scale(0.95);
                           transition: 0s
                         }
-                        @keyframes ping {
-                            100% {--chip-background: rgba(var(--rgb-state-person-home), 0.2);}
-                            50% {--chip-background: rgba(var(--rgb-state-person-home), 0.8);}
-                            100% {--chip-background: rgba(var(--rgb-state-person-home), 0.2);}
+                        @keyframes ping-arming {
+                          100% {background: rgba(var(--rgb-orange), 0.2);}
+                          70% {background: rgba(var(--rgb-orange), 0.4);}
+                        }
+                        @keyframes ping-armed-away {
+                          100% {background: rgba(var(--rgb-red), 0.2);}
+                          70% {background: rgba(var(--rgb-red), 0.4);}
+                        }
+                        @keyframes ping-armed-home {
+                          100% {background: rgba(var(--rgb-red), 0.2);}
+                          70% {background: rgba(var(--rgb-red), 0.4);}
+                        }
+                        @keyframes ping-pending {
+                          100% {background: rgba(var(--rgb-red), 0.2);}
+                          70% {background: rgba(var(--rgb-yelllow), 0.4);}
+                        }
+                        @keyframes ping-triggered {
+                          100% {background: rgba(var(--rgb-red), 0.2)}
+                          70% {background: rgba(var(--rgb-red), 0.4);}
                         }
                   - type: entity
                     entity: person.kaoru
