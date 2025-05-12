@@ -130,14 +130,21 @@ automation:
         data:
           title: Il va pleuvoir 🌧️
           message: >-
-            {% set ouvertures = states.binary_sensor      | selectattr('entity_id',
-            'match', '^binary_sensor\.fenetre_')     | selectattr('state',
-            'equalto', 'on')     | map(attribute='entity_id')     | list  %}  {% set
-            noms = ouvertures      | map('replace', 'binary_sensor.fenetre_',
-            '')      | map('replace', '_', ' ')      | map('title')      | list  %} 
-            {% if noms | length == 1 %}   La fenêtre {{ noms[0] }} est ouverte. {%
-            else %}   Les fenêtres {{ noms[:-1] | join(', ') }} et {{ noms[-1] }}
-            sont ouvertes. {% endif %}
+            {% set ouvertures = states.binary_sensor
+            | selectattr('entity_id', 'match', '^binary_sensor\.fenetre_')
+            | selectattr('state','equalto', 'on')
+            | map(attribute='entity_id') 
+            | list  %}  
+            {% set noms = ouvertures 
+            | map('replace', 'binary_sensor.fenetre_','') 
+            | map('replace', '_', ' ')
+            | map('title')
+            | list  %}
+
+            {% if noms | length == 1 %}   
+            La fenêtre {{ noms[0] }} est ouverte. 
+            {% else %}   
+            Les fenêtres {{ noms[:-1] | join(', ') }} et {{ noms[-1] }} sont ouvertes. {% endif %}
     mode: single
 
   - alias: notify_low_battery
