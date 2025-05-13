@@ -3675,9 +3675,16 @@ views:
               card_mod:
                 style:
                   swipe-card$: |
-                    .swiper-wrapper {
-                      padding-bottom: 12% !important;
-                    }
+                    @media (min-width: 1200px) and (max-width: 1300px) {
+                      .swiper-wrapper {
+                        padding-bottom: 10% !important;
+                      }
+                    } 
+                    @media (max-width: 600px) {
+                      .swiper-wrapper {
+                        padding-bottom: 15% !important;
+                      }
+                    } 
                     div > div.swiper-pagination.swiper-pagination-bullets > span.swiper-pagination-bullet.swiper-pagination-bullet-active {
                       background: white;
                     }
@@ -4043,9 +4050,16 @@ views:
             card_mod:
               style:
                 swipe-card$: |
-                  .swiper-wrapper {
-                    padding-bottom: 10% !important;
-                  }
+                  @media (min-width: 1200px) and (max-width: 1300px) {
+                    .swiper-wrapper {
+                      padding-bottom: 10% !important;
+                    }
+                  } 
+                  @media (max-width: 600px) {
+                    .swiper-wrapper {
+                      padding-bottom: 15% !important;
+                    }
+                  } 
                   div > div.swiper-pagination.swiper-pagination-bullets > span.swiper-pagination-bullet.swiper-pagination-bullet-active {
                     background: white;
                   }
@@ -4403,15 +4417,20 @@ views:
               card_mod:
                 style:
                   swipe-card$: >
-                    .swiper-wrapper {
-                      padding-bottom: 10% !important;
-                    }
-
+                    @media (min-width: 1200px) and (max-width: 1300px) {
+                      .swiper-wrapper {
+                        padding-bottom: 10% !important;
+                      }
+                    } 
+                    @media (max-width: 600px) {
+                      .swiper-wrapper {
+                        padding-bottom: 15% !important;
+                      }
+                    } 
                     div > div.swiper-pagination.swiper-pagination-bullets >
                     span.swiper-pagination-bullet.swiper-pagination-bullet-active {
                       background: white;
                     }
-
                     div > div.swiper-pagination.swiper-pagination-bullets > span {
                       background: white;
                     }
