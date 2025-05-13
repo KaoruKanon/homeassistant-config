@@ -4963,17 +4963,12 @@ views:
           - type: custom:mushroom-title-card
             title: Cartes
             subtitle: ""
-          - type: map
-            default_zoom: 14
-            dark_mode: true
-            entities:
-              - person.papa
-              - person.kaoru
-              - device_tracker.cles
-              - device_tracker.portefeuille
-              - device_tracker.sac_photo
-              - device_tracker.velo_de_course
-            aspect_ratio: 50%
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Cartes
+            subtitle: ""
+          - type: custom:mod-card
             card_mod:
               style: |
                 @media (max-width: 600px) {
@@ -4981,6 +4976,17 @@ views:
                     margin-bottom: 80px; /* add margin before footer */
                   }
                 }
+            card:
+              type: map
+              default_zoom: 14
+              dark_mode: true
+              entities:
+                - person.papa
+                - person.kaoru
+                - device_tracker.cles
+                - device_tracker.portefeuille
+                - device_tracker.sac_photo
+                - device_tracker.velo_de_course
         view_layout:
           grid-area: right1
   - theme: Adaptive Mushroom
