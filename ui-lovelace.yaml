@@ -3663,7 +3663,7 @@ views:
           style: |
             @media (max-width: 600px) {
               ha-card {
-                margin-bottom: 80px; /* add margin before footer */
+                margin-bottom: 50px; /* add margin before swipe card and footer */
               }
             }
         card:
@@ -3684,8 +3684,12 @@ views:
                       .swiper-wrapper {
                         padding-bottom: 15% !important;
                       }
+                      div > div.swiper-pagination.swiper-pagination-bullets {
+                        bottom: 14px;
+                      }
                     } 
-                    div > div.swiper-pagination.swiper-pagination-bullets > span.swiper-pagination-bullet.swiper-pagination-bullet-active {
+                    div > div.swiper-pagination.swiper-pagination-bullets >
+                    span.swiper-pagination-bullet.swiper-pagination-bullet-active {
                       background: white;
                     }
                     div > div.swiper-pagination.swiper-pagination-bullets > span {
@@ -4049,6 +4053,12 @@ views:
           - type: custom:mod-card
             card_mod:
               style:
+                .: |
+                  @media (min-width: 1200px) and (max-width: 1300px) {
+                    ha-card {
+                      margin-bottom: -35px;
+                    }
+                  }
                 swipe-card$: |
                   @media (min-width: 1200px) and (max-width: 1300px) {
                     .swiper-wrapper {
@@ -4057,10 +4067,14 @@ views:
                   } 
                   @media (max-width: 600px) {
                     .swiper-wrapper {
-                      padding-bottom: 15% !important;
+                      padding-bottom: 10% !important;
+                    }
+                    div > div.swiper-pagination.swiper-pagination-bullets {
+                      bottom: 0;
                     }
                   } 
-                  div > div.swiper-pagination.swiper-pagination-bullets > span.swiper-pagination-bullet.swiper-pagination-bullet-active {
+                  div > div.swiper-pagination.swiper-pagination-bullets >
+                  span.swiper-pagination-bullet.swiper-pagination-bullet-active {
                     background: white;
                   }
                   div > div.swiper-pagination.swiper-pagination-bullets > span {
@@ -4407,7 +4421,7 @@ views:
           style: |
             @media (max-width: 600px) {
               ha-card {
-                margin-bottom: 80px;
+                margin-bottom: 50px; /* add margin before swipe card and footer */
               }
             }
         card:
@@ -4428,6 +4442,9 @@ views:
                     @media (max-width: 600px) {
                       .swiper-wrapper {
                         padding-bottom: 15% !important;
+                      }
+                      div > div.swiper-pagination.swiper-pagination-bullets {
+                        bottom: 14px;
                       }
                     } 
                     div > div.swiper-pagination.swiper-pagination-bullets >
