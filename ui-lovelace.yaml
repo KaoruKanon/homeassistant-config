@@ -4149,7 +4149,10 @@ views:
                     card_mod:
                       style: |
                         ha-card {
-                          font-size: 12px;
+                          font-size: 11px;
+                        }
+                        ha-card > div > div.horizon-card-footer > div:nth-child(1) {
+                          margin-top: -20px;
                         }
         view_layout:
           grid-area: left1
