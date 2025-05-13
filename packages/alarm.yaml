@@ -73,6 +73,11 @@ automation:
             ttl: 0
             priority: high
             channel: alarm_stream
+      - action: script.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: script.alarm_sound_google_home
 
   - alias: "notify_when_alarm_armedaway"
     triggers:
@@ -102,6 +107,41 @@ automation:
         target:
           entity_id: alarm_control_panel.home_alarm
     mode: single
+
+script: 
+  alarm_sound_google_home:
+    alias: alarm_sound_google_home
+    description: ""
+    sequence:
+    - action: media_player.volume_set
+      metadata: {}
+      data:
+        volume_level: 1
+      target:
+        entity_id:
+          - media_player.google_home_chambre
+          - media_player.google_home_cuisine
+    - action: media_player.play_media
+      metadata: {}
+      data:
+        media_content_id: https://hass.kaoru.fr/local/sound/alarm.mp3
+        media_content_type: audio/mp3
+      target:
+        entity_id:
+          - media_player.google_home_chambre
+          - media_player.google_home_cuisine
+    - delay:
+        hours: 0
+        minutes: 1
+        seconds: 0
+        milliseconds: 0
+    - action: media_player.media_stop
+      metadata: {}
+      data: {}
+      target:
+        entity_id:
+          - media_player.google_home_chambre
+          - media_player.google_home_cuisine
 
 template:
   - sensor:
