@@ -58,13 +58,13 @@ decluttering_templates:
                   }
             - type: template
               icon: |
-                {% if '[[active-view]]' == 'nieuws' %}
+                {% if '[[active-view]]' == 'news' %}
                   mdi:bell
                 {% else %}
                   mdi:bell-outline
                 {% endif %}
               icon_color: |
-                {% if '[[active-view]]' == 'nieuws' %}
+                {% if '[[active-view]]' == 'news' %}
                   var(--cstm-rgb-bottom-nav)
                 {% else %}
                   disabled
@@ -72,11 +72,11 @@ decluttering_templates:
               content: ""
               tap_action:
                 action: navigate
-                navigation_path: /[[dashboard-name]]/nieuws
+                navigation_path: /[[dashboard-name]]/news
               card_mod:
                 style: |
                   ha-card {
-                    {% if '[[active-view]]' == 'nieuws' %}
+                    {% if '[[active-view]]' == 'news' %}
                     --chip-background: rgba(var(--cstm-rgb-on), 0.8);
                     {% endif %}
                   }
@@ -210,13 +210,13 @@ decluttering_templates:
               }
         - type: custom:mushroom-template-card
           icon: |
-            {% if '[[active-view]]' == 'nieuws' %}
+            {% if '[[active-view]]' == 'news' %}
               mdi:bell
             {% else %}
               mdi:bell-outline
             {% endif %}
           icon_color: |
-            {% if '[[active-view]]' == 'nieuws' %}
+            {% if '[[active-view]]' == 'news' %}
               var(--cstm-rgb-on)
             {% else %}
               grey
@@ -224,11 +224,11 @@ decluttering_templates:
           layout: vertical
           tap_action:
             action: navigate
-            navigation_path: /[[dashboard-name]]/nieuws
+            navigation_path: /[[dashboard-name]]/news
           card_mod:
             style: |
               ha-card {
-                {% if '[[active-view]]' == 'nieuws' %}
+                {% if '[[active-view]]' == 'news' %}
                 --chip-background: rgba(var(--cstm-rgb-on), 0.8);
                 {% endif %}
               }
@@ -413,7 +413,7 @@ decluttering_templates:
       icon_color: grey
       tap_action:
         action: navigate
-        navigation_path: /lovelace/nieuws
+        navigation_path: /lovelace/news
       badge_icon: ""
       badge_color: ""
       card_mod:
@@ -2073,7 +2073,7 @@ views:
             title: News
             title_tap_action:
               action: navigate
-              navigation_path: /lovelace/nieuws
+              navigation_path: /lovelace/news
           - type: custom:stack-in-card
             cards:
               - type: custom:layout-card
@@ -3929,8 +3929,8 @@ views:
         view_layout:
           grid-area: batteries
   - theme: Adaptive Mushroom
-    title: Nieuws
-    path: nieuws
+    title: News
+    path: news
     icon: mdi:bell-outline
     type: custom:grid-layout
     layout:
@@ -3969,7 +3969,7 @@ views:
             template: side-nav
             variables:
               - dashboard-name: lovelace
-              - active-view: nieuws
+              - active-view: news
         view_layout:
           grid-area: nav
           show:
@@ -3981,7 +3981,7 @@ views:
             template: bottom-nav
             variables:
               - dashboard-name: lovelace
-              - active-view: nieuws
+              - active-view: news
         card_mod:
           style: |
             ha-card {
@@ -4421,7 +4421,7 @@ views:
           style: |
             @media (max-width: 600px) {
               ha-card {
-                margin-bottom: 50px; /* add margin before swipe card and footer */
+                margin-bottom: 80px;
               }
             }
         card:
