@@ -86,13 +86,13 @@ decluttering_templates:
                   }
             - type: template
               icon: |
-                {% if '[[active-view]]' == 'automatiseringen' %}
+                {% if '[[active-view]]' == 'automation' %}
                   mdi:creation
                 {% else %}
                   mdi:creation-outline
                 {% endif %}
               icon_color: |
-                {% if '[[active-view]]' == 'automatiseringen' %}
+                {% if '[[active-view]]' == 'automation' %}
                   var(--cstm-rgb-bottom-nav)
                 {% else %}
                   disabled
@@ -100,11 +100,11 @@ decluttering_templates:
               content: ""
               tap_action:
                 action: navigate
-                navigation_path: /[[dashboard-name]]/automatiseringen
+                navigation_path: /[[dashboard-name]]/automation
               card_mod:
                 style: |
                   ha-card {
-                    {% if '[[active-view]]' == 'automatiseringen' %}
+                    {% if '[[active-view]]' == 'automation' %}
                     --chip-background: rgba(var(--cstm-rgb-on), 0.8);
                     {% endif %}
                   }
@@ -234,13 +234,13 @@ decluttering_templates:
               }
         - type: custom:mushroom-template-card
           icon: |
-            {% if '[[active-view]]' == 'automatiseringenv' %}
+            {% if '[[active-view]]' == 'automationv' %}
               mdi:creation
             {% else %}
               mdi:creation-outline
             {% endif %}
           icon_color: |
-            {% if '[[active-view]]' == 'automatiseringen' %}
+            {% if '[[active-view]]' == 'automation' %}
               var(--cstm-rgb-on)
             {% else %}
               grey
@@ -248,11 +248,11 @@ decluttering_templates:
           layout: vertical
           tap_action:
             action: navigate
-            navigation_path: /[[dashboard-name]]/automatiseringen
+            navigation_path: /[[dashboard-name]]/automation
           card_mod:
             style: |
               ha-card {
-                {% if '[[active-view]]' == 'automatiseringen' %}
+                {% if '[[active-view]]' == 'automation' %}
                 --chip-background: rgba(var(--cstm-rgb-on), 0.8);
                 {% endif %}
               }
@@ -4742,7 +4742,7 @@ views:
           grid-area: right2
   - theme: Adaptive Mushroom
     title: Automatisation
-    path: automatiseringen
+    path: automation
     icon: mdi:creation
     type: custom:grid-layout
     layout:
@@ -4780,7 +4780,7 @@ views:
             template: side-nav
             variables:
               - dashboard-name: lovelace
-              - active-view: automatiseringen
+              - active-view: automation
         view_layout:
           grid-area: nav
           show:
@@ -4792,7 +4792,7 @@ views:
             template: bottom-nav
             variables:
               - dashboard-name: lovelace
-              - active-view: automatiseringen
+              - active-view: automation
         card_mod:
           style: |
             ha-card {
