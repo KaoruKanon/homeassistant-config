@@ -114,13 +114,13 @@ decluttering_templates:
                   }
             - type: template
               icon: |
-                {% if '[[active-view]]' == 'instellingen' %}
+                {% if '[[active-view]]' == 'system' %}
                   mdi:cog
                 {% else %}
                   mdi:cog-outline
                 {% endif %}
               icon_color: |
-                {% if '[[active-view]]' == 'instellingen' %}
+                {% if '[[active-view]]' == 'system' %}
                   var(--cstm-rgb-bottom-nav)
                 {% else %}
                   disabled
@@ -128,11 +128,11 @@ decluttering_templates:
               content: ""
               tap_action:
                 action: navigate
-                navigation_path: /[[dashboard-name]]/instellingen
+                navigation_path: /[[dashboard-name]]/system
               card_mod:
                 style: |
                   ha-card {
-                    {% if '[[active-view]]' == 'instellingen' %}
+                    {% if '[[active-view]]' == 'system' %}
                     --chip-background: rgba(var(--cstm-rgb-on), 0.8);
                     {% endif %}
                   }
@@ -258,13 +258,13 @@ decluttering_templates:
               }
         - type: custom:mushroom-template-card
           icon: |
-            {% if '[[active-view]]' == 'instellingen' %}
+            {% if '[[active-view]]' == 'system' %}
               mdi:cog
             {% else %}
               mdi:cog-outline
             {% endif %}
           icon_color: |
-            {% if '[[active-view]]' == 'instellingen' %}
+            {% if '[[active-view]]' == 'system' %}
               var(--cstm-rgb-on)
             {% else %}
               grey
@@ -272,11 +272,11 @@ decluttering_templates:
           layout: vertical
           tap_action:
             action: navigate
-            navigation_path: /[[dashboard-name]]/instellingen
+            navigation_path: /[[dashboard-name]]/system
           card_mod:
             style: |
               ha-card {
-                {% if '[[active-view]]' == 'instellingen' %}
+                {% if '[[active-view]]' == 'system' %}
                 --chip-background: rgba(var(--cstm-rgb-on), 0.8);
                 {% endif %}
               }
@@ -5009,7 +5009,7 @@ views:
   - theme: Adaptive Mushroom
     icon: mdi:cog
     title: Système
-    path: instellingen
+    path: system
     type: custom:grid-layout
     layout:
       grid-template-columns: 0em 74px 30% 30% 30% auto
@@ -5047,7 +5047,7 @@ views:
             template: side-nav
             variables:
               - dashboard-name: lovelace
-              - active-view: instellingen
+              - active-view: system
         view_layout:
           grid-area: nav
           show:
@@ -5059,7 +5059,7 @@ views:
             template: bottom-nav
             variables:
               - dashboard-name: lovelace
-              - active-view: instellingen
+              - active-view: system
         card_mod:
           style: |
             ha-card {
