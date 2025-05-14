@@ -3680,9 +3680,9 @@ views:
                         padding-bottom: 10% !important;
                       }
                     } 
-                    @media (max-width: 600px) {
+                    @media (min-width: 0px) {
                       .swiper-wrapper {
-                        padding-bottom: 15% !important;
+                        padding-bottom: 50px !important;
                       }
                       div > div.swiper-pagination.swiper-pagination-bullets {
                         bottom: 14px;
@@ -4065,9 +4065,9 @@ views:
                       padding-bottom: 10% !important;
                     }
                   } 
-                  @media (max-width: 600px) {
+                  @media (min-width: 0px) {
                     .swiper-wrapper {
-                      padding-bottom: 10% !important;
+                      padding-bottom: 25px !important;
                     }
                     div > div.swiper-pagination.swiper-pagination-bullets {
                       bottom: 0;
@@ -4438,10 +4438,10 @@ views:
                       .swiper-wrapper {
                         padding-bottom: 10% !important;
                       }
-                    } 
-                    @media (max-width: 600px) {
+                    }
+                    @media (min-width: 0px) {
                       .swiper-wrapper {
-                        padding-bottom: 15% !important;
+                        padding-bottom: 50px !important;
                       }
                       div > div.swiper-pagination.swiper-pagination-bullets {
                         bottom: 14px;
