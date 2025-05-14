@@ -3642,9 +3642,35 @@ views:
                 icon_animation: true
                 card_mod:
                   style:
+                    mushroom-fan-percentage-control$: |
+                      mushroom-slider {
+                          --main-color: rgba(var(--mush-rgb-blue), 0.8) !important;
+                          --bg-color: rgba(var(--cstm-rgb-automation-on-icon), 0.2) !important;
+                        }
+                    mushroom-fan-oscillate-control$:
+                      mushroom-button:nth-child(1)$: |
+                        .button {
+                          background: rgba(var(--cstm-rgb-automation-on-icon), 0.2) !important;
+                        }
+                        .button ::slotted(*) {
+                          --card-mod-icon-color: rgb(var(--cstm-rgb-automation-on-icon)) !important;
+                        }
+                    mushroom-shape-icon$: |
+                      .shape {
+                        --shape-color: rgba(var(--cstm-rgb-automation-on-icon), 0.2) !important;
+                      }
                     .: |
+                      ha-state-icon {
+                        {% if is_state(config.entity, 'on') %}
+                          color: rgb(var(--cstm-rgb-automation-on-icon));
+                        {% endif %}
+                      }
                       ha-card {
-                        {{ 'background: rgba(var(--mush-rgb-green), 0.2);' if is_state(config.entity, 'on') }}
+                        {% if is_state(config.entity, 'on') %}
+                          background: var(--cstm-rgb-fan-on-background);
+                          --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
+                          --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
+                          {% endif %}      
                       }
                       ha-card:active {
                         transform: scale(0.95);

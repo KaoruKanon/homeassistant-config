@@ -128,7 +128,7 @@ Adaptive Mushroom:
     mush-rgb-warning: var(--mush-rgb-orange)
     mush-rgb-danger: var(--mush-rgb-red)
 
-    mush-rgb-state-fan: var(--mush-rgb-green)
+    mush-rgb-state-fan: var(--mush-rgb-white)
     mush-rgb-state-light: var(--mush-rgb-orange)
     mush-rgb-state-entity: var(--mush-rgb-teal)
     mush-rgb-state-switch: var(--mush-rgb-blue)
@@ -217,6 +217,7 @@ Adaptive Mushroom:
             cstm-rgb-plug-on-background: rgba(var(--mush-rgb-blue), 0.7)
             cstm-rgb-automation-on-icon: var(--mush-rgb-white)
             cstm-rgb-automation-on-background: rgba(var(--mush-rgb-black), 0.7)
+            cstm-rgb-fan-on-background: rgba(var(--mush-rgb-black), 0.7)
             cstm-rgb-bottom-nav: 255, 255, 255
             
         dark:
@@ -238,6 +239,7 @@ Adaptive Mushroom:
             cstm-rgb-plug-on-background: rgba(var(--mush-rgb-blue), 0.8)
             cstm-rgb-automation-on-icon: var(--mush-rgb-black)
             cstm-rgb-automation-on-background: rgba(var(--mush-rgb-white), 0.8)
+            cstm-rgb-fan-on-background: rgba(var(--mush-rgb-white), 0.8)
             cstm-rgb-bottom-nav: 30, 30, 30
 
     card-mod-theme: Adaptive Mushroom
