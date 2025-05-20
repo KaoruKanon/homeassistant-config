@@ -31,7 +31,7 @@ light:
         "light.lampe_japonaise",
         "light.salon_1",
         "light.salon_2",
-        "light.switch_wall_cuisine"
+        "light.switch_wall_cuisine",
       ]
 
 template:
@@ -40,7 +40,7 @@ template:
         state: "{{ states.light | rejectattr('attributes.entity_id', 'defined') | selectattr('state', 'eq', 'on') | rejectattr('attributes.type', 'equalto', 'browser_mod') | list | count }}"
         attributes:
           friendly_name: Total Lights On
-          
+
 automation:
   - alias: toggle_bureau
     trigger:
@@ -89,7 +89,7 @@ automation:
         target:
           entity_id: light.plafond
 
-  - alias: allumer_chambre
+  - alias: turn_on_chambre
     trigger:
       - device_id: 3f7bf0b1d53cb13c4212ef835580c4ca
         domain: zha
@@ -116,7 +116,7 @@ automation:
           entity_id: light.chambre
     mode: single
 
-  - alias: eteindre_chambre
+  - alias: turn_off_chambre
     trigger:
       - device_id: 3f7bf0b1d53cb13c4212ef835580c4ca
         domain: zha
@@ -141,7 +141,7 @@ automation:
       - action: light.turn_off
         target:
           entity_id: light.chambre
-          
+
   - alias: auto_turn_off_cuisine
     description: ""
     triggers:
