@@ -168,3 +168,20 @@ automation:
         target:
           entity_id: light.switch_wall_cuisine
     mode: single
+
+  - alias: toggle_cuisine
+    description: ""
+    triggers:
+      - device_id: 631a266451fd7ad699e580f912b7fbf9
+        domain: zha
+        type: remote_button_short_press
+        subtype: left
+        trigger: device
+    conditions: []
+    actions:
+      - action: light.toggle
+        metadata: {}
+        data: {}
+        target:
+          entity_id: light.switch_wall_cuisine
+    mode: single
