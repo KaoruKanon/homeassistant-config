@@ -112,7 +112,7 @@ automation:
             {% if noms | length == 1 %}
             La fenêtre {{ noms[0] }} est ouverte.
             {% else %}
-            Les fenêtres {{ noms[:-1] | join(', ') }} et {{ noms[-1] }}sont ouvertes.
+            Les fenêtres {{ noms[:-1] | join(', ') }} et {{ noms[-1] }} sont ouvertes.
             {% endif %}
           title: " Attention fenêtre encore ouverte ⚠️"
     mode: single
