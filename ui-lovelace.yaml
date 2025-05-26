@@ -972,6 +972,17 @@ views:
                       - condition: state
                         entity: media_player.samsung_tv_salon
                         state_not: unavailable
+                  - condition: and
+                    conditions:
+                      - condition: state
+                        entity: media_player.samsung_tv_papa
+                        state_not: "off"
+                      - condition: state
+                        entity: media_player.samsung_tv_papa
+                        state_not: idle
+                      - condition: state
+                        entity: media_player.samsung_tv_papa
+                        state_not: unavailable
             card:
               type: custom:mushroom-title-card
               title: Media
@@ -1168,6 +1179,52 @@ views:
                       height: 30%;
                       margin: 6%;
                       {% if is_state('media_player.samsung_tv_salon', 'on') %}
+                      animation: refresh 300ms linear infinite;
+                      {% endif %}
+                    }
+                    @keyframes refresh {
+                      0% { background: linear-gradient(180deg, rgba(var(--mush-rgb-light-blue), 0.4) 0%, transparent 50%, transparent 100%); }
+                      25% { background: linear-gradient(180deg, transparent 0%, rgba(var(--mush-rgb-light-blue), 0.4) 25%, transparent 100%); }
+                      50% { background: linear-gradient(180deg, transparent 0%, rgba(var(--mush-rgb-light-blue), 0.4) 50%, transparent 100%); }
+                      75% { background: linear-gradient(180deg, transparent 0%, rgba(var(--mush-rgb-light-blue), 0.4) 75%, transparent 100%); }
+                      100% { background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var(--mush-rgb-light-blue), 0.4) 100%); }
+                    }
+          - type: conditional
+            conditions:
+              - entity: media_player.samsung_tv_papa
+                state: "on"
+            card:
+              type: custom:mushroom-media-player-card
+              entity: media_player.samsung_tv_papa
+              use_media_info: true
+              media_controls:
+                - on_off
+              volume_controls:
+                - volume_set
+                - volume_mute
+                - volume_buttons
+              collapsible_controls: false
+              show_volume_level: false
+              fill_container: false
+              tap_action:
+                action: more-info
+              double_tap_action:
+                action: toggle
+              card_mod:
+                style:
+                  mushroom-button$: |
+                    .button:active {
+                          transform: scale(0.95);
+                          transition: 0s;
+                    }
+                  .: |
+                    ha-state-icon:before {
+                      content: "";
+                      position: absolute;
+                      width: 40%;
+                      height: 30%;
+                      margin: 6%;
+                      {% if is_state('media_player.samsung_tv_papa', 'on') %}
                       animation: refresh 300ms linear infinite;
                       {% endif %}
                     }
@@ -3030,6 +3087,52 @@ views:
                       "item9 item10 item11 item12"
                     gap: 0px
                     margin: "-4px 8px 4px"
+          - type: conditional
+            conditions:
+              - entity: media_player.samsung_tv_papa
+                state: "on"
+            card:
+              type: custom:mushroom-media-player-card
+              entity: media_player.samsung_tv_papa
+              use_media_info: true
+              media_controls:
+                - on_off
+              volume_controls:
+                - volume_set
+                - volume_mute
+                - volume_buttons
+              collapsible_controls: false
+              show_volume_level: false
+              fill_container: false
+              tap_action:
+                action: more-info
+              double_tap_action:
+                action: toggle
+              card_mod:
+                style:
+                  mushroom-button$: |
+                    .button:active {
+                          transform: scale(0.95);
+                          transition: 0s;
+                    }
+                  .: |
+                    ha-state-icon:before {
+                      content: "";
+                      position: absolute;
+                      width: 40%;
+                      height: 30%;
+                      margin: 6%;
+                      {% if is_state('media_player.samsung_tv_papa', 'on') %}
+                      animation: refresh 300ms linear infinite;
+                      {% endif %}
+                    }
+                    @keyframes refresh {
+                      0% { background: linear-gradient(180deg, rgba(var(--mush-rgb-light-blue), 0.4) 0%, transparent 50%, transparent 100%); }
+                      25% { background: linear-gradient(180deg, transparent 0%, rgba(var(--mush-rgb-light-blue), 0.4) 25%, transparent 100%); }
+                      50% { background: linear-gradient(180deg, transparent 0%, rgba(var(--mush-rgb-light-blue), 0.4) 50%, transparent 100%); }
+                      75% { background: linear-gradient(180deg, transparent 0%, rgba(var(--mush-rgb-light-blue), 0.4) 75%, transparent 100%); }
+                      100% { background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var(--mush-rgb-light-blue), 0.4) 100%); }
+                    }
           - type: custom:mushroom-title-card
             title: Audio
           - type: custom:stack-in-card
