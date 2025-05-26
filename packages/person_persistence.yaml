@@ -44,6 +44,9 @@ automation:
       - service: media_player.turn_off
         target:
           entity_id: media_player.samsung_tv_salon
+      - service: media_player.turn_off
+        target:
+          entity_id: media_player.samsung_tv_papa
 
   - alias: turn_off_gps_papa_absence
     trigger:
@@ -62,6 +65,9 @@ automation:
       - action: switch.turn_off
         target:
           entity_id: switch.computer_papa
+      - service: media_player.turn_off
+        target:
+          entity_id: media_player.samsung_tv_papa
 
   - alias: turn_off_gps_william_absence
     trigger:
