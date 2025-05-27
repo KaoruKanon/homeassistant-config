@@ -2010,6 +2010,33 @@ views:
                       transform: scale(0.95);
                       transition: 0s;
                     }
+              - type: custom:mushroom-light-card
+                entity: light.switch_wall_chambre_papa
+                icon_type: icon
+                show_brightness_control: true
+                show_color_control: false
+                show_color_temp_control: true
+                collapsible_controls: true
+                primary_info: name
+                secondary_info: state
+                name: Papa
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: more-info
+                icon: mdi:bed-king
+                fill_container: false
+                card_mod:
+                  style: |
+                    ha-card {
+                      {{ 'background: rgba(var(--mush-rgb-amber), 0.2);' if is_state(config.entity, 'on') }}
+                    }
+                    ha-card:active {
+                      transform: scale(0.95);
+                      transition: 0s;
+                    }
           - type: custom:mushroom-title-card
             title: Energie
             subtitle: ""
@@ -3455,6 +3482,33 @@ views:
                 double_tap_action:
                   action: more-info
                 icon: mdi:microwave
+                fill_container: false
+                card_mod:
+                  style: |
+                    ha-card {
+                      {{ 'background: rgba(var(--mush-rgb-amber), 0.2);' if is_state(config.entity, 'on') }}
+                    }
+                    ha-card:active {
+                      transform: scale(0.95);
+                      transition: 0s;
+                    }
+              - type: custom:mushroom-light-card
+                entity: light.switch_wall_chambre_papa
+                icon_type: icon
+                show_brightness_control: true
+                show_color_control: false
+                show_color_temp_control: true
+                collapsible_controls: true
+                primary_info: name
+                secondary_info: state
+                name: Papa
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                double_tap_action:
+                  action: more-info
+                icon: mdi:bed-king
                 fill_container: false
                 card_mod:
                   style: |
