@@ -68,6 +68,9 @@ automation:
       - service: media_player.turn_off
         target:
           entity_id: media_player.samsung_tv_papa
+      - service: light.turn_off
+        target:
+          entity_id: light.switch_wall_chambre_papa
 
   - alias: turn_off_gps_william_absence
     trigger:
