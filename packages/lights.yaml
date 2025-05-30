@@ -32,7 +32,9 @@ light:
         "light.salon_1",
         "light.salon_2",
         "light.switch_wall_cuisine",
-        "light.switch_wall_chambre_papa"
+        "light.switch_wall_chambre_papa",
+        "light.switch_wall_toilette",
+        "light.switch_wall_salle_de_bain"
       ]
 
 template:
@@ -212,4 +214,80 @@ automation:
         data: {}
         target:
           entity_id: light.switch_wall_cuisine
+    mode: single
+
+  - alias: auto_turn_on_salle_de_bain
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.pir_salle_de_bain
+        to: "on"
+    conditions:
+      - condition: state
+        entity_id: light.switch_wall_toilette
+        state: "off"
+    actions:
+      - action: light.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: light.switch_wall_salle_de_bain
+    mode: single
+
+  - alias: auto_turn_off_salle_de_bain
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.pir_salle_de_bain
+        to: "off"
+    conditions:
+      - condition: state
+        entity_id: light.switch_wall_salle_de_bain
+        state: "on"
+    actions:
+      - action: light.turn_off
+        metadata: {}
+        data: {}
+        target:
+          entity_id: light.switch_wall_salle_de_bain
+    mode: single
+
+  - alias: auto_turn_on_toilette
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.pir_wc
+        to: "on"
+    conditions:
+      - condition: state
+        entity_id: light.switch_wall_toilette
+        state: "off"
+    actions:
+      - action: light.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: light.switch_wall_toilette
+    mode: single
+
+  - alias: auto_turn_off_toilette
+    description: ""
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.pir_wc
+        to: "off"
+    conditions:
+      - condition: state
+        entity_id: light.switch_wall_toilette
+        state: "on"
+    actions:
+      - action: light.turn_off
+        metadata: {}
+        data: {}
+        target:
+          entity_id: light.switch_wall_toilette
     mode: single
