@@ -225,7 +225,7 @@ automation:
         to: "on"
     conditions:
       - condition: state
-        entity_id: light.switch_wall_toilette
+        entity_id: light.switch_wall_salle_de_bain
         state: "off"
     actions:
       - action: light.turn_on
