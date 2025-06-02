@@ -2484,7 +2484,7 @@ views:
                   - type: template
                     entity: sensor.total_open_windows
                     content: "{{ states(entity) }}"
-                    tap_action: none
+                    tap_action: !include popup/window.yaml
                     icon: >
                         {% if states(entity) | int > 0 %}
                           mdi:window-open-variant

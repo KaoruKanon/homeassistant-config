@@ -1,0 +1,53 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    card_mod:
+      style: 
+        ha-dialog$: |
+          div.mdc-dialog div.mdc-dialog__scrim {
+            backdrop-filter: blur(10px); 
+          }
+          div.mdc-dialog .mdc-dialog__container .mdc-dialog__surface {
+            background: #212526;
+          }
+        .: |
+          ha-dialog-header {
+                background-color: #282e2e;
+          }
+    title:  Fenêtres ouvertes
+    style: >
+      --popup-max-width: 400px;
+    content:
+      type: vertical-stack
+      cards:
+
+      - type: entities
+        entities:
+          - entity: binary_sensor.fenetre_chambre_papa
+            name: Chambre Papa
+            secondary_info: last-changed
+            icon: mdi:window-open-variant
+          - entity: binary_sensor.fenetre_chambre_william
+            name: Chambre William
+            icon: mdi:window-open-variant
+            secondary_info: last-changed
+          - entity: binary_sensor.fenetre_cuisine
+            name: Cuisine
+            secondary_info: last-changed
+            icon: mdi:window-open-variant
+          - entity: binary_sensor.fenetre_salon_1
+            name: Salon 1
+            secondary_info: last-changed
+            icon: mdi:window-open-variant
+          - entity: binary_sensor.fenetre_salon_2
+            name: Salon 2
+            secondary_info: last-changed
+            icon: mdi:window-open-variant
+        state_color: true
+        card_mod:
+          style: |
+            ha-card {
+              box-shadow: none;
+              background: none;
+            }
