@@ -2,6 +2,19 @@ action: fire-dom-event
 browser_mod:
   service: browser_mod.popup
   data:
+    card_mod:
+      style: 
+        ha-dialog$: |
+          div.mdc-dialog div.mdc-dialog__scrim {
+            backdrop-filter: blur(10px); 
+          }
+          div.mdc-dialog .mdc-dialog__container .mdc-dialog__surface {
+            background: #212526;
+          }
+        .: |
+          ha-dialog-header {
+                background-color: #282e2e;
+          }
     title: "[[primary]]"
     style: >
       --popup-max-width: 400px;
