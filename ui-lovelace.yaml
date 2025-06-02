@@ -2431,8 +2431,7 @@ views:
                     icon_color: white
                     content: >-
                       {{states("sensor.next_timer_cuisine_remaining")}}
-                    tap_action:
-                      action: more-info
+                    tap_action: none
                     card_mod:
                       style: |
                         ha-card {
