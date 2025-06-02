@@ -538,6 +538,7 @@ decluttering_templates:
       - color: blue
       - icon_on: mdi:power-plug
       - icon_off: mdi:power-plug-off
+      - action: more-info
     card:
       type: custom:mushroom-template-card
       entity: "[[entity]]"
@@ -4018,6 +4019,231 @@ views:
                       ha-card:active {
                         transform: scale(0.95);
                         transition: 0s;
+                      }
+              - type: custom:stack-in-card
+                keep:
+                  background: false
+                cards:
+                  - type: custom:decluttering-card
+                    template: plug_template
+                    variables:
+                      - entity: switch.smart_plug_spare_switch
+                      - name: Trotinette
+                      - action: toggle
+                  - type: conditional
+                    conditions:
+                      - condition: state
+                        entity: switch.smart_plug_spare_switch
+                        state: "on"
+                    card:
+                      type: custom:layout-card
+                      layout_type: custom:grid-layout
+                      cards:
+                        - type: custom:button-card
+                          icon: mdi:minus
+                          tap_action:
+                            action: call-service
+                            service: script.smart_plug_spare_duration_decrement
+                          show_icon: true
+                          show_name: false
+                          styles:
+                            grid:
+                              - grid-template-areas: "\"i\""
+                            card:
+                              - "--mdc-ripple-color": white
+                              - "--mdc-ripple-press-opacity": 0.2
+                              - box-shadow: none
+                              - padding: 0px
+                              - background-color: rgba(var(--mush-rgb-white),0.2)
+                              - border-radius: var(--mush-control-border-radius)
+                              - place-self: center
+                              - height: var(--mush-control-height)
+                            icon:
+                              - color: rgba(var(--cstm-rgb-on-secondary),0.9)
+                          size: 20px
+                          view_layout:
+                            grid-area: item1
+                          card_mod:
+                            style: |
+                              ha-card:active {
+                                transform: scale(0.95);
+                                transition: 0s;
+                              }
+                        - type: custom:button-card
+                          entity: input_number.smart_plug_spare_duration
+                          name: "[[[ return Math.round(entity.state) ]]]"
+                          tap_action:
+                            action: more-info
+                          show_icon: false
+                          show_name: true
+                          styles:
+                            grid:
+                              - grid-template-areas: "\"n\""
+                            card:
+                              - "--mdc-ripple-color": white
+                              - "--mdc-ripple-press-opacity": 0.2
+                              - box-shadow: none
+                              - padding: 0px
+                              - background-color: rgba(var(--mush-rgb-white),0.2)
+                              - border-radius: var(--mush-control-border-radius)
+                              - place-self: center
+                              - height: var(--mush-control-height)
+                            name:
+                              - font-size: 16px
+                          size: 20px
+                          view_layout:
+                            grid-area: item2
+                          card_mod:
+                            style: |
+                              ha-card:active {
+                                transform: scale(0.95);
+                                transition: 0s;
+                              }
+                        - type: custom:button-card
+                          icon: mdi:plus
+                          tap_action:
+                            action: call-service
+                            service: script.smart_plug_spare_duration_increment
+                          show_icon: true
+                          show_name: false
+                          styles:
+                            grid:
+                              - grid-template-areas: "\"i\""
+                            card:
+                              - "--mdc-ripple-color": white
+                              - "--mdc-ripple-press-opacity": 0.2
+                              - box-shadow: none
+                              - padding: 0px
+                              - background-color: rgba(var(--mush-rgb-white),0.2)
+                              - border-radius: var(--mush-control-border-radius)
+                              - place-self: center
+                              - height: var(--mush-control-height)
+                            icon:
+                              - color: rgba(var(--cstm-rgb-on-secondary),0.9)
+                          size: 20px
+                          view_layout:
+                            grid-area: item3
+                        - type: custom:button-card
+                          entity: automation.turn_off_smart_plug_spare_switch
+                          icon: mdi:creation
+                          tap_action:
+                            action: toggle
+                          show_icon: true
+                          show_name: false
+                          styles:
+                            grid:
+                              - grid-template-areas: "\"i\""
+                            card:
+                              - "--mdc-ripple-color": white
+                              - "--mdc-ripple-press-opacity": 0.2
+                              - box-shadow: none
+                              - padding: 0px
+                              - background-color: rgba(var(--mush-rgb-white),0.2)
+                              - border-radius: var(--mush-control-border-radius)
+                              - place-self: center
+                              - height: var(--mush-control-height)
+                            icon:
+                              - color: rgba(var(--cstm-rgb-on-secondary), 0.8)
+                          state:
+                            - value: "on"
+                              styles:
+                                card:
+                                  - background-color: rgba(var(--cstm-rgb-on), 0.8)
+                                icon:
+                                  - color: rgb(var(--cstm-rgb-bottom-nav))
+                          size: 20px
+                          view_layout:
+                            grid-area: item4
+                          card_mod:
+                            style: |
+                              ha-card:active {
+                                transform: scale(0.95);
+                                transition: 0s;
+                              }
+                        - type: custom:button-card
+                          entity: sensor.smart_plug_spare_remaining_time
+                          name: |
+                            [[[ return entity.state; ]]]
+                          tap_action:
+                            action: more-info
+                          show_icon: false
+                          show_name: true
+                          styles:
+                            grid:
+                              - grid-template-areas: "\"n\""
+                            card:
+                              - "--mdc-ripple-color": white
+                              - "--mdc-ripple-press-opacity": 0.2
+                              - box-shadow: none
+                              - padding: 0px
+                              - background-color: rgba(var(--mush-rgb-white),0.2)
+                              - border-radius: var(--mush-control-border-radius)
+                              - place-self: center
+                              - height: var(--mush-control-height)
+                            name:
+                              - font-size: 16px
+                          size: 20px
+                          view_layout:
+                            grid-area: item5
+                          card_mod:
+                            style: |
+                              ha-card:active {
+                                transform: scale(0.95);
+                                transition: 0s;
+                              }
+                        - type: custom:button-card
+                          entity: sensor.smart_plug_spare_active_power
+                          name: |
+                            [[[ return  Math.round(entity.state) + " W" ]]]
+                          tap_action:
+                            action: more-info
+                          show_icon: false
+                          show_name: true
+                          styles:
+                            grid:
+                              - grid-template-areas: "\"n\""
+                            card:
+                              - "--mdc-ripple-color": white
+                              - "--mdc-ripple-press-opacity": 0.2
+                              - box-shadow: none
+                              - padding: 0px
+                              - background-color: rgba(var(--mush-rgb-white),0.2)
+                              - border-radius: var(--mush-control-border-radius)
+                              - place-self: center
+                              - height: var(--mush-control-height)
+                            name:
+                              - font-size: 16px
+                          size: 20px
+                          view_layout:
+                            grid-area: item6
+                          card_mod:
+                            style: |
+                              ha-card:active {
+                                transform: scale(0.95);
+                                transition: 0s;
+                              }
+                      layout:
+                        grid-template-columns: 1fr 1fr 1fr
+                        grid-template-rows: min-content min-content
+                        grid-template-areas: |
+                          "item1 item2 item3"
+                          "item4 item5 item6"
+                        gap: 0px
+                        margin: "-4px 8px 4px"
+                card_mod:
+                  style:
+                    mushroom-state-info$: |
+                      .primary {
+                        white-space: normal !important;
+                        overflow: hidden;
+                      }
+                    .: |
+                      ha-card {
+                        {% if is_state('switch.smart_plug_spare_switch', 'on') %}
+                          background: rgba(var(--mush-rgb-blue), 0.8);
+                          --card-primary-color: rgb(var(--mush-rgb-white));
+                          --card-secondary-color: rgba(var(--mush-rgb-white), 0.8);
+                        {% endif %}
                       }
             layout:
               column_widths: 51% 51%
