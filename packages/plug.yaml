@@ -1,0 +1,124 @@
+input_number:
+  smart_plug_spare_duration:
+    name: Smart Plug Spare Duration
+    min: 1
+    max: 1440
+
+input_datetime:
+  smart_plug_spare_auto_off:
+    name: Smart Plug Spare Auto Off
+    has_date: true
+    has_time: true
+
+automation: 
+  - alias: "set_auto_off_smart_plug_spare"
+    description: |
+      Lors de l'allumage ou de la modification de la durée, met à jour auto_off.
+    triggers:
+      - entity_id:
+          - switch.smart_plug_spare_switch
+        to: "on"
+        trigger: state
+      - entity_id: input_number.smart_plug_spare_duration
+        trigger: state
+    conditions: []
+    actions:
+      - target:
+          entity_id: input_datetime.smart_plug_spare_auto_off
+        data:
+          datetime: >
+            {{ (now() +
+            timedelta(minutes=states('input_number.smart_plug_spare_duration') |
+            int)) .strftime('%Y-%m-%d %H:%M:%S') }}
+        action: input_datetime.set_datetime
+    mode: single
+
+  - alias: turn_off_smart_plug_spare_switch
+    description: ""
+    triggers:
+      - trigger: time
+        at: input_datetime.smart_plug_spare_auto_off
+    conditions:
+      - condition: state
+        entity_id: switch.smart_plug_spare_switch
+        state: "on"
+    actions:
+      - action: switch.turn_off
+        metadata: {}
+        data: {}
+        target:
+          entity_id: switch.smart_plug_spare_switch
+    mode: single
+
+script: 
+  smart_plug_spare_duration_increment:
+    alias: 'Smart Plug Spare: Increment duration'
+    sequence:
+      - variables:
+          current: "{{ states('input_number.smart_plug_spare_duration') | int }}"
+          values: [1, 5, 10, 15, 30, 60, 90, 120, 190, 260]
+          index: >
+            {% set idx = values.index(current) if current in values else 0 %}
+            {{ idx }}
+          next_index: >
+            {% if index + 1 < values | length %}
+              {{ index + 1 }}
+            {% else %}
+              {{ index }}
+            {% endif %}
+          new_value: "{{ values[next_index] }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.smart_plug_spare_duration
+        data:
+          value: "{{ new_value }}"
+
+  smart_plug_spare_duration_decrement:
+    alias: 'Smart Plug Spare: Decrement duration'
+    sequence:
+      - variables:
+          current: "{{ states('input_number.smart_plug_spare_duration') | int }}"
+          values: [1, 5, 10, 15, 30, 60, 90, 120, 190, 260]
+          index: >
+            {% set idx = values.index(current) if current in values else 0 %}
+            {{ idx }}
+          prev_index: >
+            {% if index - 1 >= 0 %}
+              {{ index - 1 }}
+            {% else %}
+              {{ index }}
+            {% endif %}
+          new_value: "{{ values[prev_index] }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.smart_plug_spare_duration
+        data:
+          value: "{{ new_value }}"
+          
+template:
+  - trigger:
+      - platform: time_pattern
+        seconds: "/1"
+    sensor:
+      - name: "Smart Plug Spare Remaining Time"
+        unique_id: smart_plug_spare_remaining_time
+        state: >
+          {% set target = states('input_datetime.smart_plug_spare_auto_off') %}
+          {% if target != 'unknown' %}
+            {% set diff = as_timestamp(target) - as_timestamp(now()) %}
+            {% if diff > 0 %}
+              {% set hours = (diff // 3600) | int %}
+              {% set minutes = ((diff % 3600) // 60) | int %}
+              {% set seconds = (diff % 60) | int %}
+
+              {% if hours > 0 %}
+                {{ "%d:%02d:%02d"|format(hours, minutes, seconds) }}
+              {% else %}
+                {{ "%d:%02d"|format(minutes, seconds) }}
+              {% endif %}
+            {% else %}
+              "Éteint"
+            {% endif %}
+          {% else %}
+            "Éteint"
+          {% endif %}
