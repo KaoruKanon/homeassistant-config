@@ -40,7 +40,7 @@ light:
 template:
   - sensor:
       - name: "total_lights_on"
-        state: "{{ states.light | rejectattr('attributes.entity_id', 'defined') | selectattr('state', 'eq', 'on') | rejectattr('attributes.type', 'equalto', 'browser_mod') | list | count }}"
+        state: "{{ states.light | rejectattr('attributes.entity_id', 'defined') | selectattr('state', 'eq', 'on') | rejectattr('attributes.type', 'equalto', 'browser_mod') |  rejectattr('entity_id', 'equalto', 'light.chambre_william_wall') | list | count }}"
         attributes:
           friendly_name: Total Lights On
 
