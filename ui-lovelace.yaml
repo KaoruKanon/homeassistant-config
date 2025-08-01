@@ -6490,11 +6490,21 @@ views:
               columns: 2
               type: grid
               cards:
-                - type: custom:mushroom-update-card
-                  entity: update.home_assistant_core_update
-                  name: HA Core
-                  show_buttons_control: true
-                  collapsible_controls: true
+                - type: custom:mushroom-template-card
+                  primary: Update HA Core
+                  secondary: ""
+                  icon: mdi:update
+                  tap_action:
+                    action: call-service
+                    service: frontend.reload_themes
+                    target: {}
+                  icon_color: grey
+                  card_mod:
+                    style: |
+                      ha-card:active {
+                        transform: scale(0.95);
+                        transition: 0s;
+                      }
               layout:
                 column_widths: 51% 51%
                 width: 145
