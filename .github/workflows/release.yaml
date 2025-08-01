@@ -18,7 +18,7 @@ jobs:
       - name: Create ZIP excluding files
         run: |
           zip -r homeassistant-config-${TAG_VERSION}.zip . \
-            -x "secrets [REDACTED].yaml" \
+            -x "secrets*" \
             -x ".gitignore" \
             -x "images/*" \
             -x ".git/*" \
