@@ -29,3 +29,10 @@ jobs:
         with:
           name: homeassistant-config-${{ env.TAG_VERSION }}
           path: homeassistant-config-${{ env.TAG_VERSION }}.zip
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: homeassistant-config-${{ env.TAG_VERSION }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
