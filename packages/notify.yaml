@@ -61,11 +61,9 @@ automation:
       event_data:
         action: START_HA_UPDATE
     actions:
-      - action: update.install
-        data:
-          backup: true
-        target:
-          entity_id: update.home_assistant_core_update
+      - action: call-service
+        service: shell_command.update_homeassistant_container
+        target: {}
 
   - alias: notify_away_windows_open
     description: "send a notification if windows are opened while people are away"
