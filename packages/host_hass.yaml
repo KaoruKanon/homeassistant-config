@@ -88,21 +88,6 @@ automation:
     action:
       service: shell_command.purge_log
 
-  - alias: backup_ha_monthly
-    trigger:
-      platform: time
-      at: 04:00:00
-    condition: >
-      {{ now().day == 1 }}
-    action:
-      - action: hassio.backup_full
-        metadata: {}
-        data:
-          compressed: true
-          name: >-
-            auto_monthly_backup_{{ states("sensor.date") | replace("-", "")}}_{{
-            states("sensor.time") | replace(":", "") }}
-
   - alias: auto_snapshot
     trigger:
       - platform: time
