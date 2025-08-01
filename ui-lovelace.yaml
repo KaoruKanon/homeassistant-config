@@ -6412,38 +6412,51 @@ views:
             - type: custom:mushroom-template-card
               primary: Back-ups
               secondary: >-
-                {{state_attr('sensor.backup_state', 'backups_in_google_drive')}}
-                back-ups, total {{state_attr('sensor.backup_state',
-                'size_in_google_drive')}}
+                Dernière sauvegarde : 
+                {% set last = states('sensor.backup_derniere_sauvegarde_automatique_reussie') %}
+                {% if last in ['unknown', 'unavailable', 'none'] %}
+                    inconnue
+                {% else %}
+                    {% set delta = (now().timestamp() - as_timestamp(last)) / 86400 %}
+                    {% if delta < 1 %}
+                        ce matin
+                    {% elif delta < 2 %}
+                        hier
+                    {% else %}
+                        {{ delta | round(0, 'floor') }} jours
+                    {% endif %}
+                {% endif %}
 
-                Précédent: {% if state_attr('sensor.backup_state', 'last_backup') ==
-                "Jamais" %}inconnue{% else %}{% set delta = (now().timestamp() -
-                as_timestamp(state_attr('sensor.backup_state',
-                'last_backup')))/86400 %}{% if delta < 1 %}ce matin{% elif delta
-                < 2 %}gisteren{% else %}{{delta | round(0, "floor")}} jours
-                geleden{% endif %}{% endif %}
-
-                Suivant: {% set delta =
-                (as_timestamp(state_attr('sensor.backup_state', 'next_backup')) -
-                now().timestamp())/86400 %}{% if delta < 1 %}la nuit dernière{% elif delta
-                < 1.5 %}demain{% else %}plus de {{delta | round(0, "floor")}} jours{%
-                endif %}
+                Dernière tentative : 
+                {% set attempt = states('sensor.backup_derniere_tentative_de_sauvegarde_automatique') %}
+                {% if attempt in ['unknown', 'unavailable', 'none'] %}
+                    inconnue
+                {% else %}
+                    {% set delta = (now().timestamp() - as_timestamp(attempt)) / 86400 %}
+                    {% if delta < 1 %}
+                        aujourd'hui
+                    {% elif delta < 2 %}
+                        hier
+                    {% else %}
+                        {{ delta | round(0, 'floor') }} jours
+                    {% endif %}
+                {% endif %}
               icon: |-
-                {% if states('binary_sensor.backups_stale') == "off" %}
+                {% if states('event.backup_sauvegarde_automatique') == "off" %}
                   mdi:cloud-check
                 {% else %}
                   mdi:cloud-question
                 {% endif %}
               multiline_secondary: true
               icon_color: |-
-                {% if states('binary_sensor.backups_stale') == "off" %}
+                {% if states('event.backup_sauvegarde_automatique') == "off" %}
                   green
                 {% else %}
                   red
                 {% endif %}
               tap_action:
                 action: navigate
-                navigation_path: /cebe7a76_hassio_google_drive_backup
+                navigation_path: /config/backup/overview
             - square: false
               columns: 2
               type: grid
@@ -6453,11 +6466,6 @@ views:
                   name: HA Core
                   show_buttons_control: true
                   collapsible_controls: true
-                - type: custom:mushroom-update-card
-                  entity: update.home_assistant_supervisor_update
-                  show_buttons_control: true
-                  collapsible_controls: true
-                  name: Supervisor
               layout:
                 column_widths: 51% 51%
                 width: 145
@@ -6503,40 +6511,6 @@ views:
               tap_action:
                 action: navigate
                 navigation_path: ../hacs/entry
-            - square: false
-              columns: 2
-              type: grid
-              cards:
-                - type: custom:mushroom-update-card
-                  entity: update.samba_share_update
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: Samba
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.mosquitto_broker_update
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: MQTT
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.speedtest_mettre_a_jour
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: Speedtest
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.studio_code_server_update
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: VS Code
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.home_assistant_google_drive_backup_mettre_a_jour
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: Drive Backup
-                  fill_container: false
               layout:
                 column_widths: 51% 51%
                 width: 145
