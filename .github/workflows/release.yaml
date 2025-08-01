@@ -1,0 +1,38 @@
+name: Create Config Zip
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  zip-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get tag version
+        run: echo "TAG_VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+
+      - name: Create ZIP excluding files
+        run: |
+          zip -r homeassistant-config-${TAG_VERSION}.zip . \
+            -x "secrets*" \
+            -x ".gitignore" \
+            -x "images/*" \
+            -x ".git/*" \
+            -x ".github/*"
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: homeassistant-config-${{ env.TAG_VERSION }}
+          path: homeassistant-config-${{ env.TAG_VERSION }}.zip
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: homeassistant-config-${{ env.TAG_VERSION }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
