@@ -6496,7 +6496,7 @@ views:
                   icon: mdi:update
                   tap_action:
                     action: call-service
-                    service: frontend.reload_themes
+                    service: shell_command.update_homeassistant_container
                     target: {}
                   icon_color: grey
                   card_mod:
