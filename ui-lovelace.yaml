@@ -5785,21 +5785,21 @@ views:
                               - type: horizontal-stack
                                 cards:
                                   - type: custom:mushroom-entity-card
-                                    entity: sensor.system_monitor_paquets_entrant_via_enp2s0
+                                    entity: sensor.system_monitor_paquets_entrant_via_enp6s18
                                     name: Download
                                     icon: mdi:download
                                     icon_color: deep-orange
                                   - type: custom:mushroom-entity-card
-                                    entity: sensor.system_monitor_paquets_sortants_via_enp2s0
+                                    entity: sensor.system_monitor_paquets_sortants_via_enp6s18
                                     name: Upload
                                     icon: mdi:upload
                                     icon_color: blue
                               - type: custom:mini-graph-card
                                 entities:
-                                  - entity: sensor.system_monitor_paquets_entrant_via_enp2s0
+                                  - entity: sensor.system_monitor_paquets_entrant_via_enp6s18
                                     name: Download
                                     color: rgb(var(--mush-rgb-deep-orange))
-                                  - entity: sensor.system_monitor_paquets_sortants_via_enp2s0
+                                  - entity: sensor.system_monitor_paquets_sortants_via_enp6s18
                                     name: Upload
                                 hours_to_show: 8
                                 hour24: true
