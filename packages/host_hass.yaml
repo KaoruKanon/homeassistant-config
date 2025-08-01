@@ -4,6 +4,21 @@ homeassistant:
       friendly_name: OS
 
 sensor:
+  - platform: rest
+    resource: http://localhost:8080/api/speedtest/latest
+    name: Speedtest download
+    value_template: "{{ value_json['data']['download'] }}"
+    unit_of_measurement: Mbps
+  - platform: rest
+    resource: http://localhost:8080/api/speedtest/latest
+    name: Speedtest upload
+    value_template: "{{ value_json['data']['upload'] }}"
+    unit_of_measurement: Mbps
+  - platform: rest
+    resource: http://localhost:8080/api/speedtest/latest
+    name: Speedtest ping
+    value_template: "{{ value_json['data']['ping'] }}"
+    unit_of_measurement: ms
 
   #not supported anymore
   # - platform: systemmonitor
@@ -72,18 +87,6 @@ automation:
       above: 50
     action:
       service: shell_command.purge_log
-
-  - alias: "Run Speedtest addon every 12 hours"
-    trigger:
-      - platform: time_pattern
-        hours: "/12"
-      - trigger: homeassistant
-        event: start
-    action:
-      - service: hassio.addon_start
-        data:
-          addon: 6b87c29e_speedtest_addon
-    mode: single
 
   - alias: backup_ha_monthly
     trigger:
