@@ -69,15 +69,6 @@ template:
 shell_command:
   purge_log: truncate -s 0 /config/home-assistant.log
 
-script:
-  trigerred_snapshot:
-    sequence:
-      - service: hassio.backup_full
-        data:
-          name: >-
-            trigerred_backup_{{ states("sensor.date") | replace("-", "")}}_{{
-            states("sensor.time") | replace(":", "") }}
-
 automation:
   - alias: purge_log_filesize
     id: "3331821824310"
