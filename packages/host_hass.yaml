@@ -3,22 +3,28 @@ homeassistant:
     sensor.os_version:
       friendly_name: OS
 
+rest:
+  - resource: http://localhost:8080/api/speedtest/latest
+    method: GET
+    scan_interval: 600
+    sensor:
+      - name: "Speedtest Download"
+        value_template: "{{ value_json['data']['download'] }}"
+        unique_id: "speedtest_download"
+        icon: mdi:speedometer
+        unit_of_measurement: Mbps
+      - name: "Speedtest Upload"
+        value_template: "{{ value_json['data']['upload'] }}"
+        unique_id: "speedtest_upload"
+        icon: mdi:speedometer
+        unit_of_measurement: Mbps
+      - name: "Speedtest Ping"
+        value_template: "{{ value_json['data']['ping'] }}"
+        unique_id: "speedtest_ping"
+        icon: mdi:speedometer
+        unit_of_measurement: "ms"
+
 sensor:
-  - platform: rest
-    resource: http://localhost:8080/api/speedtest/latest
-    name: Speedtest download
-    value_template: "{{ value_json['data']['download'] }}"
-    unit_of_measurement: Mbps
-  - platform: rest
-    resource: http://localhost:8080/api/speedtest/latest
-    name: Speedtest upload
-    value_template: "{{ value_json['data']['upload'] }}"
-    unit_of_measurement: Mbps
-  - platform: rest
-    resource: http://localhost:8080/api/speedtest/latest
-    name: Speedtest ping
-    value_template: "{{ value_json['data']['ping'] }}"
-    unit_of_measurement: ms
 
   #not supported anymore
   # - platform: systemmonitor
