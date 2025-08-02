@@ -5885,13 +5885,6 @@ views:
                 multiline_secondary: true
                 icon: mdi:web-refresh
                 icon_color: grey
-                tap_action:
-                  action: call-service
-                  service: automation.trigger
-                  data:
-                    skip_condition: true
-                  target:
-                    entity_id: automation.run_speedtest_addon_every_12_hours
               - type: custom:mushroom-template-card
                 card_mod:
                   style: |
