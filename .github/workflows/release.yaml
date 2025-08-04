@@ -19,6 +19,7 @@ jobs:
         run: |
           zip -r homeassistant-config-${TAG_VERSION}.zip . \
             -x "secrets*" \
+            -x "extra/*" \
             -x ".gitignore" \
             -x "images/*" \
             -x ".git/*" \
