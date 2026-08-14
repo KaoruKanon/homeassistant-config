@@ -2412,7 +2412,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px;
+                          margin: 2px 3px;
                           {% if states("sensor.average_temperature") | round(1) < 18 %}
                             --chip-background: rgba(var(--mush-rgb-blue), 0.2);
                           {% elif states("sensor.average_temperature") | round(1) < 28 %}
@@ -2436,7 +2436,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px;
+                          margin: 2px 3px;
                           {% if is_state('timer.timer_cuisine', 'active') %}
                           animation: ping 1.2s ease-in-out infinite;
                           {% endif %}
@@ -2471,7 +2471,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px;
+                          margin: 2px 3px;
                           {% if states("sensor.total_lights_on") | int > 0 %}
                             --chip-background: rgba(var(--mush-rgb-yellow), 0.3);
                           {% endif %}
@@ -2501,7 +2501,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px;
+                          margin: 2px 3px;
                           {% if states("sensor.total_open_windows") | int > 0 %}
                             --chip-background: rgba(var(--mush-rgb-white), 0.3);
                           {% endif %}
@@ -2517,7 +2517,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px;
+                          margin: 2px 3px;
                           {% if states("alarm_control_panel.home_alarm") == "arming" %}
                           --chip-background: rgba(var(--rgb-orange), 0.1);
                           animation: ping-arming 1.0s ease-in-out infinite;
@@ -2570,7 +2570,7 @@ views:
                       style:
                         .: |
                           ha-card {
-                            margin: 5px;
+                            margin: 2px 3px;
                             {% if is_state('person.kaoru', 'home') %}
                               --chip-background: rgba(var(--rgb-state-person-home), 0.2);
                               animation: ping 5.0s ease-in-out infinite;
@@ -2600,7 +2600,7 @@ views:
                       style:
                         .: |
                           ha-card {
-                            margin: 5px;
+                            margin: 2px 3px;
                             {% if is_state('person.papa', 'home') %}
                               --chip-background: rgba(var(--rgb-state-person-home), 0.2);
                               animation: ping 5.0s ease-in-out infinite;
@@ -2629,26 +2629,18 @@ views:
                         margin: 5px;
                         overflow: hidden; /* Clear float */
                       }
-                      .chip-container {
-                        display: block !important;
-                        position: relative;
-                      }
                       .type-custom-mushroom-chips-card .chip-container > mushroom-entity-chip:nth-child(6) {
                         {% if is_state('person.kaoru', 'home') %}
-                          float: left;
-                        {% elif is_state('person.kaoru', 'not_home') or is_state('person.kaoru', 'unknown') %}
-                          float: right;
+                          order: -1;
                         {% else %}
-                          float: right;
+                          order: 2;
                         {% endif %}
                         }
                       .type-custom-mushroom-chips-card .chip-container > mushroom-entity-chip:nth-child(7) {
                         {% if is_state('person.papa', 'home') %}
-                          float: left;
-                        {% elif is_state('person.papa', 'not_home') or is_state('person.papa', 'unknown') %}
-                          float: right;
+                          order: -1;
                         {% else %}
-                          float: right;
+                          order: 2;
                         {% endif %}
                       }
                     mushroom-template-chip:nth-child(2)$: |
