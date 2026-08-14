@@ -619,7 +619,7 @@ decluttering_templates:
         {% endif %}
       icon_color: |-
         {% if is_state(entity, 'on') %}
-          var(--cstm-rgb-automation-on-icon)
+          rgb(var(--cstm-rgb-automation-on-icon))
         {% else %}
           disabled
         {% endif %}
@@ -638,12 +638,19 @@ decluttering_templates:
       badge_color: orange
       card_mod:
         style:
-          mushroom-state-info$: |
-            .primary {
+          .: |
+            span[slot="primary"] {
               white-space: normal !important;
               overflow: hidden;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+              {% endif %}
             }
-          .: |
+            span[slot="secondary"] {
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
+              {% endif %}
+            }
             ha-card {
               {% if is_state(config.entity, 'on') %}
                  background: var(--cstm-rgb-automation-on-background);
@@ -687,7 +694,7 @@ decluttering_templates:
         {% endif %}
       icon_color: |-
         {% if is_state(entity, 'on') %}
-          var(--cstm-rgb-automation-on-icon)
+          rgb(var(--cstm-rgb-automation-on-icon))
         {% else %}
           disabled
         {% endif %}
@@ -706,12 +713,19 @@ decluttering_templates:
       badge_color: orange
       card_mod:
         style:
-          mushroom-state-info$: |
-            .primary {
+          .: |
+            span[slot="primary"] {
               white-space: normal !important;
               overflow: hidden;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+              {% endif %}
             }
-          .: |
+            span[slot="secondary"] {
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
+              {% endif %}
+            }
             ha-card {
               {% if is_state(config.entity, 'on') %}
                  background: var(--cstm-rgb-automation-on-background);
@@ -1318,7 +1332,7 @@ views:
                       icon: mdi:monitor-multiple
                       icon_color: |-
                         {% if is_state(entity, 'on') %}
-                          var(--cstm-rgb-automation-on-icon)
+                          rgb(var(--cstm-rgb-automation-on-icon))
                         {% else %}
                           disabled
                         {% endif %}
@@ -1334,15 +1348,22 @@ views:
                       badge_color: orange
                       card_mod:
                         style:
-                          mushroom-state-info$: |
-                            .primary {
+                          .: |
+                            span[slot="primary"] {
                               white-space: normal !important;
                               overflow: hidden;
                               display: -webkit-box;
                               -webkit-line-clamp: 1;
                               -webkit-box-orient: vertical;
+                              {% if is_state(config.entity, 'on') %}
+                                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+                              {% endif %}
                             }
-                          .: |
+                            span[slot="secondary"] {
+                              {% if is_state(config.entity, 'on') %}
+                                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
+                              {% endif %}
+                            }
                             ha-card {
                               {% if is_state(config.entity, 'on') %}
                                 background: var(--cstm-rgb-automation-on-background);
@@ -1432,7 +1453,7 @@ views:
                       icon: mdi:desktop-tower
                       icon_color: |-
                         {% if is_state(entity, 'on') %}
-                          var(--cstm-rgb-automation-on-icon)
+                          rgb(var(--cstm-rgb-automation-on-icon))
                         {% else %}
                           disabled
                         {% endif %}
@@ -1448,15 +1469,22 @@ views:
                       badge_color: orange
                       card_mod:
                         style:
-                          mushroom-state-info$: |
-                            .primary {
+                          .: |
+                            span[slot="primary"] {
                               white-space: normal !important;
                               overflow: hidden;
                               display: -webkit-box;
                               -webkit-line-clamp: 1;
                               -webkit-box-orient: vertical;
+                              {% if is_state(config.entity, 'on') %}
+                                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+                              {% endif %}
                             }
-                          .: |
+                            span[slot="secondary"] {
+                              {% if is_state(config.entity, 'on') %}
+                                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
+                              {% endif %}
+                            }
                             ha-card {
                               {% if is_state(config.entity, 'on') %}
                                 background: var(--cstm-rgb-automation-on-background);
@@ -1718,7 +1746,7 @@ views:
                       icon: mdi:monitor-multiple
                       icon_color: |-
                         {% if is_state(entity, 'on') %}
-                          var(--cstm-rgb-automation-on-icon)
+                          rgb(var(--cstm-rgb-automation-on-icon))
                         {% else %}
                           disabled
                         {% endif %}
@@ -1734,15 +1762,22 @@ views:
                       badge_color: orange
                       card_mod:
                         style:
-                          mushroom-state-info$: |
-                            .primary {
+                          .: |
+                            span[slot="primary"] {
                               white-space: normal !important;
                               overflow: hidden;
                               display: -webkit-box;
                               -webkit-line-clamp: 1;
                               -webkit-box-orient: vertical;
+                              {% if is_state(config.entity, 'on') %}
+                                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+                              {% endif %}
                             }
-                          .: |
+                            span[slot="secondary"] {
+                              {% if is_state(config.entity, 'on') %}
+                                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
+                              {% endif %}
+                            }
                             ha-card {
                               {% if is_state(config.entity, 'on') %}
                                 background: var(--cstm-rgb-automation-on-background);
@@ -2320,7 +2355,7 @@ views:
                   icon: mdi:hand-wave
                   icon_color: |-
                     {% if is_state(entity, 'on') %}
-                      var(--cstm-rgb-automation-on-icon)
+                      rgb(var(--cstm-rgb-automation-on-icon))
                     {% else %}
                       disabled
                     {% endif %}
@@ -2340,6 +2375,11 @@ views:
                   card_mod:
                     style:
                       .: |
+                        span[slot="primary"] {
+                          {% if is_state(config.entity, 'on') %}
+                            color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+                          {% endif %}
+                        }
                         ha-card {
                           {% if is_state(config.entity, 'on') %}
                             background: var(--cstm-rgb-automation-on-background);
@@ -3734,7 +3774,7 @@ views:
                 icon: mdi:monitor-multiple
                 icon_color: |-
                   {% if is_state(entity, 'on') %}
-                    var(--cstm-rgb-automation-on-icon)
+                    rgb(var(--cstm-rgb-automation-on-icon))
                   {% else %}
                     disabled
                   {% endif %}
@@ -3750,15 +3790,22 @@ views:
                 badge_color: orange
                 card_mod:
                   style:
-                    mushroom-state-info$: |
-                      .primary {
+                    .: |
+                      span[slot="primary"] {
                         white-space: normal !important;
                         overflow: hidden;
                         display: -webkit-box;
                         -webkit-line-clamp: 1;
                         -webkit-box-orient: vertical;
+                        {% if is_state(config.entity, 'on') %}
+                          color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+                        {% endif %}
                       }
-                    .: |
+                      span[slot="secondary"] {
+                        {% if is_state(config.entity, 'on') %}
+                          color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
+                        {% endif %}
+                      }
                       ha-card {
                         {% if is_state(config.entity, 'on') %}
                           background: var(--cstm-rgb-automation-on-background);
@@ -3848,7 +3895,7 @@ views:
                 icon: mdi:desktop-tower
                 icon_color: |-
                   {% if is_state(entity, 'on') %}
-                    var(--cstm-rgb-automation-on-icon)
+                    rgb(var(--cstm-rgb-automation-on-icon))
                   {% else %}
                     disabled
                   {% endif %}
@@ -3864,15 +3911,22 @@ views:
                 badge_color: orange
                 card_mod:
                   style:
-                    mushroom-state-info$: |
-                      .primary {
+                    .: |
+                      span[slot="primary"] {
                         white-space: normal !important;
                         overflow: hidden;
                         display: -webkit-box;
                         -webkit-line-clamp: 1;
                         -webkit-box-orient: vertical;
+                        {% if is_state(config.entity, 'on') %}
+                          color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+                        {% endif %}
                       }
-                    .: |
+                      span[slot="secondary"] {
+                        {% if is_state(config.entity, 'on') %}
+                          color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
+                        {% endif %}
+                      }
                       ha-card {
                         {% if is_state(config.entity, 'on') %}
                           background: var(--cstm-rgb-automation-on-background);
