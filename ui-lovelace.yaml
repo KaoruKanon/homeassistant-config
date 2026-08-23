@@ -6487,6 +6487,11 @@ views:
           cards:
             - type: custom:mushroom-title-card
               title: Software
+              card_mod:
+                style: |
+                  ha-card {
+                    margin-top: 12px;
+                  }
             - type: custom:mushroom-template-card
               primary: Back-ups
               secondary: >-
