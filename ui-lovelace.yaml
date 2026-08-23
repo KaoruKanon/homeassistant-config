@@ -1263,32 +1263,31 @@ views:
                 - type: conditional
                   conditions:
                     - condition: state
-                      entity: sensor.shiro_plex_recently_added
+                      entity: sensor.jelly_jellyfin_recently_added
                       state: Online
                   card:
                     type: custom:mushroom-template-card
                     primary: |
-                      Ajouté récement sur Plex
+                      Ajouté récemment sur Jellyfin
                     secondary: >
-                      {{ state_attr("sensor.shiro_plex_recently_added","data")[1].title }} - {{
-                      state_attr("sensor.shiro_plex_recently_added","data")[1].number }}
+                      {{ state_attr("sensor.jelly_jellyfin_recently_added","data")[1].title }} - {{
+                      state_attr("sensor.jelly_jellyfin_recently_added","data")[1].number }}
                     picture: ""
-                    icon_color: amber
-                    icon: mdi:plex
+                    icon_color: rgb(177, 24, 217)
+                    icon: custom:jellyfin
                     tap_action: none
                     card_mod:
                       style:
-                        mushroom-shape-icon$: |
-                          .shape {
-                            --shape-color: rgb(68, 58, 16);
-                            --icon-color: rgb(255, 191, 0);
-                            bottom: 50px;
+                        ha-tile-icon$: |
+                          .container {
+                            background-color: rgba(70, 10, 89, 0.8) !important;
+                            border-radius: 30% !important;
                           }
                         .: |
-                          {% if state_attr("sensor.shiro_plex_recently_added","data")[1].fanart is defined %}
+                          {% if state_attr("sensor.jelly_jellyfin_recently_added","data")[1].fanart is defined %}
                             ha-card {
                                 height: 13em !important;
-                                background: linear-gradient(to top, transparent, rgba(0,0,0,0.3) 100%), url({{ state_attr("sensor.shiro_plex_recently_added","data")[1].fanart }});
+                                background: linear-gradient(to top, transparent, rgba(0,0,0,0.3) 100%), url({{ state_attr("sensor.jelly_jellyfin_recently_added","data")[1].fanart }});
                                 background-size: auto, cover;
                                 background-repeat: no-repeat;
                                 background-blend-mode: saturation;
@@ -1297,11 +1296,17 @@ views:
                               transform: scale(0.95);
                               transition: 0s
                             }
-                            mushroom-state-info {
-                              position: absolute;
-                              bottom: 0px;
-                              left: 0;
-                              width: 100%;
+                            ha-tile-icon {
+                              position: absolute !important;
+                              top: 10px !important;
+                              left: 10px !important;
+                              z-index: 2 !important;
+                            }
+                            ha-tile-info {
+                              position: absolute !important;
+                              bottom: 0px !important;
+                              left: 0 !important;
+                              width: 100% !important;
                               padding: 10px 0 5px 15px;
                               margin-bottom: -1px;
                               box-sizing: border-box;
@@ -1654,37 +1659,31 @@ views:
                 - type: conditional
                   conditions:
                     - condition: state
-                      entity: sensor.shiro_plex_recently_added
+                      entity: sensor.jelly_jellyfin_recently_added
                       state: Online
                   card:
                     type: custom:mushroom-template-card
                     primary: |
-                      Ajouté récement sur Plex
+                      Ajouté récemment sur Jellyfin
                     secondary: >
-                      {{ state_attr("sensor.shiro_plex_recently_added","data")[1].title }} - {{
-                      state_attr("sensor.shiro_plex_recently_added","data")[1].number }}
+                      {{ state_attr("sensor.jelly_jellyfin_recently_added","data")[1].title }} - {{
+                      state_attr("sensor.jelly_jellyfin_recently_added","data")[1].number }}
                     picture: ""
-                    icon_color: amber
-                    icon: mdi:plex
+                    icon_color: rgb(177, 24, 217)
+                    icon: custom:jellyfin
                     tap_action: none
                     card_mod:
                       style:
-                        mushroom-shape-icon$: |
-                          .shape {
-                            --shape-color: rgb(68, 58, 16);
-                            --icon-color: rgb(255, 191, 0);
-                            bottom: 50px;
-                          }
-                        mushroom-state-info$: |
+                        ha-tile-icon$: |
                           .container {
-                            --card-primary-color: white;
-                            #--card-secondary-color: orange;
+                            background-color: rgba(70, 10, 89, 0.8) !important;
+                            border-radius: 30% !important;
                           }
                         .: |
-                          {% if state_attr("sensor.shiro_plex_recently_added","data")[1].fanart is defined %}
+                          {% if state_attr("sensor.jelly_jellyfin_recently_added","data")[1].fanart is defined %}
                             ha-card {
                                 height: 13em !important;
-                                background: linear-gradient(to top, transparent, rgba(0,0,0,0.3) 100%), url({{ state_attr("sensor.shiro_plex_recently_added","data")[1].fanart }});
+                                background: linear-gradient(to top, transparent, rgba(0,0,0,0.3) 100%), url({{ state_attr("sensor.jelly_jellyfin_recently_added","data")[1].fanart }});
                                 background-size: auto, cover;
                                 background-repeat: no-repeat;
                                 background-blend-mode: saturation;
@@ -1693,11 +1692,17 @@ views:
                               transform: scale(0.95);
                               transition: 0s
                             }
-                            mushroom-state-info {
-                              position: absolute;
-                              bottom: 0px;
-                              left: 0;
-                              width: 100%;
+                            ha-tile-icon {
+                              position: absolute !important;
+                              top: 10px !important;
+                              left: 10px !important;
+                              z-index: 2 !important;
+                            }
+                            ha-tile-info {
+                              position: absolute !important;
+                              bottom: 0px !important;
+                              left: 0 !important;
+                              width: 100% !important;
                               padding: 10px 0 5px 15px;
                               margin-bottom: -1px;
                               box-sizing: border-box;
