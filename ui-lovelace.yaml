@@ -5955,6 +5955,11 @@ views:
                 type: grid
                 cards:
                   - type: vertical-stack
+                    card_mod:
+                      style: |
+                        :host {
+                          position: relative;
+                        }
                     cards:
                       - type: custom:apexcharts-card
                         chart_type: radialBar
@@ -5967,7 +5972,7 @@ views:
                         apex_config:
                           plotOptions:
                             radialBar:
-                              offsetY: 0
+                              offsetY: -30
                               startAngle: -108
                               endAngle: 108
                               hollow:
@@ -5997,17 +6002,26 @@ views:
                           legend:
                             show: false
                           chart:
-                            height: 130
+                            height: 300
+                            width: 300
+                            redrawOnParentResize: false
+                            redrawOnWindowResize: false
                         card_mod:
                           style: |
                             ha-card {
                               box-shadow: none;
                               background: none;
+                              height: 104px;
+                              position: relative;
+                              overflow: visible !important;
                             }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin: -10px;
-                              }
+                            .apexcharts-canvas {
+                              position: absolute !important;
+                              top: calc(50% - 15px) !important;
+                              left: 50% !important;
+                              z-index: 2 !important;
+                              transform: translate(-50%, -50%) scale(0.379) !important;
+                              transform-origin: center !important;
                             }
                       - type: custom:mushroom-entity-card
                         entity: sensor.speedtest_download
@@ -6020,19 +6034,19 @@ views:
                         card_mod:
                           style: |
                             ha-card {
-                              margin-top: -70px;
-                              margin-left: 3px;
-                              margin-right: auto;
-                              margin-bottom: 2px;
+                              position: absolute;
+                              top: 50%;
+                              left: 50%;
+                              transform: translate(-50%, -50%);
                               box-shadow: none;
                               background: none;
                             }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin-top: -50px;
-                              }
-                            }
                   - type: vertical-stack
+                    card_mod:
+                      style: |
+                        :host {
+                          position: relative;
+                        }
                     cards:
                       - type: custom:apexcharts-card
                         chart_type: radialBar
@@ -6045,7 +6059,7 @@ views:
                         apex_config:
                           plotOptions:
                             radialBar:
-                              offsetY: 0
+                              offsetY: -30
                               startAngle: -108
                               endAngle: 108
                               hollow:
@@ -6075,17 +6089,26 @@ views:
                           legend:
                             show: false
                           chart:
-                            height: 130
+                            height: 300
+                            width: 300
+                            redrawOnParentResize: false
+                            redrawOnWindowResize: false
                         card_mod:
                           style: |
                             ha-card {
                               box-shadow: none;
                               background: none;
+                              height: 104px;
+                              position: relative;
+                              overflow: visible !important;
                             }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin: -10px;
-                              }
+                            .apexcharts-canvas {
+                              position: absolute !important;
+                              top: calc(50% - 15px) !important;
+                              left: 50% !important;
+                              z-index: 2 !important;
+                              transform: translate(-50%, -50%) scale(0.379) !important;
+                              transform-origin: center !important;
                             }
                       - type: custom:mushroom-entity-card
                         entity: sensor.speedtest_upload
@@ -6098,19 +6121,19 @@ views:
                         card_mod:
                           style: |
                             ha-card {
-                              margin-top: -70px;
-                              margin-left: 3px;
-                              margin-right: auto;
-                              margin-bottom: 2px;
+                              position: absolute;
+                              top: 50%;
+                              left: 50%;
+                              transform: translate(-50%, -50%);
                               box-shadow: none;
                               background: none;
                             }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin-top: -50px;
-                              }
-                            }
                   - type: vertical-stack
+                    card_mod:
+                      style: |
+                        :host {
+                          position: relative;
+                        }
                     cards:
                       - type: custom:apexcharts-card
                         chart_type: radialBar
@@ -6126,7 +6149,7 @@ views:
                         apex_config:
                           plotOptions:
                             radialBar:
-                              offsetY: 0
+                              offsetY: -30
                               startAngle: -108
                               endAngle: 108
                               hollow:
@@ -6156,17 +6179,26 @@ views:
                           legend:
                             show: false
                           chart:
-                            height: 130
+                            height: 300
+                            width: 300
+                            redrawOnParentResize: false
+                            redrawOnWindowResize: false
                         card_mod:
                           style: |
                             ha-card {
                               box-shadow: none;
                               background: none;
+                              height: 104px;
+                              position: relative;
+                              overflow: visible !important;
                             }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin: -10px;
-                              }
+                            .apexcharts-canvas {
+                              position: absolute !important;
+                              top: calc(50% - 15px) !important;
+                              left: 50% !important;
+                              z-index: 2 !important;
+                              transform: translate(-50%, -50%) scale(0.379) !important;
+                              transform-origin: center !important;
                             }
                       - type: custom:mushroom-entity-card
                         entity: sensor.speedtest_ping
@@ -6179,17 +6211,12 @@ views:
                         card_mod:
                           style: |
                             ha-card {
-                              margin-top: -70px;
-                              margin-left: 3px;
-                              margin-right: auto;
-                              margin-bottom: 2px;
+                              position: absolute;
+                              top: 50%;
+                              left: 50%;
+                              transform: translate(-50%, -50%);
                               box-shadow: none;
                               background: none;
-                            }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin-top: -50px;
-                              }
                             }
                 card_mod:
                   style: |
