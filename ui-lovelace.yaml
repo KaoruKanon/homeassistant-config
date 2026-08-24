@@ -6590,7 +6590,7 @@ views:
                   entity: update.yahoo_finance_update
                   collapsible_controls: true
                   show_buttons_control: true
-                  name: Samba
+                  name: Yahoo
                   fill_container: false
               layout:
                 column_widths: 51% 51%
