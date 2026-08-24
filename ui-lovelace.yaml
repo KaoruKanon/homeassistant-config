@@ -6591,34 +6591,10 @@ views:
               type: grid
               cards:
                 - type: custom:mushroom-update-card
-                  entity: update.samba_share_update
+                  entity: update.yahoo_finance_update
                   collapsible_controls: true
                   show_buttons_control: true
                   name: Samba
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.mosquitto_broker_update
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: MQTT
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.speedtest_mettre_a_jour
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: Speedtest
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.studio_code_server_update
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: VS Code
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.home_assistant_google_drive_backup_mettre_a_jour
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: Drive Backup
                   fill_container: false
               layout:
                 column_widths: 51% 51%
