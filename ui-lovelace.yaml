@@ -6489,40 +6489,76 @@ views:
                     margin-top: 12px;
                   }
             - type: custom:mushroom-template-card
-              primary: Back-ups
-              secondary: >-
-                {{state_attr('sensor.backup_state', 'backups_in_google_drive')}}
-                back-ups, total {{state_attr('sensor.backup_state',
-                'size_in_google_drive')}}
-
-                Précédent: {% if state_attr('sensor.backup_state', 'last_backup') ==
-                "Jamais" %}inconnue{% else %}{% set delta = (now().timestamp() -
-                as_timestamp(state_attr('sensor.backup_state',
-                'last_backup')))/86400 %}{% if delta < 1 %}ce matin{% elif delta
-                < 2 %}gisteren{% else %}{{delta | round(0, "floor")}} jours
-                geleden{% endif %}{% endif %}
-
-                Suivant: {% set delta =
-                (as_timestamp(state_attr('sensor.backup_state', 'next_backup')) -
-                now().timestamp())/86400 %}{% if delta < 1 %}la nuit dernière{% elif delta
-                < 1.5 %}demain{% else %}plus de {{delta | round(0, "floor")}} jours{%
-                endif %}
-              icon: |-
-                {% if states('binary_sensor.backups_stale') == "off" %}
-                  mdi:cloud-check
+              primary: Backups
+              secondary: |-
+                {%- set last_success = states('sensor.backup_derniere_sauvegarde_automatique_reussie') -%}
+                {%- set next_backup = states('sensor.backup_prochaine_sauvegarde_automatique_programmee') -%}
+                {%- set manager_state = states('sensor.backup_etat_du_gestionnaire_de_sauvegarde') -%}
+                {%- set last_event = state_attr('event.backup_sauvegarde_automatique', 'event_type') -%}
+                {%- if manager_state != 'idle' -%}
+                  {%- set line1 = "Sauvegarde en cours" -%}
+                {%- elif last_event == 'failed' -%}
+                  {%- set line1 = "Échec de la dernière sauvegarde" -%}
+                {%- elif last_success in ['unknown', 'unavailable'] -%}
+                  {%- set line1 = "Précédent : inconnue" -%}
+                {%- else -%}
+                  {%- set delta = (now().timestamp() - as_timestamp(last_success)) / 86400 -%}
+                  {%- set rel = 'ce matin' if delta < 1 else ('hier' if delta < 2 else 'il y a ' ~ (delta | round(0, "floor") | int) ~ ' jours') -%}
+                  {%- set line1 = "Précédent : " ~ rel ~ " à " ~ (as_timestamp(last_success) | timestamp_custom("%H:%M")) -%}
+                {%- endif -%}
+                {%- if next_backup in ['unknown', 'unavailable'] -%}
+                  {%- set line2 = "Suivant : inconnue" -%}
+                {%- else -%}
+                  {%- set delta_next = (as_timestamp(next_backup) - now().timestamp()) / 86400 -%}
+                  {%- set rel_next = 'en retard' if delta_next < 0 else ('aujourd\'hui' if delta_next < 1 else ('demain' if delta_next < 2 else 'dans ' ~ (delta_next | round(0, "floor") | int) ~ ' jours')) -%}
+                  {%- set line2 = "Suivant : " ~ rel_next ~ " à " ~ (as_timestamp(next_backup) | timestamp_custom("%H:%M")) -%}
+                {%- endif -%}
+                {{ line1 }}
+                {{ line2 }}
+              icon: >-
+                {% set manager_state =
+                states('sensor.backup_etat_du_gestionnaire_de_sauvegarde') %}
+                {% set last_event =
+                state_attr('event.backup_sauvegarde_automatique', 'event_type') %}
+                {% if manager_state != 'idle' %}
+                mdi:cloud-sync
+                {% elif last_event == 'failed' %}
+                mdi:cloud-alert
                 {% else %}
-                  mdi:cloud-question
+                mdi:cloud-check
                 {% endif %}
               multiline_secondary: true
-              icon_color: |-
-                {% if states('binary_sensor.backups_stale') == "off" %}
-                  green
+              icon_color: >-
+                {% set manager_state =
+                states('sensor.backup_etat_du_gestionnaire_de_sauvegarde') %}
+                {% set last_event =
+                state_attr('event.backup_sauvegarde_automatique', 'event_type') %}
+                {% if manager_state != 'idle' %}
+                orange
+                {% elif last_event == 'failed' %}
+                red
                 {% else %}
-                  red
+                green
                 {% endif %}
               tap_action:
                 action: navigate
-                navigation_path: /cebe7a76_hassio_google_drive_backup
+                navigation_path: /config/backup
+              card_mod:
+                style:
+                  .: |
+                    {% set manager_state = states('sensor.backup_etat_du_gestionnaire_de_sauvegarde') %}
+                    {% set last_event = state_attr('event.backup_sauvegarde_automatique', 'event_type') %}
+                    ha-card {
+                      {% if manager_state != 'idle' %}
+                        background: rgba(var(--mush-rgb-orange), 0.8);
+                        --card-primary-color: rgb(var(--mush-rgb-white));
+                        --card-secondary-color: rgba(var(--mush-rgb-white), 0.8);
+                      {% elif last_event == 'failed' %}
+                        background: rgba(var(--mush-rgb-red), 0.8);
+                        --card-primary-color: rgb(var(--mush-rgb-white));
+                        --card-secondary-color: rgba(var(--mush-rgb-white), 0.8);
+                      {% endif %}
+                    }
             - square: false
               columns: 2
               type: grid
