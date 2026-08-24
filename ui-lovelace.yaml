@@ -1728,9 +1728,9 @@ views:
                       template: thermometer_template
                       variables:
                         - primary: William
-                        - temperature: sensor.temperature_chambre_william
-                        - humidity: sensor.humidity_chambre_william
-                        - battery: sensor.battery_thermometre_chambre_william
+                        - temperature: sensor.thermometer_chambre_william_temperature
+                        - humidity: sensor.thermometer_chambre_william_humidite
+                        - battery: sensor.thermometer_chambre_william_batterie
                         - color: var(--mush-rgb-purple)
                         - icon: mdi:bed
                     - type: custom:mushroom-template-card
@@ -1764,6 +1764,9 @@ views:
                       card_mod:
                         style:
                           .: |
+                            ha-card {
+                              height: auto !important;
+                            }
                             span[slot="primary"] {
                               white-space: normal !important;
                               overflow: hidden;
