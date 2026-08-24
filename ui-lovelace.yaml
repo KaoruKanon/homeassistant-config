@@ -6559,26 +6559,6 @@ views:
                         --card-secondary-color: rgba(var(--mush-rgb-white), 0.8);
                       {% endif %}
                     }
-            - square: false
-              columns: 2
-              type: grid
-              cards:
-                - type: custom:mushroom-update-card
-                  entity: update.home_assistant_core_update
-                  name: HA Core
-                  show_buttons_control: true
-                  collapsible_controls: true
-                - type: custom:mushroom-update-card
-                  entity: update.home_assistant_supervisor_update
-                  show_buttons_control: true
-                  collapsible_controls: true
-                  name: Supervisor
-              layout:
-                column_widths: 51% 51%
-                width: 145
-                margin: 0px
-                card_margin: 4px 4px 8px
-                min_height: 1
             - type: custom:mushroom-title-card
               title: ""
               subtitle: Add-ons
