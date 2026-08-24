@@ -564,7 +564,7 @@ decluttering_templates:
         {% endif %}
       icon_color: |-
         {% if is_state(entity, 'on') %}
-          var(--cstm-rgb-plug-on-icon)
+          rgb(var(--cstm-rgb-plug-on-icon))
         {% else %}
           disabled
         {% endif %}
@@ -832,9 +832,6 @@ decluttering_templates:
           ha-card:active {
             transform: scale(0.95);
             transition: 0s;
-          }
-          mushroom-shape-icon {
-            --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
           }
 views:
   - theme: Adaptive Mushroom
@@ -1638,7 +1635,6 @@ views:
                               }
                               mushroom-shape-icon {
                                   {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
-                                  --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
                                   {% if is_state('binary_sensor.oneplus12_is_charging','on') and not battery_level == 100 %}
                                       animation: charging-animation 4s infinite;
                                   {% endif %}
@@ -1918,7 +1914,6 @@ views:
                               }
                               mushroom-shape-icon {
                                 {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
-                                --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
                                 {% if is_state('binary_sensor.samsung_s10e_is_charging','on') and not battery_level == 100 %}
                                     animation: charging-animation 4s infinite;
                                 {% endif %}
@@ -4393,7 +4388,6 @@ views:
                           }
                           mushroom-shape-icon {
                             {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
-                            --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
                             {% if is_state('binary_sensor.oneplus12_is_charging','on') and not battery_level == 100 %}
                                 animation: charging-animation 4s infinite;
                             {% endif %}
@@ -4455,7 +4449,6 @@ views:
                           }
                           mushroom-shape-icon {
                             {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
-                            --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
                             {% if is_state('binary_sensor.samsung_s10e_is_charging','on') and not battery_level == 100 %}
                                 animation: charging-animation 4s infinite;
                             {% endif %}
