@@ -4531,7 +4531,7 @@ views:
                     - type: custom:decluttering-card
                       template: batterie_template
                       variables:
-                        - entity: sensor.switch_chambre_william_2_batterie
+                        - entity: sensor.switch_chambre_william_3_batterie
                         - primary: Switch William 3
                     - type: custom:decluttering-card
                       template: batterie_template
