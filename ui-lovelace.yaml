@@ -286,7 +286,7 @@ decluttering_templates:
             border-radius: 12px;
             #padding: 8px;
             width: auto;
-            backdrop-filter: blur(250px);
+            backdrop-filter: blur(24px);
             background: rgba(115, 115, 115, 0.20);
           }
           :host {
@@ -833,6 +833,278 @@ decluttering_templates:
             transform: scale(0.95);
             transition: 0s;
           }
+  kaoru_rig_template:
+    card:
+      type: custom:mushroom-template-card
+      entity: switch.computer_rig_kaoru
+      primary: Kaoru RIG
+      secondary: |-
+        {% if is_state(entity, 'on') %}
+          On
+        {% elif is_state(entity, 'off') %}
+          Off
+        {% else %}
+          Non disponible
+        {% endif %}
+      icon: mdi:monitor-multiple
+      icon_color: |-
+        {% if is_state(entity, 'on') %}
+          rgb(var(--cstm-rgb-automation-on-icon))
+        {% else %}
+          disabled
+        {% endif %}
+      tap_action:
+        action: toggle
+      hold_action:
+        action: more-info
+      double_tap_action: !include popup/computer_rig_kaoru.yaml
+      badge_icon: |-
+        {% if not is_state(entity, ['on', 'off']) %}
+          mdi:help
+        {% endif %}
+      badge_color: orange
+      card_mod:
+        style:
+          .: |
+            ha-card {
+              height: auto !important;
+            }
+            span[slot="primary"] {
+              white-space: normal !important;
+              overflow: hidden;
+              display: -webkit-box;
+              -webkit-line-clamp: 1;
+              -webkit-box-orient: vertical;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+              {% endif %}
+            }
+            span[slot="secondary"] {
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
+              {% endif %}
+            }
+            ha-card {
+              {% if is_state(config.entity, 'on') %}
+                background: var(--cstm-rgb-automation-on-background);
+                --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
+                --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
+              {% endif %}
+            }
+            ha-card:active {
+              transform: scale(0.95);
+              transition: 0s;
+            }
+            ha-state-icon:after {
+              content: "";
+              position: absolute;
+              width: 35%;
+              height: 60%;
+              margin-left: 5px;
+              margin-top: 5px;
+              {% if is_state(config.entity, 'on') %}
+              animation: refresh-screen 300ms linear infinite;
+              {% endif %}
+            }
+            @keyframes refresh-screen {
+              0% { background: linear-gradient(180deg, rgba(var(--rgb-black), 0.2) 0%, transparent 50%, transparent 100%); }
+              25% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 25%, transparent 100%); }
+              50% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 50%, transparent 100%); }
+              75% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 75%, transparent 100%); }
+              100% { background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var((--rgb-black), 0.2) 100%); }
+            }
+          mushroom-shape-icon$: |
+            .shape::before {
+              content: "";
+              position: absolute;
+              top: 0px;
+              left: 0px;
+              right: 0px;
+              bottom: 0px;
+              border-radius: 12px;
+              border: 4px solid transparent;
+              {% if is_state('input_boolean.computer_rig_kaoru_load', 'on') %}
+                animation: borderLoading 1s linear reverse infinite;
+              {% endif %}
+            }
+            @keyframes borderLoading {
+              0% {
+                border-top-color: rgba(var(--rgb-light-blue), 1);
+                border-right-color: rgba(var(--rgb-light-blue), 0.75);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
+                border-left-color: rgba(var(--rgb-light-blue), 0.25);
+              }
+              25% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.75);
+                border-right-color: rgba(var(--rgb-light-blue), 0.5);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
+                border-left-color: rgba(var(--rgb-light-blue), 1);
+              }
+              50% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.5);
+                border-right-color: rgba(var(--rgb-light-blue), 0.25);
+                border-bottom-color: rgba(var(--rgb-light-blue), 1);
+                border-left-color: rgba(var(--rgb-light-blue), 0.75);
+              }
+              75% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.25);
+                border-right-color: rgba(var(--rgb-light-blue), 1);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
+                border-left-color: rgba(var(--rgb-light-blue), 0.5);
+              }
+              100% {
+                border-top-color: rgba(var(--rgb-light-blue), 1);
+                border-right-color: rgba(var(--rgb-light-blue), 0.75);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
+                border-left-color: rgba(var(--rgb-light-blue), 0.25);
+              }
+            }
+  papa_pc_template:
+    card:
+      type: custom:mushroom-template-card
+      entity: switch.computer_papa
+      primary: Papa PC
+      secondary: |-
+        {% if is_state(entity, 'on') %}
+          On
+        {% elif is_state(entity, 'off') %}
+          Off
+        {% else %}
+          Non disponible
+        {% endif %}
+      icon: mdi:desktop-tower
+      icon_color: |-
+        {% if is_state(entity, 'on') %}
+          rgb(var(--cstm-rgb-automation-on-icon))
+        {% else %}
+          disabled
+        {% endif %}
+      tap_action:
+        action: toggle
+      hold_action:
+        action: more-info
+      double_tap_action: !include popup/computer_papa.yaml
+      badge_icon: |-
+        {% if not is_state(entity, ['on', 'off']) %}
+          mdi:help
+        {% endif %}
+      badge_color: orange
+      card_mod:
+        style:
+          .: |
+            ha-card {
+              height: auto !important;
+            }
+            span[slot="primary"] {
+              white-space: normal !important;
+              overflow: hidden;
+              display: -webkit-box;
+              -webkit-line-clamp: 1;
+              -webkit-box-orient: vertical;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+              {% endif %}
+            }
+            span[slot="secondary"] {
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
+              {% endif %}
+            }
+            ha-card {
+              {% if is_state(config.entity, 'on') %}
+                background: var(--cstm-rgb-automation-on-background);
+                --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
+                --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
+              {% endif %}
+            }
+            ha-card:active {
+              transform: scale(0.95);
+              transition: 0s;
+            }
+            ha-state-icon:before {
+              content: "";
+              position: absolute;
+              width: 4px;
+              height: 4px;
+              margin-left: 10px;
+              margin-top: 14px;
+              #border-radius: 10px;
+              {% if is_state(config.entity, 'on') %}
+              animation: blink-before 300ms linear infinite;
+              {% endif %}
+            }
+            ha-state-icon:after {
+              content: "";
+              position: absolute;
+              width: 8px;
+              height: 8px;
+              margin-left: 9px;
+              margin-top: 13px;
+              border-radius: 15px;
+              {% if is_state(config.entity, 'on') %}
+              animation: blink-after 300ms linear infinite;
+              {% endif %}
+            }
+            @keyframes blink-after {
+              0% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
+              25% { background: radial-gradient(closest-side,rgba(var(--rgb-light-blue), 1), rgba(var(--rgb-light-blue), 0.1)); }
+              50% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
+              75% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.1), rgba(var(--rgb-light-blue), 0.1)); }
+              100% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
+            }
+            @keyframes blink-before {
+              0% { background: rgba(var(--rgb-light-blue), 0.5); }
+              25% { background: rgba(var(--rgb-light-blue), 1); }
+              50% { background: rgba(var(--rgb-light-blue), 0.5); }
+              75% { background: rgba(var(--rgb-light-blue), 0.1); }
+              100% { background: rgba(var(--rgb-light-blue), 0.5); }
+            }
+          mushroom-shape-icon$: |
+            .shape::before {
+              content: "";
+              position: absolute;
+              top: 0px;
+              left: 0px;
+              right: 0px;
+              bottom: 0px;
+              border-radius: 12px;
+              border: 4px solid transparent;
+              {% if is_state('input_boolean.computer_papa_load', 'on') %}
+                animation: borderLoading 1s linear reverse infinite;
+              {% endif %}
+            }
+            @keyframes borderLoading {
+              0% {
+                border-top-color: rgba(var(--rgb-light-blue), 1);
+                border-right-color: rgba(var(--rgb-light-blue), 0.75);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
+                border-left-color: rgba(var(--rgb-light-blue), 0.25);
+              }
+              25% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.75);
+                border-right-color: rgba(var(--rgb-light-blue), 0.5);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
+                border-left-color: rgba(var(--rgb-light-blue), 1);
+              }
+              50% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.5);
+                border-right-color: rgba(var(--rgb-light-blue), 0.25);
+                border-bottom-color: rgba(var(--rgb-light-blue), 1);
+                border-left-color: rgba(var(--rgb-light-blue), 0.75);
+              }
+              75% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.25);
+                border-right-color: rgba(var(--rgb-light-blue), 1);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
+                border-left-color: rgba(var(--rgb-light-blue), 0.5);
+              }
+              100% {
+                border-top-color: rgba(var(--rgb-light-blue), 1);
+                border-right-color: rgba(var(--rgb-light-blue), 0.75);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
+                border-left-color: rgba(var(--rgb-light-blue), 0.25);
+              }
+            }
 views:
   - theme: Adaptive Mushroom
     title: Home
@@ -1320,268 +1592,10 @@ views:
                   columns: 2
                   type: grid
                   cards:
-                    - type: custom:mushroom-template-card
-                      entity: switch.computer_rig_kaoru
-                      primary: Kaoru RIG
-                      secondary: |-
-                        {% if is_state(entity, 'on') %}
-                          On
-                        {% elif is_state(entity, 'off') %}
-                          Off
-                        {% else %}
-                          Non disponible
-                        {% endif %}
-                      icon: mdi:monitor-multiple
-                      icon_color: |-
-                        {% if is_state(entity, 'on') %}
-                          rgb(var(--cstm-rgb-automation-on-icon))
-                        {% else %}
-                          disabled
-                        {% endif %}
-                      tap_action:
-                        action: toggle
-                      hold_action:
-                        action: more-info
-                      double_tap_action: !include popup/computer_rig_kaoru.yaml
-                      badge_icon: |-
-                        {% if not is_state(entity, ['on', 'off']) %}
-                          mdi:help
-                        {% endif %}
-                      badge_color: orange
-                      card_mod:
-                        style:
-                          .: |
-                            span[slot="primary"] {
-                              white-space: normal !important;
-                              overflow: hidden;
-                              display: -webkit-box;
-                              -webkit-line-clamp: 1;
-                              -webkit-box-orient: vertical;
-                              {% if is_state(config.entity, 'on') %}
-                                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
-                              {% endif %}
-                            }
-                            span[slot="secondary"] {
-                              {% if is_state(config.entity, 'on') %}
-                                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
-                              {% endif %}
-                            }
-                            ha-card {
-                              {% if is_state(config.entity, 'on') %}
-                                background: var(--cstm-rgb-automation-on-background);
-                                --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
-                                --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
-                              {% endif %}
-                            }
-                            ha-card:active {
-                              transform: scale(0.95);
-                              transition: 0s;
-                            }
-                            ha-state-icon:after {
-                              content: "";
-                              position: absolute;
-                              width: 35%;
-                              height: 60%;
-                              margin-left: 5px;
-                              margin-top: 5px;
-                              {% if is_state(config.entity, 'on') %}
-                              animation: refresh-screen 300ms linear infinite;
-                              {% endif %}
-                            }
-                            @keyframes refresh-screen {
-                              0% { background: linear-gradient(180deg, rgba(var(--rgb-black), 0.2) 0%, transparent 50%, transparent 100%); }
-                              25% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 25%, transparent 100%); }
-                              50% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 50%, transparent 100%); }
-                              75% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 75%, transparent 100%); }
-                              100% { background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var((--rgb-black), 0.2) 100%); }
-                            }
-                          mushroom-shape-icon$: |
-                            .shape::before {
-                              content: "";
-                              position: absolute;
-                              top: 0px;
-                              left: 0px;
-                              right: 0px;
-                              bottom: 0px;
-                              border-radius: 12px;
-                              border: 4px solid transparent;
-                              {% if is_state('input_boolean.computer_rig_kaoru_load', 'on') %}
-                                animation: borderLoading 1s linear reverse infinite;
-                              {% endif %}
-                            }
-                            @keyframes borderLoading {
-                              0% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                              25% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-left-color: rgba(var(--rgb-light-blue), 1);
-                              }
-                              50% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 1);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.75);
-                              }
-                              75% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-right-color: rgba(var(--rgb-light-blue), 1);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.5);
-                              }
-                              100% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                            }
-                    - type: custom:mushroom-template-card
-                      entity: switch.computer_papa
-                      primary: Papa PC
-                      secondary: |-
-                        {% if is_state(entity, 'on') %}
-                          On
-                        {% elif is_state(entity, 'off') %}
-                          Off
-                        {% else %}
-                          Non disponible
-                        {% endif %}
-                      icon: mdi:desktop-tower
-                      icon_color: |-
-                        {% if is_state(entity, 'on') %}
-                          rgb(var(--cstm-rgb-automation-on-icon))
-                        {% else %}
-                          disabled
-                        {% endif %}
-                      tap_action:
-                        action: toggle
-                      hold_action:
-                        action: more-info
-                      double_tap_action: !include popup/computer_papa.yaml
-                      badge_icon: |-
-                        {% if not is_state(entity, ['on', 'off']) %}
-                          mdi:help
-                        {% endif %}
-                      badge_color: orange
-                      card_mod:
-                        style:
-                          .: |
-                            span[slot="primary"] {
-                              white-space: normal !important;
-                              overflow: hidden;
-                              display: -webkit-box;
-                              -webkit-line-clamp: 1;
-                              -webkit-box-orient: vertical;
-                              {% if is_state(config.entity, 'on') %}
-                                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
-                              {% endif %}
-                            }
-                            span[slot="secondary"] {
-                              {% if is_state(config.entity, 'on') %}
-                                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
-                              {% endif %}
-                            }
-                            ha-card {
-                              {% if is_state(config.entity, 'on') %}
-                                background: var(--cstm-rgb-automation-on-background);
-                                --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
-                                --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
-                              {% endif %}
-                            }
-                            ha-card:active {
-                              transform: scale(0.95);
-                              transition: 0s;
-                            }
-                            ha-state-icon:before {
-                              content: "";
-                              position: absolute;
-                              width: 4px;
-                              height: 4px;
-                              margin-left: 10px;
-                              margin-top: 14px;
-                              #border-radius: 10px;
-                              {% if is_state(config.entity, 'on') %}
-                              animation: blink-before 300ms linear infinite;
-                              {% endif %}
-                            }
-                            ha-state-icon:after {
-                              content: "";
-                              position: absolute;
-                              width: 8px;
-                              height: 8px;
-                              margin-left: 9px;
-                              margin-top: 13px;
-                              border-radius: 15px;
-                              {% if is_state(config.entity, 'on') %}
-                              animation: blink-after 300ms linear infinite;
-                              {% endif %}
-                            }
-                            @keyframes blink-after {
-                              0% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                              25% { background: radial-gradient(closest-side,rgba(var(--rgb-light-blue), 1), rgba(var(--rgb-light-blue), 0.1)); }
-                              50% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                              75% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.1), rgba(var(--rgb-light-blue), 0.1)); }
-                              100% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                            }
-                            @keyframes blink-before {
-                              0% { background: rgba(var(--rgb-light-blue), 0.5); }
-                              25% { background: rgba(var(--rgb-light-blue), 1); }
-                              50% { background: rgba(var(--rgb-light-blue), 0.5); }
-                              75% { background: rgba(var(--rgb-light-blue), 0.1); }
-                              100% { background: rgba(var(--rgb-light-blue), 0.5); }
-                            }
-                          mushroom-shape-icon$: |
-                            .shape::before {
-                              content: "";
-                              position: absolute;
-                              top: 0px;
-                              left: 0px;
-                              right: 0px;
-                              bottom: 0px;
-                              border-radius: 12px;
-                              border: 4px solid transparent;
-                              {% if is_state('input_boolean.computer_papa_load', 'on') %}
-                                animation: borderLoading 1s linear reverse infinite;
-                              {% endif %}
-                            }
-                            @keyframes borderLoading {
-                              0% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                              25% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-left-color: rgba(var(--rgb-light-blue), 1);
-                              }
-                              50% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 1);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.75);
-                              }
-                              75% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-right-color: rgba(var(--rgb-light-blue), 1);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.5);
-                              }
-                              100% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                            }
+                    - type: custom:decluttering-card
+                      template: kaoru_rig_template
+                    - type: custom:decluttering-card
+                      template: papa_pc_template
           - type: conditional
             conditions:
               - condition: user
@@ -1733,130 +1747,8 @@ views:
                         - battery: sensor.thermometer_chambre_william_batterie
                         - color: var(--mush-rgb-purple)
                         - icon: mdi:bed
-                    - type: custom:mushroom-template-card
-                      entity: switch.computer_rig_kaoru
-                      primary: Kaoru RIG
-                      secondary: |-
-                        {% if is_state(entity, 'on') %}
-                          On
-                        {% elif is_state(entity, 'off') %}
-                          Off
-                        {% else %}
-                          Non disponible
-                        {% endif %}
-                      icon: mdi:monitor-multiple
-                      icon_color: |-
-                        {% if is_state(entity, 'on') %}
-                          rgb(var(--cstm-rgb-automation-on-icon))
-                        {% else %}
-                          disabled
-                        {% endif %}
-                      tap_action:
-                        action: toggle
-                      hold_action:
-                        action: more-info
-                      double_tap_action: !include popup/computer_rig_kaoru.yaml
-                      badge_icon: |-
-                        {% if not is_state(entity, ['on', 'off']) %}
-                          mdi:help
-                        {% endif %}
-                      badge_color: orange
-                      card_mod:
-                        style:
-                          .: |
-                            ha-card {
-                              height: auto !important;
-                            }
-                            span[slot="primary"] {
-                              white-space: normal !important;
-                              overflow: hidden;
-                              display: -webkit-box;
-                              -webkit-line-clamp: 1;
-                              -webkit-box-orient: vertical;
-                              {% if is_state(config.entity, 'on') %}
-                                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
-                              {% endif %}
-                            }
-                            span[slot="secondary"] {
-                              {% if is_state(config.entity, 'on') %}
-                                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
-                              {% endif %}
-                            }
-                            ha-card {
-                              {% if is_state(config.entity, 'on') %}
-                                background: var(--cstm-rgb-automation-on-background);
-                                --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
-                                --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
-                              {% endif %}
-                            }
-                            ha-card:active {
-                              transform: scale(0.95);
-                              transition: 0s;
-                            }
-                            ha-state-icon:after {
-                              content: "";
-                              position: absolute;
-                              width: 35%;
-                              height: 60%;
-                              margin-left: 5px;
-                              margin-top: 5px;
-                              {% if is_state(config.entity, 'on') %}
-                              animation: refresh-screen 300ms linear infinite;
-                              {% endif %}
-                            }
-                            @keyframes refresh-screen {
-                              0% { background: linear-gradient(180deg, rgba(var(--rgb-black), 0.2) 0%, transparent 50%, transparent 100%); }
-                              25% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 25%, transparent 100%); }
-                              50% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 50%, transparent 100%); }
-                              75% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 75%, transparent 100%); }
-                              100% { background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var((--rgb-black), 0.2) 100%); }
-                            }
-                          mushroom-shape-icon$: |
-                            .shape::before {
-                              content: "";
-                              position: absolute;
-                              top: 0px;
-                              left: 0px;
-                              right: 0px;
-                              bottom: 0px;
-                              border-radius: 12px;
-                              border: 4px solid transparent;
-                              {% if is_state('input_boolean.computer_rig_kaoru_load', 'on') %}
-                                animation: borderLoading 1s linear reverse infinite;
-                              {% endif %}
-                            }
-                            @keyframes borderLoading {
-                              0% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                              25% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-left-color: rgba(var(--rgb-light-blue), 1);
-                              }
-                              50% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 1);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.75);
-                              }
-                              75% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-right-color: rgba(var(--rgb-light-blue), 1);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.5);
-                              }
-                              100% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                            }
+                    - type: custom:decluttering-card
+                      template: kaoru_rig_template
                     - type: custom:decluttering-card
                       template: automation_template
                       variables:
@@ -3763,268 +3655,10 @@ views:
                 variables:
                   - entity: switch.smart_plug_shiro_switch
                   - name: Shiro
-              - type: custom:mushroom-template-card
-                entity: switch.computer_rig_kaoru
-                primary: Kaoru RIG
-                secondary: |-
-                  {% if is_state(entity, 'on') %}
-                    On
-                  {% elif is_state(entity, 'off') %}
-                    Off
-                  {% else %}
-                    Non disponible
-                  {% endif %}
-                icon: mdi:monitor-multiple
-                icon_color: |-
-                  {% if is_state(entity, 'on') %}
-                    rgb(var(--cstm-rgb-automation-on-icon))
-                  {% else %}
-                    disabled
-                  {% endif %}
-                tap_action:
-                  action: toggle
-                hold_action:
-                  action: more-info
-                double_tap_action: !include popup/computer_rig_kaoru.yaml
-                badge_icon: |-
-                  {% if not is_state(entity, ['on', 'off']) %}
-                    mdi:help
-                  {% endif %}
-                badge_color: orange
-                card_mod:
-                  style:
-                    .: |
-                      span[slot="primary"] {
-                        white-space: normal !important;
-                        overflow: hidden;
-                        display: -webkit-box;
-                        -webkit-line-clamp: 1;
-                        -webkit-box-orient: vertical;
-                        {% if is_state(config.entity, 'on') %}
-                          color: rgb(var(--cstm-rgb-on-primary-text)) !important;
-                        {% endif %}
-                      }
-                      span[slot="secondary"] {
-                        {% if is_state(config.entity, 'on') %}
-                          color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
-                        {% endif %}
-                      }
-                      ha-card {
-                        {% if is_state(config.entity, 'on') %}
-                          background: var(--cstm-rgb-automation-on-background);
-                          --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
-                          --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
-                        {% endif %}
-                      }
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      ha-state-icon:after {
-                        content: "";
-                        position: absolute;
-                        width: 35%;
-                        height: 60%;
-                        margin-left: 5px;
-                        margin-top: 5px;
-                        {% if is_state(config.entity, 'on') %}
-                        animation: refresh-screen 300ms linear infinite;
-                        {% endif %}
-                      }
-                      @keyframes refresh-screen {
-                        0% { background: linear-gradient(180deg, rgba(var(--rgb-black), 0.2) 0%, transparent 50%, transparent 100%); }
-                        25% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 25%, transparent 100%); }
-                        50% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 50%, transparent 100%); }
-                        75% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 75%, transparent 100%); }
-                        100% { background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var((--rgb-black), 0.2) 100%); }
-                      }
-                    mushroom-shape-icon$: |
-                      .shape::before {
-                        content: "";
-                        position: absolute;
-                        top: 0px;
-                        left: 0px;
-                        right: 0px;
-                        bottom: 0px;
-                        border-radius: 12px;
-                        border: 4px solid transparent;
-                        {% if is_state('input_boolean.computer_rig_kaoru_load', 'on') %}
-                          animation: borderLoading 1s linear reverse infinite;
-                        {% endif %}
-                      }
-                      @keyframes borderLoading {
-                        0% {
-                          border-top-color: rgba(var(--rgb-light-blue), 1);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                        }
-                        25% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-left-color: rgba(var(--rgb-light-blue), 1);
-                        }
-                        50% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 1);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.75);
-                        }
-                        75% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-right-color: rgba(var(--rgb-light-blue), 1);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.5);
-                        }
-                        100% {
-                          border-top-color: rgba(var(--rgb-light-blue), 1);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                        }
-                      }
-              - type: custom:mushroom-template-card
-                entity: switch.computer_papa
-                primary: Papa PC
-                secondary: |-
-                  {% if is_state(entity, 'on') %}
-                    On
-                  {% elif is_state(entity, 'off') %}
-                    Off
-                  {% else %}
-                    Non disponible
-                  {% endif %}
-                icon: mdi:desktop-tower
-                icon_color: |-
-                  {% if is_state(entity, 'on') %}
-                    rgb(var(--cstm-rgb-automation-on-icon))
-                  {% else %}
-                    disabled
-                  {% endif %}
-                tap_action:
-                  action: toggle
-                hold_action:
-                  action: more-info
-                double_tap_action: !include popup/computer_papa.yaml
-                badge_icon: |-
-                  {% if not is_state(entity, ['on', 'off']) %}
-                    mdi:help
-                  {% endif %}
-                badge_color: orange
-                card_mod:
-                  style:
-                    .: |
-                      span[slot="primary"] {
-                        white-space: normal !important;
-                        overflow: hidden;
-                        display: -webkit-box;
-                        -webkit-line-clamp: 1;
-                        -webkit-box-orient: vertical;
-                        {% if is_state(config.entity, 'on') %}
-                          color: rgb(var(--cstm-rgb-on-primary-text)) !important;
-                        {% endif %}
-                      }
-                      span[slot="secondary"] {
-                        {% if is_state(config.entity, 'on') %}
-                          color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
-                        {% endif %}
-                      }
-                      ha-card {
-                        {% if is_state(config.entity, 'on') %}
-                          background: var(--cstm-rgb-automation-on-background);
-                          --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
-                          --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
-                        {% endif %}
-                      }
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      ha-state-icon:before {
-                        content: "";
-                        position: absolute;
-                        width: 4px;
-                        height: 4px;
-                        margin-left: 10px;
-                        margin-top: 14px;
-                        #border-radius: 10px;
-                        {% if is_state(config.entity, 'on') %}
-                        animation: blink-before 300ms linear infinite;
-                        {% endif %}
-                      }
-                      ha-state-icon:after {
-                        content: "";
-                        position: absolute;
-                        width: 8px;
-                        height: 8px;
-                        margin-left: 9px;
-                        margin-top: 13px;
-                        border-radius: 15px;
-                        {% if is_state(config.entity, 'on') %}
-                        animation: blink-after 300ms linear infinite;
-                        {% endif %}
-                      }
-                      @keyframes blink-after {
-                        0% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                        25% { background: radial-gradient(closest-side,rgba(var(--rgb-light-blue), 1), rgba(var(--rgb-light-blue), 0.1)); }
-                        50% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                        75% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.1), rgba(var(--rgb-light-blue), 0.1)); }
-                        100% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                      }
-                      @keyframes blink-before {
-                        0% { background: rgba(var(--rgb-light-blue), 0.5); }
-                        25% { background: rgba(var(--rgb-light-blue), 1); }
-                        50% { background: rgba(var(--rgb-light-blue), 0.5); }
-                        75% { background: rgba(var(--rgb-light-blue), 0.1); }
-                        100% { background: rgba(var(--rgb-light-blue), 0.5); }
-                      }
-                    mushroom-shape-icon$: |
-                      .shape::before {
-                        content: "";
-                        position: absolute;
-                        top: 0px;
-                        left: 0px;
-                        right: 0px;
-                        bottom: 0px;
-                        border-radius: 12px;
-                        border: 4px solid transparent;
-                        {% if is_state('input_boolean.computer_papa_load', 'on') %}
-                          animation: borderLoading 1s linear reverse infinite;
-                        {% endif %}
-                      }
-                      @keyframes borderLoading {
-                        0% {
-                          border-top-color: rgba(var(--rgb-light-blue), 1);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                        }
-                        25% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-left-color: rgba(var(--rgb-light-blue), 1);
-                        }
-                        50% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 1);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.75);
-                        }
-                        75% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-right-color: rgba(var(--rgb-light-blue), 1);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.5);
-                        }
-                        100% {
-                          border-top-color: rgba(var(--rgb-light-blue), 1);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                        }
-                      }
+              - type: custom:decluttering-card
+                template: kaoru_rig_template
+              - type: custom:decluttering-card
+                template: papa_pc_template
               - type: custom:mushroom-fan-card
                 entity: fan.xiaomi_smart_fan_2
                 show_percentage_control: true
