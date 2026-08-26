@@ -596,9 +596,6 @@ decluttering_templates:
             span[slot="secondary"] {
               font-weight: 700 !important;
               color: rgb(var(--rgb-secondary-text-color)) !important;
-              {% if is_state(config.entity, 'on') %}
-                color: rgb(230,230,230) !important;
-              {% endif %}
             }
             ha-card {
               {% if is_state(config.entity, 'on') %}
@@ -663,9 +660,6 @@ decluttering_templates:
             span[slot="secondary"] {
               font-weight: 700 !important;
               color: rgb(var(--rgb-secondary-text-color)) !important;
-              {% if is_state(config.entity, 'on') %}
-                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
-              {% endif %}
             }
             ha-card {
               min-height: 72px;
@@ -850,6 +844,13 @@ decluttering_templates:
             transform: scale(0.95);
             transition: 0s;
           }
+          span[slot="primary"] {
+            font-weight: 700 !important;
+          }
+          span[slot="secondary"] {
+            font-weight: 700 !important;
+            color: rgb(var(--rgb-secondary-text-color)) !important;
+          }
   kaoru_rig_template:
     card:
       type: custom:mushroom-template-card
@@ -900,9 +901,6 @@ decluttering_templates:
             span[slot="secondary"] {
               font-weight: 700 !important;
               color: rgb(var(--rgb-secondary-text-color)) !important;
-              {% if is_state(config.entity, 'on') %}
-                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
-              {% endif %}
             }
             ha-card {
               {% if is_state(config.entity, 'on') %}
@@ -1029,9 +1027,6 @@ decluttering_templates:
             span[slot="secondary"] {
               font-weight: 700 !important;
               color: rgb(var(--rgb-secondary-text-color)) !important;
-              {% if is_state(config.entity, 'on') %}
-                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
-              {% endif %}
             }
             ha-card {
               {% if is_state(config.entity, 'on') %}
@@ -4387,6 +4382,11 @@ views:
                   color: white
               cards:
                 - type: custom:mod-card
+                  card_mod:
+                    style: |
+                      ha-card {
+                        min-height: 265px;
+                      }
                   card:
                     type: custom:stack-in-card
                     cards:
@@ -4437,6 +4437,7 @@ views:
                             ha-card {
                               background: none;
                               box-shadow: none;
+                              height: 191px;
                             }
                 - type: custom:mod-card
                   card:
