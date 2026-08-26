@@ -79,6 +79,14 @@ automation:
         hours: "/12"
       - trigger: homeassistant
         event: start
+    actions:
+      - action: homeassistant.update_entity
+        metadata: {}
+        data:
+          entity_id:
+            - sensor.speedtest_ping
+            - sensor.speedtest_download
+            - sensor.speedtest_upload
     mode: single
 
   - alias: backup_ha_monthly
