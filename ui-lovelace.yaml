@@ -5315,11 +5315,6 @@ views:
           - type: custom:mushroom-title-card
             title: Cartes
             subtitle: ""
-      - type: vertical-stack
-        cards:
-          - type: custom:mushroom-title-card
-            title: Cartes
-            subtitle: ""
           - type: custom:mod-card
             card_mod:
               style: |
