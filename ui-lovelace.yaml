@@ -587,6 +587,19 @@ decluttering_templates:
               overflow: hidden;
             }
           .: |
+            span[slot="primary"] {
+              font-weight: 700 !important;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--mush-rgb-white)) !important;
+              {% endif %}
+            }
+            span[slot="secondary"] {
+              font-weight: 700 !important;
+              color: rgb(var(--rgb-secondary-text-color)) !important;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(230,230,230) !important;
+              {% endif %}
+            }
             ha-card {
               {% if is_state(config.entity, 'on') %}
                 background: rgba(var(--mush-rgb-[[color]]), 0.8);
@@ -642,16 +655,20 @@ decluttering_templates:
             span[slot="primary"] {
               white-space: normal !important;
               overflow: hidden;
+              font-weight: 700 !important;
               {% if is_state(config.entity, 'on') %}
                 color: rgb(var(--cstm-rgb-on-primary-text)) !important;
               {% endif %}
             }
             span[slot="secondary"] {
+              font-weight: 700 !important;
+              color: rgb(var(--rgb-secondary-text-color)) !important;
               {% if is_state(config.entity, 'on') %}
                 color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
               {% endif %}
             }
             ha-card {
+              min-height: 72px;
               {% if is_state(config.entity, 'on') %}
                  background: var(--cstm-rgb-automation-on-background);
                  --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
@@ -875,11 +892,14 @@ decluttering_templates:
               display: -webkit-box;
               -webkit-line-clamp: 1;
               -webkit-box-orient: vertical;
+              font-weight: 700 !important;
               {% if is_state(config.entity, 'on') %}
                 color: rgb(var(--cstm-rgb-on-primary-text)) !important;
               {% endif %}
             }
             span[slot="secondary"] {
+              font-weight: 700 !important;
+              color: rgb(var(--rgb-secondary-text-color)) !important;
               {% if is_state(config.entity, 'on') %}
                 color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
               {% endif %}
@@ -1001,11 +1021,14 @@ decluttering_templates:
               display: -webkit-box;
               -webkit-line-clamp: 1;
               -webkit-box-orient: vertical;
+              font-weight: 700 !important;
               {% if is_state(config.entity, 'on') %}
                 color: rgb(var(--cstm-rgb-on-primary-text)) !important;
               {% endif %}
             }
             span[slot="secondary"] {
+              font-weight: 700 !important;
+              color: rgb(var(--rgb-secondary-text-color)) !important;
               {% if is_state(config.entity, 'on') %}
                 color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
               {% endif %}
