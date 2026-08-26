@@ -2,7 +2,17 @@
 
 # Configure these variables
 hassApi="http://localhost:8123/api"
-hassApiToken="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjNjZhZWM0ZmVjZWU0Mzc5YTZhNGYxNjE4ZTdjNGUwYiIsImlhdCI6MTcwMDQ0MzIwNywiZXhwIjoyMDE1ODAzMjA3fQ.Xx2QLWrPA45HBT-3hXrMOwaR0bU99HS5m80iV97mXjg"
+configDir="/opt/homeassistant/config"
+secretsFile=$(find "$configDir" -maxdepth 1 -iname 'secrets*.yaml' -print -quit)
+if [ -z "$secretsFile" ]; then
+    echo "Could not find a secrets*.yaml file in $configDir" >&2
+    exit 1
+fi
+hassApiToken=$(grep -E '^google_home_hass_api:' "$secretsFile" | head -n1 | sed -E 's/^[^:]+:[[:space:]]*"?([^"[:space:]]+)"?[[:space:]]*$/\1/')
+if [ -z "$hassApiToken" ]; then
+    echo "Could not find google_home_hass_api key in $secretsFile" >&2
+    exit 1
+fi
 getTokenScriptPath="/opt/homeassistant/config/www/google_home_tracker/get_tokens.py"
 grpCurlPath="/opt/homeassistant/config/www/google_home_tracker/grpcurl"
 protoPath="/opt/homeassistant/config/www/google_home_tracker/"
