@@ -5,24 +5,22 @@ fan:
     token: !secret xiaomi_smart_fan_token
     model: dmaker.fan.p18
 
-sensor: 
-  - platform: template
-    sensors:
-      fan_speed:
-        value_template: >
+template:
+  - sensor:
+      - name: Receiver Fan speed
+        unique_id: fan_speed
+        default_entity_id: sensor.fan_speed
+        icon: mdi:fan-speed-up
+        state: >
           {% if is_state('fan.xiaomi_smart_fan_2', 'on')  %}
             {{ (state_attr('fan.xiaomi_smart_fan_2', 'percentage') / 25) | int }}
           {% endif %}
-        friendly_name: Receiver Fan speed
-        icon_template: mdi:mdi:fan-speed-up
-
-switch:
-  - platform: template
-    switches:
-      fan_oscillate:
-        friendly_name: Oscillation
-        icon_template: mdi:rotate-3d-variant
-        value_template: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'oscillate', true) }}"
+    switch:
+      - name: Oscillation
+        unique_id: fan_oscillate
+        default_entity_id: switch.fan_oscillate
+        icon: mdi:rotate-3d-variant
+        state: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'oscillate', true) }}"
         turn_on:
           - service: fan.oscillate
             target:
@@ -36,10 +34,11 @@ switch:
             data:
               oscillating: false
 
-      fan_eco_mode:
-        friendly_name: Eco mode
-        icon_template: mdi:leaf
-        value_template: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'mode', 'nature') }}"
+      - name: Eco mode
+        unique_id: fan_eco_mode
+        default_entity_id: switch.fan_eco_mode
+        icon: mdi:leaf
+        state: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'mode', 'nature') }}"
         turn_on:
           - service: xiaomi_miio_fan.fan_set_natural_mode_on
             data: {}
@@ -47,10 +46,11 @@ switch:
           - service: xiaomi_miio_fan.fan_set_natural_mode_off
             data: {}
 
-      fan_buzzer:
-        friendly_name: Buzzer
-        icon_template: mdi:bell-ring
-        value_template: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'buzzer', True) }}"
+      - name: Buzzer
+        unique_id: fan_buzzer
+        default_entity_id: switch.fan_buzzer
+        icon: mdi:bell-ring
+        state: "{{ is_state_attr('fan.xiaomi_smart_fan_2', 'buzzer', True) }}"
         turn_on:
           - service: xiaomi_miio_fan.fan_set_buzzer_on
             data: {}

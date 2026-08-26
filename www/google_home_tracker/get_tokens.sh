@@ -2,13 +2,21 @@
 
 # Configure these variables
 hassApi="http://localhost:8123/api"
-hassApiToken="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjNjZhZWM0ZmVjZWU0Mzc5YTZhNGYxNjE4ZTdjNGUwYiIsImlhdCI6MTcwMDQ0MzIwNywiZXhwIjoyMDE1ODAzMjA3fQ.Xx2QLWrPA45HBT-3hXrMOwaR0bU99HS5m80iV97mXjg"
-getTokenScriptPath="/usr/share/hassio/homeassistant/www/google_home_tracker/get_tokens.py"
-grpCurlPath="/usr/share/hassio/homeassistant/www/google_home_tracker/grpcurl"
-protoPath="/usr/share/hassio/homeassistant/www/google_home_tracker/"
+configDir="/opt/homeassistant/config"
+secretsFile=$(find "$configDir" -maxdepth 1 -iname 'secrets*.yaml' -print -quit)
+if [ -z "$secretsFile" ]; then
+    echo "Could not find a secrets*.yaml file in $configDir" >&2
+    exit 1
+fi
+hassApiToken=$(grep -E '^google_home_hass_api:' "$secretsFile" | head -n1 | sed -E 's/^[^:]+:[[:space:]]*"?([^"[:space:]]+)"?[[:space:]]*$/\1/')
+if [ -z "$hassApiToken" ]; then
+    echo "Could not find google_home_hass_api key in $secretsFile" >&2
+    exit 1
+fi
+getTokenScriptPath="/opt/homeassistant/config/www/google_home_tracker/get_tokens.py"
+grpCurlPath="/opt/homeassistant/config/www/google_home_tracker/grpcurl"
+protoPath="/opt/homeassistant/config/www/google_home_tracker/"
 targetDevices=("Cuisine")
-healthCheck="true"
-healthCheckUrl=https://hc-ping.com/8bbc7e89-39e2-40fb-9a68-d9ba62a35f5b
 # End config
 
 # Grab Google access token
@@ -41,10 +49,6 @@ jsonObj="{\"state\": \"Tokening\", \"attributes\": {$entities}}"
 
 if [ $? -eq 0 ]; then
     echo "Home assistant keys updated."
-
-    if [ "$healthCheck" = "true" ] ; then
-    /usr/bin/curl -s -m 10 --retry 5 $healthCheckUrl > /dev/null
-    fi
 else
     echo "Something went wrong, check script config."
 fi

@@ -286,7 +286,7 @@ decluttering_templates:
             border-radius: 12px;
             #padding: 8px;
             width: auto;
-            backdrop-filter: blur(250px);
+            backdrop-filter: blur(24px);
             background: rgba(115, 115, 115, 0.20);
           }
           :host {
@@ -564,7 +564,7 @@ decluttering_templates:
         {% endif %}
       icon_color: |-
         {% if is_state(entity, 'on') %}
-          var(--cstm-rgb-plug-on-icon)
+          rgb(var(--cstm-rgb-plug-on-icon))
         {% else %}
           disabled
         {% endif %}
@@ -587,6 +587,16 @@ decluttering_templates:
               overflow: hidden;
             }
           .: |
+            span[slot="primary"] {
+              font-weight: 700 !important;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--mush-rgb-white)) !important;
+              {% endif %}
+            }
+            span[slot="secondary"] {
+              font-weight: 700 !important;
+              color: rgb(var(--rgb-secondary-text-color)) !important;
+            }
             ha-card {
               {% if is_state(config.entity, 'on') %}
                 background: rgba(var(--mush-rgb-[[color]]), 0.8);
@@ -619,7 +629,7 @@ decluttering_templates:
         {% endif %}
       icon_color: |-
         {% if is_state(entity, 'on') %}
-          var(--cstm-rgb-automation-on-icon)
+          rgb(var(--cstm-rgb-automation-on-icon))
         {% else %}
           disabled
         {% endif %}
@@ -638,13 +648,21 @@ decluttering_templates:
       badge_color: orange
       card_mod:
         style:
-          mushroom-state-info$: |
-            .primary {
+          .: |
+            span[slot="primary"] {
               white-space: normal !important;
               overflow: hidden;
+              font-weight: 700 !important;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+              {% endif %}
             }
-          .: |
+            span[slot="secondary"] {
+              font-weight: 700 !important;
+              color: rgb(var(--rgb-secondary-text-color)) !important;
+            }
             ha-card {
+              min-height: 72px;
               {% if is_state(config.entity, 'on') %}
                  background: var(--cstm-rgb-automation-on-background);
                  --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
@@ -687,7 +705,7 @@ decluttering_templates:
         {% endif %}
       icon_color: |-
         {% if is_state(entity, 'on') %}
-          var(--cstm-rgb-automation-on-icon)
+          rgb(var(--cstm-rgb-automation-on-icon))
         {% else %}
           disabled
         {% endif %}
@@ -706,12 +724,19 @@ decluttering_templates:
       badge_color: orange
       card_mod:
         style:
-          mushroom-state-info$: |
-            .primary {
+          .: |
+            span[slot="primary"] {
               white-space: normal !important;
               overflow: hidden;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+              {% endif %}
             }
-          .: |
+            span[slot="secondary"] {
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-secondary-text)) !important;
+              {% endif %}
+            }
             ha-card {
               {% if is_state(config.entity, 'on') %}
                  background: var(--cstm-rgb-automation-on-background);
@@ -819,9 +844,285 @@ decluttering_templates:
             transform: scale(0.95);
             transition: 0s;
           }
-          mushroom-shape-icon {
-            --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
+          span[slot="primary"] {
+            font-weight: 700 !important;
           }
+          span[slot="secondary"] {
+            font-weight: 700 !important;
+            color: rgb(var(--rgb-secondary-text-color)) !important;
+          }
+  kaoru_rig_template:
+    card:
+      type: custom:mushroom-template-card
+      entity: switch.computer_rig_kaoru
+      primary: Kaoru RIG
+      secondary: |-
+        {% if is_state(entity, 'on') %}
+          On
+        {% elif is_state(entity, 'off') %}
+          Off
+        {% else %}
+          Non disponible
+        {% endif %}
+      icon: mdi:monitor-multiple
+      icon_color: |-
+        {% if is_state(entity, 'on') %}
+          rgb(var(--cstm-rgb-automation-on-icon))
+        {% else %}
+          disabled
+        {% endif %}
+      tap_action:
+        action: toggle
+      hold_action:
+        action: more-info
+      double_tap_action: !include popup/computer_rig_kaoru.yaml
+      badge_icon: |-
+        {% if not is_state(entity, ['on', 'off']) %}
+          mdi:help
+        {% endif %}
+      badge_color: orange
+      card_mod:
+        style:
+          .: |
+            ha-card {
+              height: auto !important;
+            }
+            span[slot="primary"] {
+              white-space: normal !important;
+              overflow: hidden;
+              display: -webkit-box;
+              -webkit-line-clamp: 1;
+              -webkit-box-orient: vertical;
+              font-weight: 700 !important;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+              {% endif %}
+            }
+            span[slot="secondary"] {
+              font-weight: 700 !important;
+              color: rgb(var(--rgb-secondary-text-color)) !important;
+            }
+            ha-card {
+              {% if is_state(config.entity, 'on') %}
+                background: var(--cstm-rgb-automation-on-background);
+                --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
+                --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
+              {% endif %}
+            }
+            ha-card:active {
+              transform: scale(0.95);
+              transition: 0s;
+            }
+            ha-state-icon:after {
+              content: "";
+              position: absolute;
+              width: 35%;
+              height: 60%;
+              margin-left: 5px;
+              margin-top: 5px;
+              {% if is_state(config.entity, 'on') %}
+              animation: refresh-screen 300ms linear infinite;
+              {% endif %}
+            }
+            @keyframes refresh-screen {
+              0% { background: linear-gradient(180deg, rgba(var(--rgb-black), 0.2) 0%, transparent 50%, transparent 100%); }
+              25% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 25%, transparent 100%); }
+              50% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 50%, transparent 100%); }
+              75% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 75%, transparent 100%); }
+              100% { background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var((--rgb-black), 0.2) 100%); }
+            }
+          mushroom-shape-icon$: |
+            .shape::before {
+              content: "";
+              position: absolute;
+              top: 0px;
+              left: 0px;
+              right: 0px;
+              bottom: 0px;
+              border-radius: 12px;
+              border: 4px solid transparent;
+              {% if is_state('input_boolean.computer_rig_kaoru_load', 'on') %}
+                animation: borderLoading 1s linear reverse infinite;
+              {% endif %}
+            }
+            @keyframes borderLoading {
+              0% {
+                border-top-color: rgba(var(--rgb-light-blue), 1);
+                border-right-color: rgba(var(--rgb-light-blue), 0.75);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
+                border-left-color: rgba(var(--rgb-light-blue), 0.25);
+              }
+              25% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.75);
+                border-right-color: rgba(var(--rgb-light-blue), 0.5);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
+                border-left-color: rgba(var(--rgb-light-blue), 1);
+              }
+              50% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.5);
+                border-right-color: rgba(var(--rgb-light-blue), 0.25);
+                border-bottom-color: rgba(var(--rgb-light-blue), 1);
+                border-left-color: rgba(var(--rgb-light-blue), 0.75);
+              }
+              75% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.25);
+                border-right-color: rgba(var(--rgb-light-blue), 1);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
+                border-left-color: rgba(var(--rgb-light-blue), 0.5);
+              }
+              100% {
+                border-top-color: rgba(var(--rgb-light-blue), 1);
+                border-right-color: rgba(var(--rgb-light-blue), 0.75);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
+                border-left-color: rgba(var(--rgb-light-blue), 0.25);
+              }
+            }
+  papa_pc_template:
+    card:
+      type: custom:mushroom-template-card
+      entity: switch.computer_papa
+      primary: Papa PC
+      secondary: |-
+        {% if is_state(entity, 'on') %}
+          On
+        {% elif is_state(entity, 'off') %}
+          Off
+        {% else %}
+          Non disponible
+        {% endif %}
+      icon: mdi:desktop-tower
+      icon_color: |-
+        {% if is_state(entity, 'on') %}
+          rgb(var(--cstm-rgb-automation-on-icon))
+        {% else %}
+          disabled
+        {% endif %}
+      tap_action:
+        action: toggle
+      hold_action:
+        action: more-info
+      double_tap_action: !include popup/computer_papa.yaml
+      badge_icon: |-
+        {% if not is_state(entity, ['on', 'off']) %}
+          mdi:help
+        {% endif %}
+      badge_color: orange
+      card_mod:
+        style:
+          .: |
+            ha-card {
+              height: auto !important;
+            }
+            span[slot="primary"] {
+              white-space: normal !important;
+              overflow: hidden;
+              display: -webkit-box;
+              -webkit-line-clamp: 1;
+              -webkit-box-orient: vertical;
+              font-weight: 700 !important;
+              {% if is_state(config.entity, 'on') %}
+                color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+              {% endif %}
+            }
+            span[slot="secondary"] {
+              font-weight: 700 !important;
+              color: rgb(var(--rgb-secondary-text-color)) !important;
+            }
+            ha-card {
+              {% if is_state(config.entity, 'on') %}
+                background: var(--cstm-rgb-automation-on-background);
+                --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
+                --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
+              {% endif %}
+            }
+            ha-card:active {
+              transform: scale(0.95);
+              transition: 0s;
+            }
+            ha-state-icon:before {
+              content: "";
+              position: absolute;
+              width: 4px;
+              height: 4px;
+              margin-left: 10px;
+              margin-top: 14px;
+              #border-radius: 10px;
+              {% if is_state(config.entity, 'on') %}
+              animation: blink-before 300ms linear infinite;
+              {% endif %}
+            }
+            ha-state-icon:after {
+              content: "";
+              position: absolute;
+              width: 8px;
+              height: 8px;
+              margin-left: 9px;
+              margin-top: 13px;
+              border-radius: 15px;
+              {% if is_state(config.entity, 'on') %}
+              animation: blink-after 300ms linear infinite;
+              {% endif %}
+            }
+            @keyframes blink-after {
+              0% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
+              25% { background: radial-gradient(closest-side,rgba(var(--rgb-light-blue), 1), rgba(var(--rgb-light-blue), 0.1)); }
+              50% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
+              75% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.1), rgba(var(--rgb-light-blue), 0.1)); }
+              100% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
+            }
+            @keyframes blink-before {
+              0% { background: rgba(var(--rgb-light-blue), 0.5); }
+              25% { background: rgba(var(--rgb-light-blue), 1); }
+              50% { background: rgba(var(--rgb-light-blue), 0.5); }
+              75% { background: rgba(var(--rgb-light-blue), 0.1); }
+              100% { background: rgba(var(--rgb-light-blue), 0.5); }
+            }
+          mushroom-shape-icon$: |
+            .shape::before {
+              content: "";
+              position: absolute;
+              top: 0px;
+              left: 0px;
+              right: 0px;
+              bottom: 0px;
+              border-radius: 12px;
+              border: 4px solid transparent;
+              {% if is_state('input_boolean.computer_papa_load', 'on') %}
+                animation: borderLoading 1s linear reverse infinite;
+              {% endif %}
+            }
+            @keyframes borderLoading {
+              0% {
+                border-top-color: rgba(var(--rgb-light-blue), 1);
+                border-right-color: rgba(var(--rgb-light-blue), 0.75);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
+                border-left-color: rgba(var(--rgb-light-blue), 0.25);
+              }
+              25% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.75);
+                border-right-color: rgba(var(--rgb-light-blue), 0.5);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
+                border-left-color: rgba(var(--rgb-light-blue), 1);
+              }
+              50% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.5);
+                border-right-color: rgba(var(--rgb-light-blue), 0.25);
+                border-bottom-color: rgba(var(--rgb-light-blue), 1);
+                border-left-color: rgba(var(--rgb-light-blue), 0.75);
+              }
+              75% {
+                border-top-color: rgba(var(--rgb-light-blue), 0.25);
+                border-right-color: rgba(var(--rgb-light-blue), 1);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
+                border-left-color: rgba(var(--rgb-light-blue), 0.5);
+              }
+              100% {
+                border-top-color: rgba(var(--rgb-light-blue), 1);
+                border-right-color: rgba(var(--rgb-light-blue), 0.75);
+                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
+                border-left-color: rgba(var(--rgb-light-blue), 0.25);
+              }
+            }
 views:
   - theme: Adaptive Mushroom
     title: Home
@@ -1249,32 +1550,31 @@ views:
                 - type: conditional
                   conditions:
                     - condition: state
-                      entity: sensor.shiro_plex_recently_added
+                      entity: sensor.jelly_jellyfin_recently_added
                       state: Online
                   card:
                     type: custom:mushroom-template-card
                     primary: |
-                      Ajouté récement sur Plex
+                      Ajouté récemment sur Jellyfin
                     secondary: >
-                      {{ state_attr("sensor.shiro_plex_recently_added","data")[1].title }} - {{
-                      state_attr("sensor.shiro_plex_recently_added","data")[1].number }}
+                      {{ state_attr("sensor.jelly_jellyfin_recently_added","data")[1].title }} - {{
+                      state_attr("sensor.jelly_jellyfin_recently_added","data")[1].number }}
                     picture: ""
-                    icon_color: amber
-                    icon: mdi:plex
+                    icon_color: rgb(177, 24, 217)
+                    icon: custom:jellyfin
                     tap_action: none
                     card_mod:
                       style:
-                        mushroom-shape-icon$: |
-                          .shape {
-                            --shape-color: rgb(68, 58, 16);
-                            --icon-color: rgb(255, 191, 0);
-                            bottom: 50px;
+                        ha-tile-icon$: |
+                          .container {
+                            background-color: rgba(70, 10, 89, 0.8) !important;
+                            border-radius: 30% !important;
                           }
                         .: |
-                          {% if state_attr("sensor.shiro_plex_recently_added","data")[1].fanart is defined %}
+                          {% if state_attr("sensor.jelly_jellyfin_recently_added","data")[1].fanart is defined %}
                             ha-card {
                                 height: 13em !important;
-                                background: linear-gradient(to top, transparent, rgba(0,0,0,0.3) 100%), url({{ state_attr("sensor.shiro_plex_recently_added","data")[1].fanart }});
+                                background: linear-gradient(to top, transparent, rgba(0,0,0,0.3) 100%), url({{ state_attr("sensor.jelly_jellyfin_recently_added","data")[1].fanart }});
                                 background-size: auto, cover;
                                 background-repeat: no-repeat;
                                 background-blend-mode: saturation;
@@ -1283,11 +1583,17 @@ views:
                               transform: scale(0.95);
                               transition: 0s
                             }
-                            mushroom-state-info {
-                              position: absolute;
-                              bottom: 0px;
-                              left: 0;
-                              width: 100%;
+                            ha-tile-icon {
+                              position: absolute !important;
+                              top: 10px !important;
+                              left: 10px !important;
+                              z-index: 2 !important;
+                            }
+                            ha-tile-info {
+                              position: absolute !important;
+                              bottom: 0px !important;
+                              left: 0 !important;
+                              width: 100% !important;
                               padding: 10px 0 5px 15px;
                               margin-bottom: -1px;
                               box-sizing: border-box;
@@ -1304,254 +1610,10 @@ views:
                   columns: 2
                   type: grid
                   cards:
-                    - type: custom:mushroom-template-card
-                      entity: switch.computer_rig_kaoru
-                      primary: Kaoru RIG
-                      secondary: |-
-                        {% if is_state(entity, 'on') %}
-                          On
-                        {% elif is_state(entity, 'off') %}
-                          Off
-                        {% else %}
-                          Non disponible
-                        {% endif %}
-                      icon: mdi:monitor-multiple
-                      icon_color: |-
-                        {% if is_state(entity, 'on') %}
-                          var(--cstm-rgb-automation-on-icon)
-                        {% else %}
-                          disabled
-                        {% endif %}
-                      tap_action:
-                        action: toggle
-                      hold_action:
-                        action: more-info
-                      double_tap_action: !include popup/computer_rig_kaoru.yaml
-                      badge_icon: |-
-                        {% if not is_state(entity, ['on', 'off']) %}
-                          mdi:help
-                        {% endif %}
-                      badge_color: orange
-                      card_mod:
-                        style:
-                          mushroom-state-info$: |
-                            .primary {
-                              white-space: normal !important;
-                              overflow: hidden;
-                              display: -webkit-box;
-                              -webkit-line-clamp: 1;
-                              -webkit-box-orient: vertical;
-                            }
-                          .: |
-                            ha-card {
-                              {% if is_state(config.entity, 'on') %}
-                                background: var(--cstm-rgb-automation-on-background);
-                                --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
-                                --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
-                              {% endif %}
-                            }
-                            ha-card:active {
-                              transform: scale(0.95);
-                              transition: 0s;
-                            }
-                            ha-state-icon:after {
-                              content: "";
-                              position: absolute;
-                              width: 35%;
-                              height: 60%;
-                              margin-left: 5px;
-                              margin-top: 5px;
-                              {% if is_state(config.entity, 'on') %}
-                              animation: refresh-screen 300ms linear infinite;
-                              {% endif %}
-                            }
-                            @keyframes refresh-screen {
-                              0% { background: linear-gradient(180deg, rgba(var(--rgb-black), 0.2) 0%, transparent 50%, transparent 100%); }
-                              25% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 25%, transparent 100%); }
-                              50% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 50%, transparent 100%); }
-                              75% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 75%, transparent 100%); }
-                              100% { background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var((--rgb-black), 0.2) 100%); }
-                            }
-                          mushroom-shape-icon$: |
-                            .shape::before {
-                              content: "";
-                              position: absolute;
-                              top: 0px;
-                              left: 0px;
-                              right: 0px;
-                              bottom: 0px;
-                              border-radius: 12px;
-                              border: 4px solid transparent;
-                              {% if is_state('input_boolean.computer_rig_kaoru_load', 'on') %}
-                                animation: borderLoading 1s linear reverse infinite;
-                              {% endif %}
-                            }
-                            @keyframes borderLoading {
-                              0% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                              25% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-left-color: rgba(var(--rgb-light-blue), 1);
-                              }
-                              50% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 1);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.75);
-                              }
-                              75% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-right-color: rgba(var(--rgb-light-blue), 1);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.5);
-                              }
-                              100% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                            }
-                    - type: custom:mushroom-template-card
-                      entity: switch.computer_papa
-                      primary: Papa PC
-                      secondary: |-
-                        {% if is_state(entity, 'on') %}
-                          On
-                        {% elif is_state(entity, 'off') %}
-                          Off
-                        {% else %}
-                          Non disponible
-                        {% endif %}
-                      icon: mdi:desktop-tower
-                      icon_color: |-
-                        {% if is_state(entity, 'on') %}
-                          var(--cstm-rgb-automation-on-icon)
-                        {% else %}
-                          disabled
-                        {% endif %}
-                      tap_action:
-                        action: toggle
-                      hold_action:
-                        action: more-info
-                      double_tap_action: !include popup/computer_papa.yaml
-                      badge_icon: |-
-                        {% if not is_state(entity, ['on', 'off']) %}
-                          mdi:help
-                        {% endif %}
-                      badge_color: orange
-                      card_mod:
-                        style:
-                          mushroom-state-info$: |
-                            .primary {
-                              white-space: normal !important;
-                              overflow: hidden;
-                              display: -webkit-box;
-                              -webkit-line-clamp: 1;
-                              -webkit-box-orient: vertical;
-                            }
-                          .: |
-                            ha-card {
-                              {% if is_state(config.entity, 'on') %}
-                                background: var(--cstm-rgb-automation-on-background);
-                                --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
-                                --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
-                              {% endif %}
-                            }
-                            ha-card:active {
-                              transform: scale(0.95);
-                              transition: 0s;
-                            }
-                            ha-state-icon:before {
-                              content: "";
-                              position: absolute;
-                              width: 4px;
-                              height: 4px;
-                              margin-left: 10px;
-                              margin-top: 14px;
-                              #border-radius: 10px;
-                              {% if is_state(config.entity, 'on') %}
-                              animation: blink-before 300ms linear infinite;
-                              {% endif %}
-                            }
-                            ha-state-icon:after {
-                              content: "";
-                              position: absolute;
-                              width: 8px;
-                              height: 8px;
-                              margin-left: 9px;
-                              margin-top: 13px;
-                              border-radius: 15px;
-                              {% if is_state(config.entity, 'on') %}
-                              animation: blink-after 300ms linear infinite;
-                              {% endif %}
-                            }
-                            @keyframes blink-after {
-                              0% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                              25% { background: radial-gradient(closest-side,rgba(var(--rgb-light-blue), 1), rgba(var(--rgb-light-blue), 0.1)); }
-                              50% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                              75% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.1), rgba(var(--rgb-light-blue), 0.1)); }
-                              100% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                            }
-                            @keyframes blink-before {
-                              0% { background: rgba(var(--rgb-light-blue), 0.5); }
-                              25% { background: rgba(var(--rgb-light-blue), 1); }
-                              50% { background: rgba(var(--rgb-light-blue), 0.5); }
-                              75% { background: rgba(var(--rgb-light-blue), 0.1); }
-                              100% { background: rgba(var(--rgb-light-blue), 0.5); }
-                            }
-                          mushroom-shape-icon$: |
-                            .shape::before {
-                              content: "";
-                              position: absolute;
-                              top: 0px;
-                              left: 0px;
-                              right: 0px;
-                              bottom: 0px;
-                              border-radius: 12px;
-                              border: 4px solid transparent;
-                              {% if is_state('input_boolean.computer_papa_load', 'on') %}
-                                animation: borderLoading 1s linear reverse infinite;
-                              {% endif %}
-                            }
-                            @keyframes borderLoading {
-                              0% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                              25% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-left-color: rgba(var(--rgb-light-blue), 1);
-                              }
-                              50% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 1);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.75);
-                              }
-                              75% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-right-color: rgba(var(--rgb-light-blue), 1);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.5);
-                              }
-                              100% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                            }
+                    - type: custom:decluttering-card
+                      template: kaoru_rig_template
+                    - type: custom:decluttering-card
+                      template: papa_pc_template
           - type: conditional
             conditions:
               - condition: user
@@ -1605,7 +1667,6 @@ views:
                               }
                               mushroom-shape-icon {
                                   {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
-                                  --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
                                   {% if is_state('binary_sensor.oneplus12_is_charging','on') and not battery_level == 100 %}
                                       animation: charging-animation 4s infinite;
                                   {% endif %}
@@ -1626,37 +1687,31 @@ views:
                 - type: conditional
                   conditions:
                     - condition: state
-                      entity: sensor.shiro_plex_recently_added
+                      entity: sensor.jelly_jellyfin_recently_added
                       state: Online
                   card:
                     type: custom:mushroom-template-card
                     primary: |
-                      Ajouté récement sur Plex
+                      Ajouté récemment sur Jellyfin
                     secondary: >
-                      {{ state_attr("sensor.shiro_plex_recently_added","data")[1].title }} - {{
-                      state_attr("sensor.shiro_plex_recently_added","data")[1].number }}
+                      {{ state_attr("sensor.jelly_jellyfin_recently_added","data")[1].title }} - {{
+                      state_attr("sensor.jelly_jellyfin_recently_added","data")[1].number }}
                     picture: ""
-                    icon_color: amber
-                    icon: mdi:plex
+                    icon_color: rgb(177, 24, 217)
+                    icon: custom:jellyfin
                     tap_action: none
                     card_mod:
                       style:
-                        mushroom-shape-icon$: |
-                          .shape {
-                            --shape-color: rgb(68, 58, 16);
-                            --icon-color: rgb(255, 191, 0);
-                            bottom: 50px;
-                          }
-                        mushroom-state-info$: |
+                        ha-tile-icon$: |
                           .container {
-                            --card-primary-color: white;
-                            #--card-secondary-color: orange;
+                            background-color: rgba(70, 10, 89, 0.8) !important;
+                            border-radius: 30% !important;
                           }
                         .: |
-                          {% if state_attr("sensor.shiro_plex_recently_added","data")[1].fanart is defined %}
+                          {% if state_attr("sensor.jelly_jellyfin_recently_added","data")[1].fanart is defined %}
                             ha-card {
                                 height: 13em !important;
-                                background: linear-gradient(to top, transparent, rgba(0,0,0,0.3) 100%), url({{ state_attr("sensor.shiro_plex_recently_added","data")[1].fanart }});
+                                background: linear-gradient(to top, transparent, rgba(0,0,0,0.3) 100%), url({{ state_attr("sensor.jelly_jellyfin_recently_added","data")[1].fanart }});
                                 background-size: auto, cover;
                                 background-repeat: no-repeat;
                                 background-blend-mode: saturation;
@@ -1665,11 +1720,17 @@ views:
                               transform: scale(0.95);
                               transition: 0s
                             }
-                            mushroom-state-info {
-                              position: absolute;
-                              bottom: 0px;
-                              left: 0;
-                              width: 100%;
+                            ha-tile-icon {
+                              position: absolute !important;
+                              top: 10px !important;
+                              left: 10px !important;
+                              z-index: 2 !important;
+                            }
+                            ha-tile-info {
+                              position: absolute !important;
+                              bottom: 0px !important;
+                              left: 0 !important;
+                              width: 100% !important;
                               padding: 10px 0 5px 15px;
                               margin-bottom: -1px;
                               box-sizing: border-box;
@@ -1699,125 +1760,13 @@ views:
                       template: thermometer_template
                       variables:
                         - primary: William
-                        - temperature: sensor.temperature_chambre_william
-                        - humidity: sensor.humidity_chambre_william
-                        - battery: sensor.battery_thermometre_chambre_william
+                        - temperature: sensor.thermometer_chambre_william_temperature
+                        - humidity: sensor.thermometer_chambre_william_humidite
+                        - battery: sensor.thermometer_chambre_william_batterie
                         - color: var(--mush-rgb-purple)
                         - icon: mdi:bed
-                    - type: custom:mushroom-template-card
-                      entity: switch.computer_rig_kaoru
-                      primary: Kaoru RIG
-                      secondary: |-
-                        {% if is_state(entity, 'on') %}
-                          On
-                        {% elif is_state(entity, 'off') %}
-                          Off
-                        {% else %}
-                          Non disponible
-                        {% endif %}
-                      icon: mdi:monitor-multiple
-                      icon_color: |-
-                        {% if is_state(entity, 'on') %}
-                          var(--cstm-rgb-automation-on-icon)
-                        {% else %}
-                          disabled
-                        {% endif %}
-                      tap_action:
-                        action: toggle
-                      hold_action:
-                        action: more-info
-                      double_tap_action: !include popup/computer_rig_kaoru.yaml
-                      badge_icon: |-
-                        {% if not is_state(entity, ['on', 'off']) %}
-                          mdi:help
-                        {% endif %}
-                      badge_color: orange
-                      card_mod:
-                        style:
-                          mushroom-state-info$: |
-                            .primary {
-                              white-space: normal !important;
-                              overflow: hidden;
-                              display: -webkit-box;
-                              -webkit-line-clamp: 1;
-                              -webkit-box-orient: vertical;
-                            }
-                          .: |
-                            ha-card {
-                              {% if is_state(config.entity, 'on') %}
-                                background: var(--cstm-rgb-automation-on-background);
-                                --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
-                                --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
-                              {% endif %}
-                            }
-                            ha-card:active {
-                              transform: scale(0.95);
-                              transition: 0s;
-                            }
-                            ha-state-icon:after {
-                              content: "";
-                              position: absolute;
-                              width: 35%;
-                              height: 60%;
-                              margin-left: 5px;
-                              margin-top: 5px;
-                              {% if is_state(config.entity, 'on') %}
-                              animation: refresh-screen 300ms linear infinite;
-                              {% endif %}
-                            }
-                            @keyframes refresh-screen {
-                              0% { background: linear-gradient(180deg, rgba(var(--rgb-black), 0.2) 0%, transparent 50%, transparent 100%); }
-                              25% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 25%, transparent 100%); }
-                              50% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 50%, transparent 100%); }
-                              75% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 75%, transparent 100%); }
-                              100% { background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var((--rgb-black), 0.2) 100%); }
-                            }
-                          mushroom-shape-icon$: |
-                            .shape::before {
-                              content: "";
-                              position: absolute;
-                              top: 0px;
-                              left: 0px;
-                              right: 0px;
-                              bottom: 0px;
-                              border-radius: 12px;
-                              border: 4px solid transparent;
-                              {% if is_state('input_boolean.computer_rig_kaoru_load', 'on') %}
-                                animation: borderLoading 1s linear reverse infinite;
-                              {% endif %}
-                            }
-                            @keyframes borderLoading {
-                              0% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                              25% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-left-color: rgba(var(--rgb-light-blue), 1);
-                              }
-                              50% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 1);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.75);
-                              }
-                              75% {
-                                border-top-color: rgba(var(--rgb-light-blue), 0.25);
-                                border-right-color: rgba(var(--rgb-light-blue), 1);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.5);
-                              }
-                              100% {
-                                border-top-color: rgba(var(--rgb-light-blue), 1);
-                                border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                                border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                                border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                              }
-                            }
+                    - type: custom:decluttering-card
+                      template: kaoru_rig_template
                     - type: custom:decluttering-card
                       template: automation_template
                       variables:
@@ -1878,7 +1827,6 @@ views:
                               }
                               mushroom-shape-icon {
                                 {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
-                                --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
                                 {% if is_state('binary_sensor.samsung_s10e_is_charging','on') and not battery_level == 100 %}
                                     animation: charging-animation 4s infinite;
                                 {% endif %}
@@ -2320,7 +2268,7 @@ views:
                   icon: mdi:hand-wave
                   icon_color: |-
                     {% if is_state(entity, 'on') %}
-                      var(--cstm-rgb-automation-on-icon)
+                      rgb(var(--cstm-rgb-automation-on-icon))
                     {% else %}
                       disabled
                     {% endif %}
@@ -2340,6 +2288,11 @@ views:
                   card_mod:
                     style:
                       .: |
+                        span[slot="primary"] {
+                          {% if is_state(config.entity, 'on') %}
+                            color: rgb(var(--cstm-rgb-on-primary-text)) !important;
+                          {% endif %}
+                        }
                         ha-card {
                           {% if is_state(config.entity, 'on') %}
                             background: var(--cstm-rgb-automation-on-background);
@@ -2412,7 +2365,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px;
+                          margin: 2px 3px;
                           {% if states("sensor.average_temperature") | round(1) < 18 %}
                             --chip-background: rgba(var(--mush-rgb-blue), 0.2);
                           {% elif states("sensor.average_temperature") | round(1) < 28 %}
@@ -2436,7 +2389,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px;
+                          margin: 2px 3px;
                           {% if is_state('timer.timer_cuisine', 'active') %}
                           animation: ping 1.2s ease-in-out infinite;
                           {% endif %}
@@ -2471,7 +2424,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px;
+                          margin: 2px 3px;
                           {% if states("sensor.total_lights_on") | int > 0 %}
                             --chip-background: rgba(var(--mush-rgb-yellow), 0.3);
                           {% endif %}
@@ -2501,7 +2454,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px;
+                          margin: 2px 3px;
                           {% if states("sensor.total_open_windows") | int > 0 %}
                             --chip-background: rgba(var(--mush-rgb-white), 0.3);
                           {% endif %}
@@ -2517,7 +2470,7 @@ views:
                       style: |
                         ha-card {
                           float: left;
-                          margin: 5px;
+                          margin: 2px 3px;
                           {% if states("alarm_control_panel.home_alarm") == "arming" %}
                           --chip-background: rgba(var(--rgb-orange), 0.1);
                           animation: ping-arming 1.0s ease-in-out infinite;
@@ -2570,7 +2523,7 @@ views:
                       style:
                         .: |
                           ha-card {
-                            margin: 5px;
+                            margin: 2px 3px;
                             {% if is_state('person.kaoru', 'home') %}
                               --chip-background: rgba(var(--rgb-state-person-home), 0.2);
                               animation: ping 5.0s ease-in-out infinite;
@@ -2600,7 +2553,7 @@ views:
                       style:
                         .: |
                           ha-card {
-                            margin: 5px;
+                            margin: 2px 3px;
                             {% if is_state('person.papa', 'home') %}
                               --chip-background: rgba(var(--rgb-state-person-home), 0.2);
                               animation: ping 5.0s ease-in-out infinite;
@@ -2629,26 +2582,18 @@ views:
                         margin: 5px;
                         overflow: hidden; /* Clear float */
                       }
-                      .chip-container {
-                        display: block !important;
-                        position: relative;
-                      }
                       .type-custom-mushroom-chips-card .chip-container > mushroom-entity-chip:nth-child(6) {
                         {% if is_state('person.kaoru', 'home') %}
-                          float: left;
-                        {% elif is_state('person.kaoru', 'not_home') or is_state('person.kaoru', 'unknown') %}
-                          float: right;
+                          order: -1;
                         {% else %}
-                          float: right;
+                          order: 2;
                         {% endif %}
                         }
                       .type-custom-mushroom-chips-card .chip-container > mushroom-entity-chip:nth-child(7) {
                         {% if is_state('person.papa', 'home') %}
-                          float: left;
-                        {% elif is_state('person.papa', 'not_home') or is_state('person.papa', 'unknown') %}
-                          float: right;
+                          order: -1;
                         {% else %}
-                          float: right;
+                          order: 2;
                         {% endif %}
                       }
                     mushroom-template-chip:nth-child(2)$: |
@@ -3728,254 +3673,10 @@ views:
                 variables:
                   - entity: switch.smart_plug_shiro_switch
                   - name: Shiro
-              - type: custom:mushroom-template-card
-                entity: switch.computer_rig_kaoru
-                primary: Kaoru RIG
-                secondary: |-
-                  {% if is_state(entity, 'on') %}
-                    On
-                  {% elif is_state(entity, 'off') %}
-                    Off
-                  {% else %}
-                    Non disponible
-                  {% endif %}
-                icon: mdi:monitor-multiple
-                icon_color: |-
-                  {% if is_state(entity, 'on') %}
-                    var(--cstm-rgb-automation-on-icon)
-                  {% else %}
-                    disabled
-                  {% endif %}
-                tap_action:
-                  action: toggle
-                hold_action:
-                  action: more-info
-                double_tap_action: !include popup/computer_rig_kaoru.yaml
-                badge_icon: |-
-                  {% if not is_state(entity, ['on', 'off']) %}
-                    mdi:help
-                  {% endif %}
-                badge_color: orange
-                card_mod:
-                  style:
-                    mushroom-state-info$: |
-                      .primary {
-                        white-space: normal !important;
-                        overflow: hidden;
-                        display: -webkit-box;
-                        -webkit-line-clamp: 1;
-                        -webkit-box-orient: vertical;
-                      }
-                    .: |
-                      ha-card {
-                        {% if is_state(config.entity, 'on') %}
-                          background: var(--cstm-rgb-automation-on-background);
-                          --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
-                          --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
-                        {% endif %}
-                      }
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      ha-state-icon:after {
-                        content: "";
-                        position: absolute;
-                        width: 35%;
-                        height: 60%;
-                        margin-left: 5px;
-                        margin-top: 5px;
-                        {% if is_state(config.entity, 'on') %}
-                        animation: refresh-screen 300ms linear infinite;
-                        {% endif %}
-                      }
-                      @keyframes refresh-screen {
-                        0% { background: linear-gradient(180deg, rgba(var(--rgb-black), 0.2) 0%, transparent 50%, transparent 100%); }
-                        25% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 25%, transparent 100%); }
-                        50% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 50%, transparent 100%); }
-                        75% { background: linear-gradient(180deg, transparent 0%, rgba(var((--rgb-black), 0.2) 75%, transparent 100%); }
-                        100% { background: linear-gradient(180deg, transparent 0%, transparent 50%, rgba(var((--rgb-black), 0.2) 100%); }
-                      }
-                    mushroom-shape-icon$: |
-                      .shape::before {
-                        content: "";
-                        position: absolute;
-                        top: 0px;
-                        left: 0px;
-                        right: 0px;
-                        bottom: 0px;
-                        border-radius: 12px;
-                        border: 4px solid transparent;
-                        {% if is_state('input_boolean.computer_rig_kaoru_load', 'on') %}
-                          animation: borderLoading 1s linear reverse infinite;
-                        {% endif %}
-                      }
-                      @keyframes borderLoading {
-                        0% {
-                          border-top-color: rgba(var(--rgb-light-blue), 1);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                        }
-                        25% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-left-color: rgba(var(--rgb-light-blue), 1);
-                        }
-                        50% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 1);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.75);
-                        }
-                        75% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-right-color: rgba(var(--rgb-light-blue), 1);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.5);
-                        }
-                        100% {
-                          border-top-color: rgba(var(--rgb-light-blue), 1);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                        }
-                      }
-              - type: custom:mushroom-template-card
-                entity: switch.computer_papa
-                primary: Papa PC
-                secondary: |-
-                  {% if is_state(entity, 'on') %}
-                    On
-                  {% elif is_state(entity, 'off') %}
-                    Off
-                  {% else %}
-                    Non disponible
-                  {% endif %}
-                icon: mdi:desktop-tower
-                icon_color: |-
-                  {% if is_state(entity, 'on') %}
-                    var(--cstm-rgb-automation-on-icon)
-                  {% else %}
-                    disabled
-                  {% endif %}
-                tap_action:
-                  action: toggle
-                hold_action:
-                  action: more-info
-                double_tap_action: !include popup/computer_papa.yaml
-                badge_icon: |-
-                  {% if not is_state(entity, ['on', 'off']) %}
-                    mdi:help
-                  {% endif %}
-                badge_color: orange
-                card_mod:
-                  style:
-                    mushroom-state-info$: |
-                      .primary {
-                        white-space: normal !important;
-                        overflow: hidden;
-                        display: -webkit-box;
-                        -webkit-line-clamp: 1;
-                        -webkit-box-orient: vertical;
-                      }
-                    .: |
-                      ha-card {
-                        {% if is_state(config.entity, 'on') %}
-                          background: var(--cstm-rgb-automation-on-background);
-                          --card-primary-color: rgb(var(--cstm-rgb-on-primary-text));
-                          --card-secondary-color: rgb(var(--cstm-rgb-on-secondary-text));
-                        {% endif %}
-                      }
-                      ha-card:active {
-                        transform: scale(0.95);
-                        transition: 0s;
-                      }
-                      ha-state-icon:before {
-                        content: "";
-                        position: absolute;
-                        width: 4px;
-                        height: 4px;
-                        margin-left: 10px;
-                        margin-top: 14px;
-                        #border-radius: 10px;
-                        {% if is_state(config.entity, 'on') %}
-                        animation: blink-before 300ms linear infinite;
-                        {% endif %}
-                      }
-                      ha-state-icon:after {
-                        content: "";
-                        position: absolute;
-                        width: 8px;
-                        height: 8px;
-                        margin-left: 9px;
-                        margin-top: 13px;
-                        border-radius: 15px;
-                        {% if is_state(config.entity, 'on') %}
-                        animation: blink-after 300ms linear infinite;
-                        {% endif %}
-                      }
-                      @keyframes blink-after {
-                        0% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                        25% { background: radial-gradient(closest-side,rgba(var(--rgb-light-blue), 1), rgba(var(--rgb-light-blue), 0.1)); }
-                        50% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                        75% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.1), rgba(var(--rgb-light-blue), 0.1)); }
-                        100% { background: radial-gradient(closest-side, rgba(var(--rgb-light-blue), 0.5), rgba(var(--rgb-light-blue), 0.1)); }
-                      }
-                      @keyframes blink-before {
-                        0% { background: rgba(var(--rgb-light-blue), 0.5); }
-                        25% { background: rgba(var(--rgb-light-blue), 1); }
-                        50% { background: rgba(var(--rgb-light-blue), 0.5); }
-                        75% { background: rgba(var(--rgb-light-blue), 0.1); }
-                        100% { background: rgba(var(--rgb-light-blue), 0.5); }
-                      }
-                    mushroom-shape-icon$: |
-                      .shape::before {
-                        content: "";
-                        position: absolute;
-                        top: 0px;
-                        left: 0px;
-                        right: 0px;
-                        bottom: 0px;
-                        border-radius: 12px;
-                        border: 4px solid transparent;
-                        {% if is_state('input_boolean.computer_papa_load', 'on') %}
-                          animation: borderLoading 1s linear reverse infinite;
-                        {% endif %}
-                      }
-                      @keyframes borderLoading {
-                        0% {
-                          border-top-color: rgba(var(--rgb-light-blue), 1);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                        }
-                        25% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-left-color: rgba(var(--rgb-light-blue), 1);
-                        }
-                        50% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 1);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.75);
-                        }
-                        75% {
-                          border-top-color: rgba(var(--rgb-light-blue), 0.25);
-                          border-right-color: rgba(var(--rgb-light-blue), 1);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.5);
-                        }
-                        100% {
-                          border-top-color: rgba(var(--rgb-light-blue), 1);
-                          border-right-color: rgba(var(--rgb-light-blue), 0.75);
-                          border-bottom-color: rgba(var(--rgb-light-blue), 0.5);
-                          border-left-color: rgba(var(--rgb-light-blue), 0.25);
-                        }
-                      }
+              - type: custom:decluttering-card
+                template: kaoru_rig_template
+              - type: custom:decluttering-card
+                template: papa_pc_template
               - type: custom:mushroom-fan-card
                 entity: fan.xiaomi_smart_fan_2
                 show_percentage_control: true
@@ -4342,7 +4043,6 @@ views:
                           }
                           mushroom-shape-icon {
                             {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
-                            --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
                             {% if is_state('binary_sensor.oneplus12_is_charging','on') and not battery_level == 100 %}
                                 animation: charging-animation 4s infinite;
                             {% endif %}
@@ -4404,7 +4104,6 @@ views:
                           }
                           mushroom-shape-icon {
                             {% set battery_level = (states('sensor.oneplus12_battery_level') | int / 10) | round(0) | int * 10 %}
-                            --shape-color: rgba(var(--cstm-rgb-on-secondary), 0.05) !important;
                             {% if is_state('binary_sensor.samsung_s10e_is_charging','on') and not battery_level == 100 %}
                                 animation: charging-animation 4s infinite;
                             {% endif %}
@@ -4484,7 +4183,7 @@ views:
                     - type: custom:decluttering-card
                       template: batterie_template
                       variables:
-                        - entity: sensor.switch_chambre_william_2_batterie
+                        - entity: sensor.switch_chambre_william_3_batterie
                         - primary: Switch William 3
                     - type: custom:decluttering-card
                       template: batterie_template
@@ -4683,6 +4382,11 @@ views:
                   color: white
               cards:
                 - type: custom:mod-card
+                  card_mod:
+                    style: |
+                      ha-card {
+                        min-height: 265px;
+                      }
                   card:
                     type: custom:stack-in-card
                     cards:
@@ -4720,7 +4424,7 @@ views:
                         points_per_hour: 1
                         line_width: 3
                         font_size: 90
-                        animate: true
+                        animate: false
                         show:
                           name: false
                           icon: false
@@ -4728,6 +4432,13 @@ views:
                           legend: false
                           extrema: true
                           fill: fade
+                        card_mod:
+                          style: |
+                            ha-card {
+                              background: none;
+                              box-shadow: none;
+                              height: 191px;
+                            }
                 - type: custom:mod-card
                   card:
                     type: custom:horizon-card
@@ -5904,6 +5615,11 @@ views:
                 type: grid
                 cards:
                   - type: vertical-stack
+                    card_mod:
+                      style: |
+                        :host {
+                          position: relative;
+                        }
                     cards:
                       - type: custom:apexcharts-card
                         chart_type: radialBar
@@ -5916,7 +5632,7 @@ views:
                         apex_config:
                           plotOptions:
                             radialBar:
-                              offsetY: 0
+                              offsetY: -30
                               startAngle: -108
                               endAngle: 108
                               hollow:
@@ -5946,17 +5662,26 @@ views:
                           legend:
                             show: false
                           chart:
-                            height: 130
+                            height: 300
+                            width: 300
+                            redrawOnParentResize: false
+                            redrawOnWindowResize: false
                         card_mod:
                           style: |
                             ha-card {
                               box-shadow: none;
                               background: none;
+                              height: 104px;
+                              position: relative;
+                              overflow: visible !important;
                             }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin: -10px;
-                              }
+                            .apexcharts-canvas {
+                              position: absolute !important;
+                              top: calc(50% - 15px) !important;
+                              left: 50% !important;
+                              z-index: 2 !important;
+                              transform: translate(-50%, -50%) scale(0.379) !important;
+                              transform-origin: center !important;
                             }
                       - type: custom:mushroom-entity-card
                         entity: sensor.speedtest_download
@@ -5969,19 +5694,19 @@ views:
                         card_mod:
                           style: |
                             ha-card {
-                              margin-top: -70px;
-                              margin-left: 3px;
-                              margin-right: auto;
-                              margin-bottom: 2px;
+                              position: absolute;
+                              top: 50%;
+                              left: 50%;
+                              transform: translate(-50%, -50%);
                               box-shadow: none;
                               background: none;
                             }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin-top: -50px;
-                              }
-                            }
                   - type: vertical-stack
+                    card_mod:
+                      style: |
+                        :host {
+                          position: relative;
+                        }
                     cards:
                       - type: custom:apexcharts-card
                         chart_type: radialBar
@@ -5994,7 +5719,7 @@ views:
                         apex_config:
                           plotOptions:
                             radialBar:
-                              offsetY: 0
+                              offsetY: -30
                               startAngle: -108
                               endAngle: 108
                               hollow:
@@ -6024,17 +5749,26 @@ views:
                           legend:
                             show: false
                           chart:
-                            height: 130
+                            height: 300
+                            width: 300
+                            redrawOnParentResize: false
+                            redrawOnWindowResize: false
                         card_mod:
                           style: |
                             ha-card {
                               box-shadow: none;
                               background: none;
+                              height: 104px;
+                              position: relative;
+                              overflow: visible !important;
                             }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin: -10px;
-                              }
+                            .apexcharts-canvas {
+                              position: absolute !important;
+                              top: calc(50% - 15px) !important;
+                              left: 50% !important;
+                              z-index: 2 !important;
+                              transform: translate(-50%, -50%) scale(0.379) !important;
+                              transform-origin: center !important;
                             }
                       - type: custom:mushroom-entity-card
                         entity: sensor.speedtest_upload
@@ -6047,19 +5781,19 @@ views:
                         card_mod:
                           style: |
                             ha-card {
-                              margin-top: -70px;
-                              margin-left: 3px;
-                              margin-right: auto;
-                              margin-bottom: 2px;
+                              position: absolute;
+                              top: 50%;
+                              left: 50%;
+                              transform: translate(-50%, -50%);
                               box-shadow: none;
                               background: none;
                             }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin-top: -50px;
-                              }
-                            }
                   - type: vertical-stack
+                    card_mod:
+                      style: |
+                        :host {
+                          position: relative;
+                        }
                     cards:
                       - type: custom:apexcharts-card
                         chart_type: radialBar
@@ -6075,7 +5809,7 @@ views:
                         apex_config:
                           plotOptions:
                             radialBar:
-                              offsetY: 0
+                              offsetY: -30
                               startAngle: -108
                               endAngle: 108
                               hollow:
@@ -6105,17 +5839,26 @@ views:
                           legend:
                             show: false
                           chart:
-                            height: 130
+                            height: 300
+                            width: 300
+                            redrawOnParentResize: false
+                            redrawOnWindowResize: false
                         card_mod:
                           style: |
                             ha-card {
                               box-shadow: none;
                               background: none;
+                              height: 104px;
+                              position: relative;
+                              overflow: visible !important;
                             }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin: -10px;
-                              }
+                            .apexcharts-canvas {
+                              position: absolute !important;
+                              top: calc(50% - 15px) !important;
+                              left: 50% !important;
+                              z-index: 2 !important;
+                              transform: translate(-50%, -50%) scale(0.379) !important;
+                              transform-origin: center !important;
                             }
                       - type: custom:mushroom-entity-card
                         entity: sensor.speedtest_ping
@@ -6128,17 +5871,12 @@ views:
                         card_mod:
                           style: |
                             ha-card {
-                              margin-top: -70px;
-                              margin-left: 3px;
-                              margin-right: auto;
-                              margin-bottom: 2px;
+                              position: absolute;
+                              top: 50%;
+                              left: 50%;
+                              transform: translate(-50%, -50%);
                               box-shadow: none;
                               background: none;
-                            }
-                            @media (max-width: 600px) {
-                              ha-card {
-                                margin-top: -50px;
-                              }
                             }
                 card_mod:
                   style: |
@@ -6409,61 +6147,82 @@ views:
           cards:
             - type: custom:mushroom-title-card
               title: Software
+              card_mod:
+                style: |
+                  ha-card {
+                    margin-top: 12px;
+                  }
             - type: custom:mushroom-template-card
-              primary: Back-ups
-              secondary: >-
-                {{state_attr('sensor.backup_state', 'backups_in_google_drive')}}
-                back-ups, total {{state_attr('sensor.backup_state',
-                'size_in_google_drive')}}
-
-                Précédent: {% if state_attr('sensor.backup_state', 'last_backup') ==
-                "Jamais" %}inconnue{% else %}{% set delta = (now().timestamp() -
-                as_timestamp(state_attr('sensor.backup_state',
-                'last_backup')))/86400 %}{% if delta < 1 %}ce matin{% elif delta
-                < 2 %}gisteren{% else %}{{delta | round(0, "floor")}} jours
-                geleden{% endif %}{% endif %}
-
-                Suivant: {% set delta =
-                (as_timestamp(state_attr('sensor.backup_state', 'next_backup')) -
-                now().timestamp())/86400 %}{% if delta < 1 %}la nuit dernière{% elif delta
-                < 1.5 %}demain{% else %}plus de {{delta | round(0, "floor")}} jours{%
-                endif %}
-              icon: |-
-                {% if states('binary_sensor.backups_stale') == "off" %}
-                  mdi:cloud-check
+              primary: Backups
+              secondary: |-
+                {%- set last_success = states('sensor.backup_derniere_sauvegarde_automatique_reussie') -%}
+                {%- set next_backup = states('sensor.backup_prochaine_sauvegarde_automatique_programmee') -%}
+                {%- set manager_state = states('sensor.backup_etat_du_gestionnaire_de_sauvegarde') -%}
+                {%- set last_event = state_attr('event.backup_sauvegarde_automatique', 'event_type') -%}
+                {%- if manager_state != 'idle' -%}
+                  {%- set line1 = "Sauvegarde en cours" -%}
+                {%- elif last_event == 'failed' -%}
+                  {%- set line1 = "Échec de la dernière sauvegarde" -%}
+                {%- elif last_success in ['unknown', 'unavailable'] -%}
+                  {%- set line1 = "Précédent : inconnue" -%}
+                {%- else -%}
+                  {%- set delta = (now().timestamp() - as_timestamp(last_success)) / 86400 -%}
+                  {%- set rel = 'ce matin' if delta < 1 else ('hier' if delta < 2 else 'il y a ' ~ (delta | round(0, "floor") | int) ~ ' jours') -%}
+                  {%- set line1 = "Précédent : " ~ rel ~ " à " ~ (as_timestamp(last_success) | timestamp_custom("%H:%M")) -%}
+                {%- endif -%}
+                {%- if next_backup in ['unknown', 'unavailable'] -%}
+                  {%- set line2 = "Suivant : inconnue" -%}
+                {%- else -%}
+                  {%- set delta_next = (as_timestamp(next_backup) - now().timestamp()) / 86400 -%}
+                  {%- set rel_next = 'en retard' if delta_next < 0 else ('aujourd\'hui' if delta_next < 1 else ('demain' if delta_next < 2 else 'dans ' ~ (delta_next | round(0, "floor") | int) ~ ' jours')) -%}
+                  {%- set line2 = "Suivant : " ~ rel_next ~ " à " ~ (as_timestamp(next_backup) | timestamp_custom("%H:%M")) -%}
+                {%- endif -%}
+                {{ line1 }}
+                {{ line2 }}
+              icon: >-
+                {% set manager_state =
+                states('sensor.backup_etat_du_gestionnaire_de_sauvegarde') %}
+                {% set last_event =
+                state_attr('event.backup_sauvegarde_automatique', 'event_type') %}
+                {% if manager_state != 'idle' %}
+                mdi:cloud-sync
+                {% elif last_event == 'failed' %}
+                mdi:cloud-alert
                 {% else %}
-                  mdi:cloud-question
+                mdi:cloud-check
                 {% endif %}
               multiline_secondary: true
-              icon_color: |-
-                {% if states('binary_sensor.backups_stale') == "off" %}
-                  green
+              icon_color: >-
+                {% set manager_state =
+                states('sensor.backup_etat_du_gestionnaire_de_sauvegarde') %}
+                {% set last_event =
+                state_attr('event.backup_sauvegarde_automatique', 'event_type') %}
+                {% if manager_state != 'idle' %}
+                orange
+                {% elif last_event == 'failed' %}
+                red
                 {% else %}
-                  red
+                green
                 {% endif %}
               tap_action:
                 action: navigate
-                navigation_path: /cebe7a76_hassio_google_drive_backup
-            - square: false
-              columns: 2
-              type: grid
-              cards:
-                - type: custom:mushroom-update-card
-                  entity: update.home_assistant_core_update
-                  name: HA Core
-                  show_buttons_control: true
-                  collapsible_controls: true
-                - type: custom:mushroom-update-card
-                  entity: update.home_assistant_supervisor_update
-                  show_buttons_control: true
-                  collapsible_controls: true
-                  name: Supervisor
-              layout:
-                column_widths: 51% 51%
-                width: 145
-                margin: 0px
-                card_margin: 4px 4px 8px
-                min_height: 1
+                navigation_path: /config/backup
+              card_mod:
+                style:
+                  .: |
+                    {% set manager_state = states('sensor.backup_etat_du_gestionnaire_de_sauvegarde') %}
+                    {% set last_event = state_attr('event.backup_sauvegarde_automatique', 'event_type') %}
+                    ha-card {
+                      {% if manager_state != 'idle' %}
+                        background: rgba(var(--mush-rgb-orange), 0.8);
+                        --card-primary-color: rgb(var(--mush-rgb-white));
+                        --card-secondary-color: rgba(var(--mush-rgb-white), 0.8);
+                      {% elif last_event == 'failed' %}
+                        background: rgba(var(--mush-rgb-red), 0.8);
+                        --card-primary-color: rgb(var(--mush-rgb-white));
+                        --card-secondary-color: rgba(var(--mush-rgb-white), 0.8);
+                      {% endif %}
+                    }
             - type: custom:mushroom-title-card
               title: ""
               subtitle: Add-ons
@@ -6508,34 +6267,10 @@ views:
               type: grid
               cards:
                 - type: custom:mushroom-update-card
-                  entity: update.samba_share_update
+                  entity: update.yahoo_finance_update
                   collapsible_controls: true
                   show_buttons_control: true
-                  name: Samba
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.mosquitto_broker_update
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: MQTT
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.speedtest_mettre_a_jour
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: Speedtest
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.studio_code_server_update
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: VS Code
-                  fill_container: false
-                - type: custom:mushroom-update-card
-                  entity: update.home_assistant_google_drive_backup_mettre_a_jour
-                  collapsible_controls: true
-                  show_buttons_control: true
-                  name: Drive Backup
+                  name: Yahoo
                   fill_container: false
               layout:
                 column_widths: 51% 51%

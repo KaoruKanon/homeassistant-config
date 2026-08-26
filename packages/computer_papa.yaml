@@ -5,38 +5,6 @@ switch:
     host: !secret wake_on_lan_papa_host
     broadcast_address: 192.168.1.255
 
-  - platform: template
-    switches:
-      computer_papa:
-        friendly_name: Papa
-        icon_template: cli:imac-alternative
-        value_template: "{{ is_state('switch.wol_papa', 'on') }}"
-        turn_on:
-          - action: switch.turn_on
-            target:
-              entity_id: switch.wol_papa
-          - action: script.turn_on
-            target:
-              entity_id: script.computer_papa_load
-        turn_off:
-          - choose:
-              - conditions:
-                  - condition: state
-                    entity_id: input_boolean.computer_papa_lock
-                    state: "on"
-                sequence:
-                  - service: browser_mod.toast
-                    data:
-                      duration: 8000
-                      message: L'ordinateur est verrouillé...
-            default:
-              - action: switch.turn_on
-                target:
-                  entity_id: switch.bruno_shutdown
-              - service: script.turn_on
-                target:
-                  entity_id: script.computer_papa_load
-
 input_boolean:
   computer_papa_lock:
     name: Verrouillage
@@ -66,6 +34,37 @@ template:
         {% else %}
           Pas encore disponible
         {% endif %}
+  switch:
+    - name: Papa
+      unique_id: computer_papa
+      default_entity_id: switch.computer_papa
+      icon: cli:imac-alternative
+      state: "{{ is_state('switch.wol_papa', 'on') }}"
+      turn_on:
+        - action: switch.turn_on
+          target:
+            entity_id: switch.wol_papa
+        - action: script.turn_on
+          target:
+            entity_id: script.computer_papa_load
+      turn_off:
+        - choose:
+            - conditions:
+                - condition: state
+                  entity_id: input_boolean.computer_papa_lock
+                  state: "on"
+              sequence:
+                - service: browser_mod.toast
+                  data:
+                    duration: 8000
+                    message: L'ordinateur est verrouillé...
+          default:
+            - action: switch.turn_on
+              target:
+                entity_id: switch.bruno_shutdown
+            - action: script.turn_on
+              target:
+                entity_id: script.computer_papa_load
 
 homeassistant:
   customize:

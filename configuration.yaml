@@ -81,6 +81,7 @@ lovelace:
         type: module,
       },
       { url: /hacsfiles/calendar-card-pro/calendar-card-pro.js, type: module },
+      { url: "/local/custom_icons.js?v=1.0", type: module },
       { url: "/local/marked.min.js?v=4.3.0", type: module },
       { url: "/local/vanilla-tilt.min.js?v=1.8.0", type: module },
       { url: "/local/browser_mod_icon.js?v=0.5", type: module },

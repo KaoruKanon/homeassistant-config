@@ -70,6 +70,11 @@ const ICON = {
 
   'imac-alternative':
     'M8 22l2-2h4l2 2H8zM24 4v13c0 1.1-.9 2-2 2H2c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h20c1.1 0 2 .9 2 2zm-2 0H2v11h20V4z',
+
+  // Official Jellyfin icon mark, from https://github.com/jellyfin/jellyfin-ux/blob/master/logos/SVG/jellyfin-icon--flat-on-light.svg
+  // Original artwork uses a 72x72 grid; coordinates scaled by 1/3 here to fit the 24x24 grid every other icon in this file uses.
+  'jellyfin':
+    'M8.0705 16.386C7.5533 15.3475 10.9459 9.196 12 9.196C13.0555 9.1965 16.4409 15.3588 15.9294 16.386C15.4179 17.4133 8.5877 17.4246 8.0705 16.386Z M0.1606 21.665C-1.3983 18.5349 8.8255 0 12 0C15.1776 0 25.3843 18.571 23.8425 21.665C22.3006 24.7591 1.7195 24.7952 0.1606 21.665ZM4.2453 18.949C5.2668 20.9998 18.7512 20.9771 19.7614 18.949C20.7716 16.9203 14.0838 4.7535 12.0031 4.7535C9.9223 4.7535 3.2237 16.8981 4.2453 18.949Z',
 };
 
 async function getIcon(name) {
@@ -77,6 +82,13 @@ async function getIcon(name) {
     path: ICON[name]
   };
 }
+
+async function getIconList() {
+  return Object.keys(ICON).map((name) => ({ name }));
+}
+
+window.customIcons = window.customIcons || {};
+window.customIcons['custom'] = { getIcon, getIconList };
 
 window.customIconsets = window.customIconsets || {};
 window.customIconsets['custom'] = getIcon;

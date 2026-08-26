@@ -57,7 +57,7 @@ shell_command:
 script:
   trigerred_snapshot:
     sequence:
-      - service: hassio.backup_full
+      - service: backup.create_automatic
         data:
           name: >-
             trigerred_backup_{{ states("sensor.date") | replace("-", "")}}_{{
@@ -79,10 +79,14 @@ automation:
         hours: "/12"
       - trigger: homeassistant
         event: start
-    action:
-      - service: hassio.addon_start
+    actions:
+      - action: homeassistant.update_entity
+        metadata: {}
         data:
-          addon: 6b87c29e_speedtest_addon
+          entity_id:
+            - sensor.speedtest_ping
+            - sensor.speedtest_download
+            - sensor.speedtest_upload
     mode: single
 
   - alias: backup_ha_monthly
@@ -92,7 +96,7 @@ automation:
     condition: >
       {{ now().day == 1 }}
     action:
-      - action: hassio.backup_full
+      - action: backup.create_automatic
         metadata: {}
         data:
           compressed: true
@@ -105,7 +109,7 @@ automation:
       - platform: time
         at: "00:00:00"
     action:
-      - service: hassio.backup_full
+      - service: backup.create_automatic
         data:
           name: >-
             auto_backup_{{ states("sensor.date") | replace("-", "")}}_{{

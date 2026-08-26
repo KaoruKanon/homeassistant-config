@@ -5,38 +5,6 @@ switch:
     host: !secret wake_on_lan_kaoru_host
     broadcast_address: 192.168.1.255
 
-  - platform: template
-    switches:
-      computer_rig_kaoru:
-        friendly_name: Kaoru
-        icon_template: cil:imac-alternative
-        value_template: "{{ is_state('switch.wol_rig_kaoru', 'on') }}"
-        turn_on:
-          - action: switch.turn_on
-            target:
-              entity_id: switch.wol_rig_kaoru
-          - action: script.turn_on
-            target:
-              entity_id: script.computer_rig_kaoru_load
-        turn_off:
-          - choose:
-              - conditions:
-                  - condition: state
-                    entity_id: input_boolean.computer_rig_kaoru_lock
-                    state: "on"
-                sequence:
-                  - service: browser_mod.toast
-                    data:
-                      duration: 8000
-                      message: L'ordinateur est verrouillé...
-            default:
-              - action: switch.turn_on
-                target:
-                  entity_id: switch.rig_kaoru_shutdown
-              - action: script.turn_on
-                target:
-                  entity_id: script.computer_rig_kaoru_load
-
 input_boolean:
   computer_rig_kaoru_lock:
     name: Verrouillage
@@ -69,6 +37,37 @@ template:
         {% else %}
           Pas encore disponible
         {% endif %}
+  switch:
+    - name: Kaoru
+      unique_id: computer_rig_kaoru
+      default_entity_id: switch.computer_rig_kaoru
+      icon: cil:imac-alternative
+      state: "{{ is_state('switch.wol_rig_kaoru', 'on') }}"
+      turn_on:
+        - action: switch.turn_on
+          target:
+            entity_id: switch.wol_rig_kaoru
+        - action: script.turn_on
+          target:
+            entity_id: script.computer_rig_kaoru_load
+      turn_off:
+        - choose:
+            - conditions:
+                - condition: state
+                  entity_id: input_boolean.computer_rig_kaoru_lock
+                  state: "on"
+              sequence:
+                - service: browser_mod.toast
+                  data:
+                    duration: 8000
+                    message: L'ordinateur est verrouillé...
+          default:
+            - action: switch.turn_on
+              target:
+                entity_id: switch.rig_kaoru_shutdown
+            - action: script.turn_on
+              target:
+                entity_id: script.computer_rig_kaoru_load
 
 homeassistant:
   customize:
