@@ -4401,7 +4401,7 @@ views:
                         points_per_hour: 1
                         line_width: 3
                         font_size: 90
-                        animate: true
+                        animate: false
                         show:
                           name: false
                           icon: false
@@ -4409,6 +4409,12 @@ views:
                           legend: false
                           extrema: true
                           fill: fade
+                        card_mod:
+                          style: |
+                            ha-card {
+                              background: none;
+                              box-shadow: none;
+                            }
                 - type: custom:mod-card
                   card:
                     type: custom:horizon-card
