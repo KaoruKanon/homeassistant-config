@@ -11,7 +11,7 @@ USERNAME = None
 PASSWORD = None
 
 # Optional Overrides (Set to None to ignore)
-with open('/usr/share/hassio/homeassistant/secrets.yaml') as f:
+with open('/opt/homeassistant/config/secrets.yaml') as f:
     secrets = yaml.safe_load(f)
 device_id = None
 master_token = secrets['master_token_google']
