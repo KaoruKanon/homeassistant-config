@@ -17,8 +17,6 @@ getTokenScriptPath="/opt/homeassistant/config/www/google_home_tracker/get_tokens
 grpCurlPath="/opt/homeassistant/config/www/google_home_tracker/grpcurl"
 protoPath="/opt/homeassistant/config/www/google_home_tracker/"
 targetDevices=("Cuisine")
-healthCheck="true"
-healthCheckUrl=https://hc-ping.com/8bbc7e89-39e2-40fb-9a68-d9ba62a35f5b
 # End config
 
 # Grab Google access token
@@ -51,10 +49,6 @@ jsonObj="{\"state\": \"Tokening\", \"attributes\": {$entities}}"
 
 if [ $? -eq 0 ]; then
     echo "Home assistant keys updated."
-
-    if [ "$healthCheck" = "true" ] ; then
-    /usr/bin/curl -s -m 10 --retry 5 $healthCheckUrl > /dev/null
-    fi
 else
     echo "Something went wrong, check script config."
 fi

@@ -4,6 +4,7 @@
 
 from gpsoauth import perform_master_login, perform_oauth
 from uuid import getnode as getmac
+import glob
 import yaml
 
 # Creds to use when logging in
@@ -11,7 +12,10 @@ USERNAME = None
 PASSWORD = None
 
 # Optional Overrides (Set to None to ignore)
-with open('/opt/homeassistant/config/secrets.yaml') as f:
+secrets_files = glob.glob('/opt/homeassistant/config/secrets*.yaml')
+if not secrets_files:
+    raise FileNotFoundError('No secrets*.yaml found in /opt/homeassistant/config')
+with open(secrets_files[0]) as f:
     secrets = yaml.safe_load(f)
 device_id = None
 master_token = secrets['master_token_google']
