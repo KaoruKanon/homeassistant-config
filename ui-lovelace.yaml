@@ -764,16 +764,31 @@ decluttering_templates:
           secondary: >
             {{states('[[temperature]]') | round(1)}}°C/{{ states('[[humidity]]') | round(1) }}%
           icon: "[[icon]]"
-          icon_color: "[[color]]"
+          icon_color: "rgb([[color]])"
           tap_action: !include popup/temperature.yaml
           card_mod:
-            style: |
-              ha-card {
-                background-color: transparent;
-                box-shadow: none;
-                margin-bottom: -30px;
-                z-index: 3;
-              }
+            style:
+              ha-tile-icon$: |
+                .container {
+                  border-radius: 30% !important;
+                }
+                .container::before {
+                  content: "";
+                  background-color: var(--tile-icon-color);
+                  width: 100%;
+                  height: 100%;
+                  opacity: var(--tile-icon-opacity);
+                  position: absolute;
+                  top: 0px;
+                  left: 0px;
+                }
+              .: |
+                ha-card {
+                  background-color: transparent;
+                  box-shadow: none;
+                  margin-bottom: -30px;
+                  z-index: 3;
+                }
         - type: custom:layout-card
           cards:
             - type: custom:mini-graph-card
@@ -5230,17 +5245,32 @@ views:
                     secondary: >
                       {{states("sensor.average_temperature") | round(1)}}º / {{states("sensor.average_humidity") | round(1)}}%
                     icon: mdi:home
-                    icon_color: var(--mush-rgb-orange)
+                    icon_color: rgb(var(--mush-rgb-orange))
                     tap_action:
                       action: more-info
                     card_mod:
-                      style: |
-                        ha-card {
-                          background-color: transparent;
-                          box-shadow: none;
-                          margin-bottom: -30px;
-                          z-index: 3;
-                        }
+                      style:
+                        ha-tile-icon$: |
+                          .container {
+                            border-radius: 30% !important;
+                          }
+                          .container::before {
+                            content: "";
+                            background-color: var(--tile-icon-color);
+                            width: 100%;
+                            height: 100%;
+                            opacity: var(--tile-icon-opacity);
+                            position: absolute;
+                            top: 0px;
+                            left: 0px;
+                          }
+                        .: |
+                          ha-card {
+                            background-color: transparent;
+                            box-shadow: none;
+                            margin-bottom: -30px;
+                            z-index: 3;
+                          }
                   - type: custom:layout-card
                     cards:
                       - type: custom:mini-graph-card
