@@ -3,9 +3,9 @@
 # Configure these variables
 hassApi="http://localhost:8123/api"
 hassApiToken="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjNjZhZWM0ZmVjZWU0Mzc5YTZhNGYxNjE4ZTdjNGUwYiIsImlhdCI6MTcwMDQ0MzIwNywiZXhwIjoyMDE1ODAzMjA3fQ.Xx2QLWrPA45HBT-3hXrMOwaR0bU99HS5m80iV97mXjg"
-getTokenScriptPath="/usr/share/hassio/homeassistant/www/google_home_tracker/get_tokens.py"
-grpCurlPath="/usr/share/hassio/homeassistant/www/google_home_tracker/grpcurl"
-protoPath="/usr/share/hassio/homeassistant/www/google_home_tracker/"
+getTokenScriptPath="/opt/homeassistant/config/www/google_home_tracker/get_tokens.py"
+grpCurlPath="/opt/homeassistant/config/www/google_home_tracker/grpcurl"
+protoPath="/opt/homeassistant/config/www/google_home_tracker/"
 targetDevices=("Cuisine")
 healthCheck="true"
 healthCheckUrl=https://hc-ping.com/8bbc7e89-39e2-40fb-9a68-d9ba62a35f5b
