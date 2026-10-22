@@ -1,0 +1,48 @@
+# dev01 only: simulated devices for testing Kaoru Home actions without
+# touching real hardware. Copied to packages/zz_kh_sim.yaml on the test
+# instance by deploy-dev.sh; never part of the release.
+
+input_boolean:
+  kh_sim_lampe_bureau:
+    name: Sim lampe bureau
+  kh_sim_lampe_plafond:
+    name: Sim lampe plafond
+  kh_sim_prise:
+    name: Sim prise
+
+template:
+  - light:
+      - name: Lampe de bureau
+        unique_id: kh_sim_lampe_bureau
+        state: "{{ is_state('input_boolean.kh_sim_lampe_bureau', 'on') }}"
+        turn_on:
+          action: input_boolean.turn_on
+          target:
+            entity_id: input_boolean.kh_sim_lampe_bureau
+        turn_off:
+          action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.kh_sim_lampe_bureau
+      - name: Plafonnier
+        unique_id: kh_sim_lampe_plafond
+        state: "{{ is_state('input_boolean.kh_sim_lampe_plafond', 'on') }}"
+        turn_on:
+          action: input_boolean.turn_on
+          target:
+            entity_id: input_boolean.kh_sim_lampe_plafond
+        turn_off:
+          action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.kh_sim_lampe_plafond
+  - switch:
+      - name: Prise protégée
+        unique_id: kh_sim_prise
+        state: "{{ is_state('input_boolean.kh_sim_prise', 'on') }}"
+        turn_on:
+          action: input_boolean.turn_on
+          target:
+            entity_id: input_boolean.kh_sim_prise
+        turn_off:
+          action: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.kh_sim_prise

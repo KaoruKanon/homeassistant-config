@@ -30,3 +30,8 @@ home-assistant.log*
 *.db*
 
 vacuum_last_cleaned.txt
+
+# Kaoru Home: built bundle (made by CI at release), deps, local test output
+www/kaoru-home/*.js
+app/node_modules
+app/screens
