@@ -188,6 +188,22 @@ Création d'une carte qui combine mushroom-media-player-card et la barre du mini
 
 ![spotify-active]
 
+## Kaoru Home
+
+Kaoru Home est un panneau Home Assistant sur mesure (Lit + TypeScript, compilé avec Vite) pensé pour la tablette murale, l'application Companion et le PC. Les pièces viennent des zones de Home Assistant ; `app/src/config.ts` ne fait qu'ajouter ce que le registre ne sait pas (noms, ordre des pièces, favoris par personne, confirmations).
+
+* Sources : `app/`
+* Panneau : déclaré en `panel_custom` dans `configuration.yaml`, servi sur `/maison` depuis `www/kaoru-home/kaoru-home.js`
+* Le bundle n'est pas versionné : il est compilé par la CI à chaque release et inclus dans le zip.
+
+Pour le compiler en local (Node 22) :
+
+```sh
+cd app && npm ci && npm run build
+```
+
+`npm run check` (types) et `npm test` (tests unitaires `node:test`) tournent aussi sur chaque PR qui touche `app/`, avec un budget de 150 Ko gzip pour le bundle.
+
 ## TODO et idées..
 
 ### Road-map 
