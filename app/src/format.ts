@@ -40,3 +40,16 @@ export function stateIcon(hass: HomeAssistant, s?: HassEntity) {
   if (pair && !s.attributes.icon) return html`<ha-icon icon=${isActive(s) ? pair[0] : pair[1]}></ha-icon>`;
   return html`<ha-state-icon .hass=${hass} .stateObj=${s}></ha-state-icon>`;
 }
+
+/** A light whose brightness can be set (anything but on/off only). */
+export function isDimmable(s?: HassEntity): boolean {
+  if (!s || !s.entity_id.startsWith("light.")) return false;
+  const modes = (s.attributes.supported_color_modes as string[] | undefined) ?? [];
+  return modes.some((m) => m !== "onoff");
+}
+
+/** Current brightness in percent, or undefined when off or unknown. */
+export function brightnessPercent(s?: HassEntity): number | undefined {
+  const b = s?.attributes.brightness;
+  return typeof b === "number" ? Math.max(1, Math.round((b / 255) * 100)) : undefined;
+}

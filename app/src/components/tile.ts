@@ -1,6 +1,14 @@
 import { LitElement, css, html, nothing } from "lit";
-import { canToggle, needsConfirmation, openMoreInfo, toggle } from "../actions.ts";
-import { isActive, isUnavailable, sensorValue, stateIcon, stateLabel } from "../format.ts";
+import { canToggle, needsConfirmation, openMoreInfo, setBrightness, toggle } from "../actions.ts";
+import {
+  brightnessPercent,
+  isActive,
+  isDimmable,
+  isUnavailable,
+  sensorValue,
+  stateIcon,
+  stateLabel,
+} from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 
@@ -16,11 +24,14 @@ export class KhTile extends LitElement {
     name: {},
     powerId: { attribute: "power-id" },
     pending: { state: true },
+    dragging: { state: true },
   };
   declare entityId: string;
   declare name: string;
   declare powerId?: string;
   declare pending: boolean;
+  /** Brightness shown while the slider is being moved. */
+  declare dragging?: number;
 
   private lastState?: string;
   private pendingTimer?: number;
@@ -98,6 +109,19 @@ export class KhTile extends LitElement {
         font-size: 0.75rem;
         font-weight: 700;
       }
+      .tile.dimmable {
+        padding-bottom: 44px;
+      }
+      .dim {
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        bottom: 10px;
+        margin: 0;
+        height: 28px;
+        accent-color: var(--kh-warm);
+        cursor: pointer;
+      }
       .more {
         position: absolute;
         top: 4px;
@@ -153,13 +177,17 @@ export class KhTile extends LitElement {
     const s = store.get(this.entityId);
     const domain = this.entityId.split(".")[0];
     const power = sensorValue(hass, this.powerId, 0);
-    const state = stateLabel(hass, s) + (power && isActive(s) ? ` · ${power} W` : "");
+    const dimmable = isDimmable(s) && isActive(s);
+    const pct = this.dragging ?? brightnessPercent(s);
+    const state =
+      stateLabel(hass, s) + (power && isActive(s) ? ` · ${power} W` : "") + (dimmable && pct ? ` · ${pct} %` : "");
     const classes = [
       "tile",
       domain,
       isActive(s) ? "on" : "",
       isUnavailable(s) ? "unavailable" : "",
       this.pending ? "pending" : "",
+      dimmable ? "dimmable" : "",
     ].join(" ");
 
     return html`
@@ -174,6 +202,21 @@ export class KhTile extends LitElement {
         <span class="state">${state}</span>
         ${needsConfirmation(this.entityId) ? html`<span class="guard">Confirmation demandée</span>` : nothing}
       </button>
+      ${dimmable
+        ? html`<input
+            class="dim"
+            type="range"
+            min="1"
+            max="100"
+            .value=${String(pct ?? 100)}
+            aria-label="Luminosité de ${this.name}"
+            @input=${(e: Event) => (this.dragging = Number((e.target as HTMLInputElement).value))}
+            @change=${async (e: Event) => {
+              await setBrightness(this.entityId, Number((e.target as HTMLInputElement).value));
+              this.dragging = undefined;
+            }}
+          />`
+        : nothing}
       <button class="more" aria-label="Détails de ${this.name}" @click=${() => openMoreInfo(this, this.entityId)}>
         <ha-icon icon="mdi:dots-horizontal"></ha-icon>
       </button>

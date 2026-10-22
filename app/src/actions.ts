@@ -45,6 +45,14 @@ export async function setLights(entityIds: readonly string[], on: boolean): Prom
   await hass.callService("light", on ? "turn_on" : "turn_off", {}, { entity_id: lights });
 }
 
+/** Brightness of one light, in percent (1-100). */
+export async function setBrightness(entityId: string, percent: number): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("light.")) return;
+  const pct = Math.min(100, Math.max(1, Math.round(percent)));
+  await hass.callService("light", "turn_on", { brightness_pct: pct }, { entity_id: entityId });
+}
+
 /** Opens Home Assistant's own detail dialog (brightness, colour, history). */
 export function openMoreInfo(from: HTMLElement, entityId: string): void {
   from.dispatchEvent(

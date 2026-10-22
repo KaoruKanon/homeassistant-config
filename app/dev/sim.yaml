@@ -1,6 +1,8 @@
 # dev01 only: simulated devices for testing Kaoru Home actions without
 # touching real hardware. Copied to packages/zz_kh_sim.yaml on the test
 # instance by deploy-dev.sh; never part of the release.
+# Brightness is tested in dev/harness.mjs instead: a template light with
+# set_level stayed on/off-only on HA 2026.10.2.
 
 input_boolean:
   kh_sim_lampe_bureau:
@@ -24,7 +26,7 @@ template:
           target:
             entity_id: input_boolean.kh_sim_lampe_bureau
       - name: Plafonnier
-        unique_id: kh_sim_lampe_plafond
+        unique_id: kh_sim_plafonnier_dimmable
         state: "{{ is_state('input_boolean.kh_sim_lampe_plafond', 'on') }}"
         turn_on:
           action: input_boolean.turn_on
