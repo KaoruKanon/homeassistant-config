@@ -7,7 +7,7 @@
   "scripts": {
     "build": "vite build",
     "check": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types tests/"
+    "test": "node --test --experimental-transform-types 'tests/*.test.ts'"
   },
   "dependencies": {
     "lit": "^3.3.3"
