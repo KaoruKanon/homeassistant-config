@@ -21,6 +21,11 @@ export interface HouseModel {
   unassignedLights: string[];
   /** Power sensor of the same device, keyed by switch entity id. */
   power: Record<string, string>;
+  /**
+   * Entities that need a confirmation besides config.confirm: every entity of
+   * a protected plug's device, and switches turned into lights (switch_as_x).
+   */
+  protected: Set<string>;
 }
 
 const OPENING_CLASSES = new Set(["window", "door", "opening", "garage_door"]);
@@ -40,8 +45,8 @@ function escapeRegExp(s: string): string {
 
 const domainOf = (entityId: string) => entityId.slice(0, entityId.indexOf("."));
 
-function isGroup(state: HassEntity | undefined): boolean {
-  return Array.isArray(state?.attributes.entity_id);
+function isGroup(state: HassEntity | undefined, platform?: string): boolean {
+  return platform === "group" || Array.isArray(state?.attributes.entity_id);
 }
 
 export function buildHouse(hass: HomeAssistant, cfg: KaoruHomeConfig): HouseModel {
@@ -60,6 +65,15 @@ export function buildHouse(hass: HomeAssistant, cfg: KaoruHomeConfig): HouseMode
     });
   }
 
+  // Devices of protected plugs: any other entity on them is protected too.
+  const protectedDevices = new Set<string>();
+  for (const entry of Object.values(hass.entities)) {
+    if (entry.device_id && matches(entry.entity_id, cfg.confirm)) protectedDevices.add(entry.device_id);
+  }
+  const isProtected = (id: string, deviceId?: string | null, platform?: string) =>
+    matches(id, cfg.confirm) || (!!deviceId && protectedDevices.has(deviceId)) || platform === "switch_as_x";
+  const protectedIds = new Set<string>();
+
   const unassignedLights: string[] = [];
   const powerByDevice = new Map<string, string>();
   const switchDevice = new Map<string, string>();
@@ -70,6 +84,8 @@ export function buildHouse(hass: HomeAssistant, cfg: KaoruHomeConfig): HouseMode
     if (!state || entry.hidden || entry.entity_category || matches(id, cfg.hide)) continue;
     const domain = domainOf(id);
     const deviceClass = state.attributes.device_class as string | undefined;
+    const guarded = (domain === "light" || domain === "switch") && isProtected(id, entry.device_id, entry.platform);
+    if (guarded) protectedIds.add(id);
 
     if (domain === "sensor" && deviceClass === "power" && entry.device_id) {
       if (!powerByDevice.has(entry.device_id)) powerByDevice.set(entry.device_id, id);
@@ -80,13 +96,15 @@ export function buildHouse(hass: HomeAssistant, cfg: KaoruHomeConfig): HouseMode
     const room = areaId ? rooms.get(areaId) : undefined;
 
     if (!room) {
-      if (domain === "light" && !isGroup(state)) unassignedLights.push(id);
+      if (domain === "light" && !guarded && !isGroup(state, entry.platform)) unassignedLights.push(id);
       continue;
     }
 
     switch (domain) {
       case "light":
-        if (!isGroup(state)) room.lights.push(id);
+        // A protected "light" is a plug in disguise: it goes with the plugs, never in room actions.
+        if (guarded) room.switches.push(id);
+        else if (!isGroup(state, entry.platform)) room.lights.push(id);
         break;
       case "switch":
         room.switches.push(id);
@@ -130,7 +148,7 @@ export function buildHouse(hass: HomeAssistant, cfg: KaoruHomeConfig): HouseMode
     }
   }
 
-  return { rooms: list, unassignedLights, power };
+  return { rooms: list, unassignedLights, power, protected: protectedIds };
 }
 
 /** Rooms in the order a given person wants them: favourites first. */

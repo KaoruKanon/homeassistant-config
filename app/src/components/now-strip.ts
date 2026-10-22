@@ -11,6 +11,16 @@ import { base } from "../styles.ts";
 export class KhNowStrip extends LitElement {
   static properties = { model: { attribute: false } };
   declare model: HouseModel;
+  private quietUntil = 0;
+
+  /** After a tap the chips reflow; ignore taps until the row has settled. */
+  private guard(action: () => unknown): () => void {
+    return () => {
+      if (performance.now() < this.quietUntil) return;
+      this.quietUntil = performance.now() + 700;
+      action();
+    };
+  }
 
   constructor() {
     super();
@@ -103,11 +113,11 @@ export class KhNowStrip extends LitElement {
         ${open.map(
           (id) => html`<button class="chip open" @click=${() => openMoreInfo(this, id)}>
             <ha-icon icon="mdi:window-open-variant"></ha-icon>${name(id)}
-            ${where.get(id) ? html`<span>· ${where.get(id)}</span>` : nothing}
+            ${where.get(id) ? html`<span>${where.get(id)}</span>` : nothing}
           </button>`,
         )}
         ${lights.map(
-          (id) => html`<button class="chip light" aria-label="Éteindre ${name(id)}" @click=${() => toggle(id, name(id))}>
+          (id) => html`<button class="chip light" aria-label="Éteindre ${name(id)}" @click=${this.guard(() => toggle(id, name(id)))}>
             <ha-icon icon="mdi:lightbulb-on"></ha-icon>${name(id)}
             ${where.get(id) ? html`<span class="where">${where.get(id)}</span>` : nothing}
           </button>`,
@@ -119,7 +129,7 @@ export class KhNowStrip extends LitElement {
           </button>`,
         )}
         ${lights.length > 1
-          ? html`<button class="chip all" @click=${() => setLights(lights, false)}>
+          ? html`<button class="chip all" @click=${this.guard(() => setLights(lights, false))}>
               <ha-icon icon="mdi:lightbulb-group-off-outline"></ha-icon>Éteindre les ${lights.length} lumières
             </button>`
           : nothing}

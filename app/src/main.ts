@@ -1,5 +1,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { config } from "./config.ts";
+import { setProtectedEntities } from "./actions.ts";
+import { cancelConfirmation } from "./components/confirm-dialog.ts";
 import { buildHouse, currentPerson, roomsFor, type HouseModel } from "./rooms.ts";
 import { RegistryController, store } from "./store.ts";
 import { base, tokens } from "./styles.ts";
@@ -40,11 +42,17 @@ class KaoruHomePanel extends LitElement {
 
   private model?: HouseModel;
   private modelKey: unknown[] = [];
+  private shownRoom?: string;
 
   constructor() {
     super();
     new RegistryController(this);
     loadFonts();
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    cancelConfirmation(); // a question left open must not be answered later
   }
 
   set hass(hass: HomeAssistant) {
@@ -70,6 +78,7 @@ class KaoruHomePanel extends LitElement {
       }
       .shell {
         min-height: 100vh;
+        min-height: 100dvh;
         display: grid;
         grid-template-columns: 1fr;
       }
@@ -77,6 +86,7 @@ class KaoruHomePanel extends LitElement {
         display: none;
       }
       .topbar {
+        padding-top: max(4px, env(safe-area-inset-top));
         display: flex;
         align-items: center;
         gap: 4px;
@@ -91,6 +101,7 @@ class KaoruHomePanel extends LitElement {
         border-radius: 50%;
       }
       .chips {
+        position: relative;
         display: flex;
         gap: 8px;
         overflow-x: auto;
@@ -117,7 +128,7 @@ class KaoruHomePanel extends LitElement {
         min-width: 0;
       }
       main {
-        padding: 8px 16px 32px;
+        padding: 0 16px 32px;
         min-width: 0;
         max-width: 1400px;
       }
@@ -132,6 +143,7 @@ class KaoruHomePanel extends LitElement {
           position: sticky;
           top: 0;
           height: 100vh;
+          height: 100dvh;
           box-sizing: border-box;
           padding: 24px 12px;
           border-right: 1px solid var(--kh-line);
@@ -175,9 +187,11 @@ class KaoruHomePanel extends LitElement {
 
   /** Rebuilds the house model only when the registry changed. */
   private house(hass: HomeAssistant): HouseModel {
-    const key = [hass.entities, hass.devices, hass.areas];
+    // States count too: after an HA restart the registry arrives before all states.
+    const key = [hass.entities, hass.devices, hass.areas, Object.keys(hass.states).length];
     if (!this.model || key.some((k, i) => k !== this.modelKey[i])) {
       this.model = buildHouse(hass, config);
+      setProtectedEntities(this.model.protected);
       this.modelKey = key;
     }
     return this.model;
@@ -189,9 +203,11 @@ class KaoruHomePanel extends LitElement {
       | undefined;
     if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
     const url = new URL(a.href);
-    if (url.origin !== location.origin || !this.route || !url.pathname.startsWith(this.route.prefix)) return;
+    const prefix = this.route?.prefix;
+    if (url.origin !== location.origin || !prefix) return;
+    if (url.pathname !== prefix && !url.pathname.startsWith(`${prefix}/`)) return;
     e.preventDefault();
-    history.pushState(null, "", url.pathname);
+    history.pushState(null, "", url.pathname + location.search); // keeps ?as= previews
     window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
   }
 
@@ -201,9 +217,14 @@ class KaoruHomePanel extends LitElement {
 
   protected updated(): void {
     this.toggleAttribute("dark", !!store.hass?.themes.darkMode);
-    this.renderRoot
-      .querySelector('.chips a[aria-current="page"]')
-      ?.scrollIntoView({ block: "nearest", inline: "center" });
+    // Bring the current room chip into view, only when the room changes, and
+    // only scroll the chip row: never the page the person is reading.
+    const roomId = (this.route?.path ?? "").replace(/^\//, "").split("/")[0];
+    if (roomId === this.shownRoom) return;
+    this.shownRoom = roomId;
+    const row = this.renderRoot.querySelector<HTMLElement>(".chips");
+    const chip = row?.querySelector<HTMLElement>('a[aria-current="page"]');
+    if (row && chip) row.scrollTo({ left: chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2 });
   }
 
   render() {

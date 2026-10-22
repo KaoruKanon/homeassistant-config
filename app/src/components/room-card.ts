@@ -27,63 +27,88 @@ export class KhRoomCard extends LitElement {
       :host {
         display: block;
       }
+      /* A room is a window on the house front: it glows when its lights are on. */
       .card {
         position: relative;
+        isolation: isolate;
         display: grid;
         grid-template-columns: 1fr auto;
-        grid-template-rows: auto auto 1fr;
-        gap: 4px 12px;
-        min-height: var(--kh-card-min, 128px);
+        grid-template-rows: auto 1fr auto;
+        gap: 6px 12px;
+        min-height: var(--kh-card-min, 136px);
         padding: var(--kh-card-pad, 16px);
         box-sizing: border-box;
-        border-radius: var(--kh-radius);
+        border-radius: 6px;
         background: var(--kh-surface);
-        border: 1px solid var(--kh-line);
+        border: 1.5px solid var(--kh-line);
+        overflow: hidden;
+        transition: border-color 400ms ease;
+      }
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: radial-gradient(130% 100% at 30% 0%, var(--kh-lamp-glow), transparent 75%);
+        opacity: var(--glow, 0);
+        transition: opacity 400ms ease;
+      }
+      .card.lit {
+        border-color: var(--kh-lamp-frame);
+      }
+      .card.open::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        border-style: solid;
+        border-width: 0 18px 18px 0;
+        border-color: transparent var(--kh-alert) transparent transparent;
       }
       a.cover {
         position: absolute;
         inset: 0;
-        border-radius: var(--kh-radius);
       }
-      .title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 700;
-        font-size: 1.0625rem;
-      }
-      .title ha-icon {
-        color: var(--kh-text-2);
+      .name {
+        font-family: var(--kh-display);
+        font-size: 1.125rem;
+        line-height: 1.15;
+        overflow-wrap: anywhere;
       }
       .climate {
         grid-column: 1;
-        color: var(--kh-text-2);
+        align-self: end;
         font-variant-numeric: tabular-nums;
+        color: var(--kh-text-2);
       }
       .climate strong {
         color: var(--kh-text);
-        font-size: 1.375rem;
+        font-size: 1.625rem;
+        margin-right: 6px;
       }
       .status {
         grid-column: 1 / -1;
-        align-self: end;
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
-      }
-      .pill {
-        font-size: 0.8125rem;
-        padding: 3px 10px;
-        border-radius: 999px;
-        background: var(--kh-surface-2);
+        gap: 4px 14px;
+        font-size: 0.875rem;
         color: var(--kh-text-2);
+        min-height: 1.25em;
       }
-      .pill.warm {
-        background: var(--kh-warm-soft);
+      .status .lamp::before {
+        content: "";
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-right: 6px;
+        border-radius: 50%;
+        background: var(--kh-lamp);
+        vertical-align: 1px;
+      }
+      .status .lamp {
         color: var(--kh-text);
       }
-      .pill.alert {
-        background: var(--kh-alert-soft);
+      .status .alert {
         color: var(--kh-alert);
         font-weight: 700;
       }
@@ -97,12 +122,14 @@ export class KhRoomCard extends LitElement {
         display: grid;
         place-items: center;
         border-radius: 50%;
-        background: var(--kh-surface-2);
+        border: 1.5px solid var(--kh-line);
+        background: var(--kh-surface);
         color: var(--kh-text-2);
       }
       .lights.on {
-        background: var(--kh-warm-soft);
-        color: var(--kh-warm);
+        background: var(--kh-lamp);
+        border-color: var(--kh-lamp);
+        color: #241a05;
       }
     `,
   ];
@@ -118,35 +145,37 @@ export class KhRoomCard extends LitElement {
     const watched = [...r.lights, ...r.openings, r.temperature, r.humidity].filter((x): x is string => !!x);
     const unreachable = watched.length > 0 && watched.every((id) => isUnavailable(hass.states[id]));
     const lightsReachable = r.lights.some((id) => !isUnavailable(hass.states[id]));
+    // Any light on gives a clear glow; a fully lit room glows the most.
+    const glow = lightsOn.length ? 0.55 + 0.45 * (lightsOn.length / r.lights.length) : 0;
+    const label = `${r.name}${lightsOn.length ? `, ${lightsOn.length} allumée${lightsOn.length > 1 ? "s" : ""}` : ""}${
+      open.length ? `, ${open.length} ouverture${open.length > 1 ? "s" : ""}` : ""
+    }`;
 
     return html`
-      <div class="card">
-        <a class="cover" href=${this.href} aria-label="Ouvrir ${r.name}"></a>
-        <div class="title"><ha-icon icon=${r.icon}></ha-icon>${r.name}</div>
+      <div class="card ${lightsOn.length ? "lit" : ""} ${open.length ? "open" : ""}" style="--glow:${glow}">
+        <a class="cover" href=${this.href} aria-label="Ouvrir ${label}"></a>
+        <div class="name">${r.name}</div>
         ${lightsReachable
           ? html`<button
               class="lights ${lightsOn.length ? "on" : ""}"
               aria-label=${lightsOn.length ? `Éteindre les lumières de ${r.name}` : `Allumer les lumières de ${r.name}`}
+              aria-pressed=${lightsOn.length ? "true" : "false"}
               @click=${() => setLights(r.lights, lightsOn.length === 0)}
             >
               <ha-icon icon=${lightsOn.length ? "mdi:lightbulb-on" : "mdi:lightbulb-outline"}></ha-icon>
             </button>`
           : nothing}
         <div class="climate">
-          ${temp ? html`<strong>${temp}°</strong>` : nothing} ${hum ? html` · ${hum} %` : nothing}
+          ${temp ? html`<strong>${temp}°</strong>` : nothing}${hum ? html`${hum} %` : nothing}
         </div>
         <div class="status">
           ${lightsOn.length
-            ? html`<span class="pill warm">${lightsOn.length === 1 ? "1 lumière allumée" : `${lightsOn.length} lumières allumées`}</span>`
+            ? html`<span class="lamp">${lightsOn.length === 1 ? "1 lumière" : `${lightsOn.length} lumières`}</span>`
             : nothing}
           ${open.length
-            ? html`<span class="pill alert">${open.length === 1 ? "1 ouverture" : `${open.length} ouvertures`}</span>`
+            ? html`<span class="alert">${open.length === 1 ? "Fenêtre ouverte" : `${open.length} ouvertures`}</span>`
             : nothing}
-          ${unreachable
-            ? html`<span class="pill">Appareils injoignables</span>`
-            : !lightsOn.length && !open.length
-              ? html`<span class="pill">Tout est calme</span>`
-              : nothing}
+          ${unreachable ? html`<span>Appareils injoignables</span>` : nothing}
         </div>
       </div>
     `;

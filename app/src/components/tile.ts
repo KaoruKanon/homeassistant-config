@@ -59,7 +59,7 @@ export class KhTile extends LitElement {
         text-align: left;
         padding: 14px 14px 12px;
         box-sizing: border-box;
-        border-radius: var(--kh-radius);
+        border-radius: 10px;
         background: var(--kh-surface);
         border: 1px solid var(--kh-line);
         transition: background-color 160ms ease, border-color 160ms ease;
@@ -102,7 +102,7 @@ export class KhTile extends LitElement {
         cursor: progress;
       }
       .tile.pending .state::after {
-        content: " · envoi…";
+        content: ", envoi…";
       }
       .guard {
         color: var(--kh-alert);
@@ -142,6 +142,7 @@ export class KhTile extends LitElement {
   protected updated(): void {
     const state = store.get(this.entityId)?.state;
     if (this.pending && state !== this.lastState) this.clearPending();
+    if (state !== "on") this.dragging = undefined; // a light switched off mid-drag
     this.lastState = state;
   }
 
@@ -180,7 +181,7 @@ export class KhTile extends LitElement {
     const dimmable = isDimmable(s) && isActive(s);
     const pct = this.dragging ?? brightnessPercent(s);
     const state =
-      stateLabel(hass, s) + (power && isActive(s) ? ` · ${power} W` : "") + (dimmable && pct ? ` · ${pct} %` : "");
+      stateLabel(hass, s) + (power && isActive(s) ? `, ${power} W` : "") + (dimmable && pct ? `, ${pct} %` : "");
     const classes = [
       "tile",
       domain,
@@ -212,14 +213,19 @@ export class KhTile extends LitElement {
             aria-label="Luminosité de ${this.name}"
             @input=${(e: Event) => (this.dragging = Number((e.target as HTMLInputElement).value))}
             @change=${async (e: Event) => {
-              await setBrightness(this.entityId, Number((e.target as HTMLInputElement).value));
-              this.dragging = undefined;
+              try {
+                await setBrightness(this.entityId, Number((e.target as HTMLInputElement).value));
+              } finally {
+                this.dragging = undefined;
+              }
             }}
           />`
         : nothing}
-      <button class="more" aria-label="Détails de ${this.name}" @click=${() => openMoreInfo(this, this.entityId)}>
-        <ha-icon icon="mdi:dots-horizontal"></ha-icon>
-      </button>
+      ${needsConfirmation(this.entityId)
+        ? nothing /* HA's detail dialog has an unguarded switch */
+        : html`<button class="more" aria-label="Détails de ${this.name}" @click=${() => openMoreInfo(this, this.entityId)}>
+            <ha-icon icon="mdi:dots-horizontal"></ha-icon>
+          </button>`}
     `;
   }
 }

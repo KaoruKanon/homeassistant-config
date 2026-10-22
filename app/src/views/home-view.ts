@@ -6,7 +6,7 @@ import "../components/tile.ts";
 import { config } from "../config.ts";
 import type { HouseModel, Room } from "../rooms.ts";
 import { currentPerson, entityName } from "../rooms.ts";
-import { store } from "../store.ts";
+import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 
 export class KhHomeView extends LitElement {
@@ -18,6 +18,16 @@ export class KhHomeView extends LitElement {
   declare model: HouseModel;
   declare rooms: Room[];
   declare prefix: string;
+
+  constructor() {
+    super();
+    new RegistryController(this);
+    new EntitiesController(this, () => {
+      const hass = store.hass;
+      const person = hass && currentPerson(hass)?.replace("person.", "");
+      return (person && config.people[person]?.shortcuts) || [];
+    });
+  }
 
   static styles = [
     base,
@@ -44,6 +54,9 @@ export class KhHomeView extends LitElement {
       section + section {
         margin-top: 28px;
       }
+      .facade {
+        margin-bottom: 28px;
+      }
       .hint {
         color: var(--kh-text-2);
         font-size: 0.875rem;
@@ -67,7 +80,7 @@ export class KhHomeView extends LitElement {
     const hass = store.hass!;
     const room = this.model.rooms.find((r) => [...r.lights, ...r.switches, ...r.fans, ...r.media].includes(id));
     const name = entityName(hass, id, config, room?.name);
-    return room && !name.toLowerCase().includes(room.name.toLowerCase()) ? `${name} · ${room.name}` : name;
+    return room && !name.toLowerCase().includes(room.name.toLowerCase()) ? `${name} (${room.name})` : name;
   }
 
   render() {
@@ -78,6 +91,13 @@ export class KhHomeView extends LitElement {
     const shortcuts = ((person && config.people[person]?.shortcuts) || []).filter((id) => hass.states[id]);
     return html`
       <kh-hero></kh-hero>
+      <section class="facade" aria-label="Pièces">
+        <div class="rooms">
+          ${this.rooms.map(
+            (r) => html`<kh-room-card .room=${r} href=${`${this.prefix}/${r.id}`}></kh-room-card>`,
+          )}
+        </div>
+      </section>
       <kh-now-strip .model=${this.model}></kh-now-strip>
       ${shortcuts.length
         ? html`<section aria-labelledby="mine-title">
@@ -87,14 +107,6 @@ export class KhHomeView extends LitElement {
             </div>
           </section>`
         : nothing}
-      <section aria-labelledby="rooms-title">
-        <h2 id="rooms-title">Pièces</h2>
-        <div class="rooms">
-          ${this.rooms.map(
-            (r) => html`<kh-room-card .room=${r} href=${`${this.prefix}/${r.id}`}></kh-room-card>`,
-          )}
-        </div>
-      </section>
       ${loose.length
         ? html`<section aria-labelledby="loose-title">
             <h2 id="loose-title">Lumières sans pièce</h2>

@@ -13,10 +13,14 @@ export class HassStore {
   hass?: HomeAssistant;
   private entityListeners = new Map<string, Set<Listener>>();
   private registryListeners = new Set<Listener>();
+  private stateCount = 0;
 
   set(hass: HomeAssistant): void {
     const prev = this.hass;
     this.hass = hass;
+    const count = prev?.states === hass.states ? this.stateCount : Object.keys(hass.states).length;
+    const membershipChanged = count !== this.stateCount;
+    this.stateCount = count;
     if (!prev) {
       this.registryListeners.forEach((l) => l());
       this.entityListeners.forEach((set) => set.forEach((l) => l()));
@@ -28,7 +32,8 @@ export class HassStore {
       prev.areas !== hass.areas ||
       prev.user !== hass.user ||
       prev.themes !== hass.themes ||
-      prev.localize !== hass.localize
+      prev.localize !== hass.localize ||
+      membershipChanged
     ) {
       this.registryListeners.forEach((l) => l());
     }
@@ -81,6 +86,8 @@ export class EntitiesController implements ReactiveController {
 
   hostConnected(): void {
     this.resubscribe();
+    // Back in the page after a while: show current states, not the ones from before.
+    this.host.requestUpdate();
   }
 
   hostUpdate(): void {
@@ -111,6 +118,7 @@ export class RegistryController implements ReactiveController {
 
   hostConnected(): void {
     this.unsubscribe = store.subscribeRegistry(() => this.host.requestUpdate());
+    this.host.requestUpdate();
   }
 
   hostDisconnected(): void {

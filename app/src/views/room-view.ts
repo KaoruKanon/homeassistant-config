@@ -20,7 +20,7 @@ export class KhRoomView extends LitElement {
     new EntitiesController(this, () => {
       const r = this.room;
       if (!r) return [];
-      return [...r.lights, ...r.openings, ...r.motion, ...[r.temperature, r.humidity].filter((x): x is string => !!x)];
+      return [...r.lights, ...r.switches, ...r.fans, ...r.media, ...r.openings, ...r.motion, ...[r.temperature, r.humidity].filter((x): x is string => !!x)];
     });
   }
 
@@ -52,6 +52,10 @@ export class KhRoomView extends LitElement {
       }
       .climate strong {
         color: var(--kh-text);
+      }
+      .climate .gap {
+        display: inline-block;
+        width: 12px;
       }
       .all {
         min-height: var(--kh-tap);
@@ -163,7 +167,7 @@ export class KhRoomView extends LitElement {
           <h1>${r.name}</h1>
           ${temp || hum
             ? html`<div class="climate">
-                ${temp ? html`<strong>${temp}°</strong>` : nothing}${temp && hum ? " · " : ""}${hum
+                ${temp ? html`<strong>${temp}°</strong>` : nothing}${temp && hum ? html`<span class="gap"></span>` : ""}${hum
                   ? html`${hum} % d'humidité`
                   : nothing}
               </div>`

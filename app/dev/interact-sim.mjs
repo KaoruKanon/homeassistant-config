@@ -48,10 +48,10 @@ await page.waitForTimeout(800);
 check("cancel keeps plug state", (await state(plug)) === p0, `${p0}`);
 await tap(plug);
 await page.waitForSelector("kh-confirm-dialog dialog[open]");
-await page.locator("kh-confirm-dialog button.confirm").click();
+await page.waitForTimeout(650); /* confirm is armed 500 ms after opening */ await page.locator("kh-confirm-dialog button.confirm").click();
 const p1 = p0 === "on" ? "off" : "on";
 await waitState(plug, p1); check(`confirm switches plug to ${p1}`, true);
-await tap(plug); await page.waitForSelector("kh-confirm-dialog dialog[open]"); await page.locator("kh-confirm-dialog button.confirm").click(); await waitState(plug, p0);
+await tap(plug); await page.waitForSelector("kh-confirm-dialog dialog[open]"); await page.waitForTimeout(650); /* confirm is armed 500 ms after opening */ await page.locator("kh-confirm-dialog button.confirm").click(); await waitState(plug, p0);
 check(`plug back to ${p0}`, true);
 
 // Room action: lights only

@@ -16,7 +16,6 @@ class KhClock extends LitElement {
 
   constructor() {
     super();
-    new RegistryController(this);
     this.now = new Date();
   }
 
@@ -27,9 +26,8 @@ class KhClock extends LitElement {
     time {
       display: block;
       font-family: var(--kh-display);
-      font-size: var(--kh-clock-size, 4.5rem);
+      font-size: var(--kh-clock-size, 3rem);
       line-height: 1;
-      letter-spacing: -0.01em;
       font-variant-numeric: tabular-nums;
     }
     .date {
@@ -71,6 +69,7 @@ customElements.define("kh-clock", KhClock);
 export class KhHero extends LitElement {
   constructor() {
     super();
+    new RegistryController(this);
     new EntitiesController(this, () => [
       ...config.weather,
       ...Object.keys(config.people).map((p) => `person.${p}`),
@@ -163,14 +162,35 @@ export class KhHero extends LitElement {
         clip-path: inset(50%);
       }
       @container kh (max-width: 599px) {
+        /* Phone: time and weather share one line, who is home goes under. */
         .hero {
-          grid-template-columns: 1fr;
-          --kh-clock-size: 3.25rem;
+          align-items: start;
+          gap: 12px 16px;
+          padding: 0 0 20px;
+          --kh-clock-size: 2.25rem;
+        }
+        .greeting {
+          margin-bottom: 4px;
         }
         .side {
-          justify-items: start;
+          display: contents;
+        }
+        .weather {
+          grid-column: 2;
+          grid-row: 1;
+          align-self: end;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0;
+        }
+        .weather ha-state-icon {
+          --mdc-icon-size: 28px;
+        }
+        .weather .temp {
+          font-size: 1.375rem;
         }
         .people {
+          grid-column: 1 / -1;
           justify-content: flex-start;
         }
       }
