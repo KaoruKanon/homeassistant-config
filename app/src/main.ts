@@ -111,7 +111,7 @@ class KaoruHomePanel extends LitElement {
       .chips a[aria-current="page"] {
         background: var(--kh-accent);
         border-color: var(--kh-accent);
-        color: #fff;
+        color: var(--kh-on-accent);
       }
       .content {
         min-width: 0;

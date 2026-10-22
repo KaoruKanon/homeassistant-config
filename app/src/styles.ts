@@ -19,6 +19,8 @@ export const tokens = css`
     --kh-alert: #c0352f;
     --kh-alert-soft: #fde6e4;
     --kh-ok: #1f7a52;
+    --kh-on-accent: #ffffff;
+    --kh-on-alert: #ffffff;
 
     --kh-font: "Atkinson Hyperlegible", system-ui, sans-serif;
     --kh-display: "Dela Gothic One", "Atkinson Hyperlegible", system-ui, sans-serif;
@@ -42,6 +44,8 @@ export const tokens = css`
     --kh-alert: #ff8a80;
     --kh-alert-soft: #3d1a1c;
     --kh-ok: #6fd6a6;
+    --kh-on-accent: #0e0a15;
+    --kh-on-alert: #0e0a15;
     color-scheme: dark;
   }
 `;

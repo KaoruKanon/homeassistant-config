@@ -55,10 +55,11 @@ class KhConfirmDialog extends LitElement {
       }
       .confirm {
         background: var(--kh-accent);
-        color: #fff;
+        color: var(--kh-on-accent);
       }
       .confirm.danger {
         background: var(--kh-alert);
+        color: var(--kh-on-alert);
       }
     `,
   ];
