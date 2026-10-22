@@ -15,7 +15,7 @@ export const tokens = css`
     --kh-accent: #7e4ff0;
     --kh-accent-soft: #ece4ff;
     --kh-warm: #a86f00;
-    --kh-warm-soft: #fff0cc;
+    --kh-warm-soft: #ffe7ad;
     --kh-alert: #c0352f;
     --kh-alert-soft: #fde6e4;
     --kh-ok: #1f7a52;

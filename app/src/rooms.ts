@@ -165,8 +165,14 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** The person entity linked to the logged-in user, if any. */
-export function currentPerson(hass: HomeAssistant): string | undefined {
+/**
+ * The person whose view is shown: the one linked to the logged-in user, or,
+ * for an admin, the one named in `?as=<person>` (to preview someone's view).
+ */
+export function currentPerson(hass: HomeAssistant, search?: string): string | undefined {
+  const preview = search ?? (typeof location === "undefined" ? "" : location.search);
+  const as = new URLSearchParams(preview).get("as");
+  if (as && hass.user?.is_admin && hass.states[`person.${as}`]) return `person.${as}`;
   const userId = hass.user?.id;
   if (!userId) return undefined;
   return Object.values(hass.states).find(

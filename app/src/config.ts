@@ -4,6 +4,8 @@
 export interface PersonSettings {
   /** Areas shown first on the home view for this person. */
   favoriteRooms?: string[];
+  /** Devices shown in "Pour toi" on the home view. */
+  shortcuts?: string[];
 }
 
 export interface KaoruHomeConfig {
@@ -32,6 +34,10 @@ export const config: KaoruHomeConfig = {
   confirm: ["switch.smart_plug_*", "switch.prise_protegee"],
   names: {
     "light.switch_wall_*": "Lumière",
+    "light.chambre": "Lumières de la chambre",
+    "media_player.spotify": "Spotify",
+    "media_player.google_home_chambre": "Enceinte chambre",
+    "media_player.google_home_cuisine": "Enceinte cuisine",
     "switch.smart_plug_homelab_switch": "Homelab",
     "switch.smart_plug_shiro_switch": "Shiro",
     "switch.smart_plug_spare_switch": "Prise d'appoint",
@@ -57,7 +63,13 @@ export const config: KaoruHomeConfig = {
     labo: "mdi:flask-outline",
   },
   people: {
-    kaoru: { favoriteRooms: ["chambre_william"] },
-    papa: { favoriteRooms: ["chambre_papa"] },
+    kaoru: {
+      favoriteRooms: ["chambre_william"],
+      shortcuts: ["light.chambre", "media_player.spotify", "media_player.google_home_chambre"],
+    },
+    papa: {
+      favoriteRooms: ["chambre_papa"],
+      shortcuts: ["light.switch_wall_chambre_papa", "media_player.samsung_tv_papa"],
+    },
   },
 };

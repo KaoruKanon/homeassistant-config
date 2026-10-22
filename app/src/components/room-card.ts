@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from "lit";
 import { setLights } from "../actions.ts";
-import { isActive, sensorValue } from "../format.ts";
+import { isActive, isUnavailable, sensorValue } from "../format.ts";
 import type { Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
@@ -33,8 +33,8 @@ export class KhRoomCard extends LitElement {
         grid-template-columns: 1fr auto;
         grid-template-rows: auto auto 1fr;
         gap: 4px 12px;
-        min-height: 128px;
-        padding: 16px;
+        min-height: var(--kh-card-min, 128px);
+        padding: var(--kh-card-pad, 16px);
         box-sizing: border-box;
         border-radius: var(--kh-radius);
         background: var(--kh-surface);
@@ -115,12 +115,15 @@ export class KhRoomCard extends LitElement {
     const open = r.openings.filter((id) => isActive(hass.states[id]));
     const temp = sensorValue(hass, r.temperature);
     const hum = sensorValue(hass, r.humidity, 0);
+    const watched = [...r.lights, ...r.openings, r.temperature, r.humidity].filter((x): x is string => !!x);
+    const unreachable = watched.length > 0 && watched.every((id) => isUnavailable(hass.states[id]));
+    const lightsReachable = r.lights.some((id) => !isUnavailable(hass.states[id]));
 
     return html`
       <div class="card">
         <a class="cover" href=${this.href} aria-label="Ouvrir ${r.name}"></a>
         <div class="title"><ha-icon icon=${r.icon}></ha-icon>${r.name}</div>
-        ${r.lights.length
+        ${lightsReachable
           ? html`<button
               class="lights ${lightsOn.length ? "on" : ""}"
               aria-label=${lightsOn.length ? `Éteindre les lumières de ${r.name}` : `Allumer les lumières de ${r.name}`}
@@ -139,7 +142,11 @@ export class KhRoomCard extends LitElement {
           ${open.length
             ? html`<span class="pill alert">${open.length === 1 ? "1 ouverture" : `${open.length} ouvertures`}</span>`
             : nothing}
-          ${!lightsOn.length && !open.length ? html`<span class="pill">Tout est calme</span>` : nothing}
+          ${unreachable
+            ? html`<span class="pill">Appareils injoignables</span>`
+            : !lightsOn.length && !open.length
+              ? html`<span class="pill">Tout est calme</span>`
+              : nothing}
         </div>
       </div>
     `;

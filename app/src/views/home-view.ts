@@ -1,10 +1,11 @@
 import { LitElement, css, html, nothing } from "lit";
 import "../components/hero.ts";
+import "../components/now-strip.ts";
 import "../components/room-card.ts";
 import "../components/tile.ts";
 import { config } from "../config.ts";
 import type { HouseModel, Room } from "../rooms.ts";
-import { entityName } from "../rooms.ts";
+import { currentPerson, entityName } from "../rooms.ts";
 import { store } from "../store.ts";
 import { base } from "../styles.ts";
 
@@ -50,7 +51,9 @@ export class KhHomeView extends LitElement {
       }
       @container kh (max-width: 599px) {
         .rooms {
-          grid-template-columns: 1fr;
+          grid-template-columns: repeat(2, 1fr);
+          --kh-card-min: 104px;
+          --kh-card-pad: 12px;
         }
         .tiles {
           grid-template-columns: repeat(2, 1fr);
@@ -59,12 +62,31 @@ export class KhHomeView extends LitElement {
     `,
   ];
 
+  /** Out of its room, a device name says which room it is in. */
+  private shortcutName(id: string): string {
+    const hass = store.hass!;
+    const room = this.model.rooms.find((r) => [...r.lights, ...r.switches, ...r.fans, ...r.media].includes(id));
+    const name = entityName(hass, id, config, room?.name);
+    return room && !name.toLowerCase().includes(room.name.toLowerCase()) ? `${name} · ${room.name}` : name;
+  }
+
   render() {
     const hass = store.hass;
     if (!hass || !this.model) return nothing;
     const loose = this.model.unassignedLights;
+    const person = currentPerson(hass)?.replace("person.", "");
+    const shortcuts = ((person && config.people[person]?.shortcuts) || []).filter((id) => hass.states[id]);
     return html`
       <kh-hero></kh-hero>
+      <kh-now-strip .model=${this.model}></kh-now-strip>
+      ${shortcuts.length
+        ? html`<section aria-labelledby="mine-title">
+            <h2 id="mine-title">Pour toi</h2>
+            <div class="tiles">
+              ${shortcuts.map((id) => html`<kh-tile entity-id=${id} name=${this.shortcutName(id)}></kh-tile>`)}
+            </div>
+          </section>`
+        : nothing}
       <section aria-labelledby="rooms-title">
         <h2 id="rooms-title">Pièces</h2>
         <div class="rooms">

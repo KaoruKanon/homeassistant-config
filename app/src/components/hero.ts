@@ -182,7 +182,7 @@ export class KhHero extends LitElement {
     if (!hass) return nothing;
     const weather = config.weather.map((id) => hass.states[id]).find((s) => s && s.state !== "unavailable");
     const me = currentPerson(hass);
-    const name = (me && hass.states[me]?.attributes.friendly_name) || hass.user?.name || "";
+    const name = capitalize((me && hass.states[me]?.attributes.friendly_name) || hass.user?.name || "");
     const hour = new Date().getHours();
     const hello = hour >= 18 || hour < 5 ? "Bonsoir" : "Bonjour";
 
@@ -206,7 +206,7 @@ export class KhHero extends LitElement {
               if (!s) return nothing;
               const home = s.state === "home";
               const pic = s.attributes.entity_picture as string | undefined;
-              const label = s.attributes.friendly_name ?? p;
+              const label = capitalize(s.attributes.friendly_name ?? p);
               return html`<span class="person ${home ? "home" : ""}">
                 ${pic ? html`<img src=${pic} alt="" />` : html`<span class="initial">${label.charAt(0)}</span>`}
                 ${label}
@@ -221,6 +221,10 @@ export class KhHero extends LitElement {
   }
 }
 customElements.define("kh-hero", KhHero);
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 function formatTemp(v: unknown): string {
   return typeof v === "number" ? `${Math.round(v)}°` : "";
