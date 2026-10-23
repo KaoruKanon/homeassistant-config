@@ -2,7 +2,6 @@ import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo, restartHomeAssistant, setAutomation, triggerAutomation } from "../actions.ts";
 import { gauge, gaugeStyles } from "../components/gauge.ts";
 import "../components/mini-map.ts";
-import { openPopup } from "../components/popup.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive, stateLabel } from "../format.ts";
 import { ago, openPerson, openTablet, openTracker } from "../popups/index.ts";
@@ -15,16 +14,6 @@ import { head, hero, v2 } from "./styles.ts";
 
 const cap = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
 
-/** The family map, full size and movable. */
-function openFamilyMap(entities: string[]): void {
-  openPopup({
-    title: "Famille et objets",
-    icon: "mdi:map-marker-multiple",
-    color: "green",
-    watch: [],
-    body: () => html`<kh-mini-map .entities=${entities} height=${Math.round(Math.min(560, window.innerHeight * 0.62))}></kh-mini-map>`,
-  });
-}
 
 /** Système: the family on one map, internet, HA, updates, automations, batteries, search. */
 export class KhV2System extends LitElement {
@@ -72,11 +61,6 @@ export class KhV2System extends LitElement {
         border-radius: 50%;
         object-fit: cover;
         box-shadow: 0 0 0 3px rgba(var(--rgb), 0.85);
-      }
-      .mapbtn {
-        display: block;
-        width: 100%;
-        border-radius: 18px;
       }
       .people {
         display: grid;
@@ -214,9 +198,7 @@ export class KhV2System extends LitElement {
     const onMap = [...people.map((p) => `person.${p}`), ...config.system.trackers.map((t) => t.entity)].filter(located);
     return html`
       ${onMap.length
-        ? html`<button class="mapbtn" aria-label="Agrandir la carte" @click=${() => openFamilyMap(onMap)}>
-            <kh-mini-map passive .entities=${onMap} height="280"></kh-mini-map>
-          </button>`
+        ? html`<kh-mini-map .entities=${onMap} height="280"></kh-mini-map>`
         : nothing}
       <div class="people">
         ${people.map((p) => {
