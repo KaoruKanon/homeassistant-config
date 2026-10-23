@@ -115,7 +115,7 @@ export class KhRoomView extends LitElement {
       }
       @container kh (max-width: 599px) {
         .grid {
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
         }
       }
     `,

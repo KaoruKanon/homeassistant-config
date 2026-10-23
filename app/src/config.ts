@@ -86,9 +86,65 @@ export interface KaoruHomeConfig {
     frog?: { status: string; image: string; location: string };
     nextRain?: string;
     outdoorTemperature?: string;
-    stocks: { entity: string; name: string }[];
+    /** `home: true` = also on the home view (the rest on Météo). */
+    stocks: { entity: string; name: string; home?: boolean }[];
     leave?: string;
     wifiQr?: string;
+  };
+  media: {
+    speakers: string[];
+    box?: {
+      player: string;
+      remote: string;
+      apps: { name: string; icon: string; activity: string; color: string }[];
+    };
+    jellyfin: { title: string; entity: string }[];
+  };
+  weatherPage: {
+    feelsLike?: string;
+    humidity?: string;
+    windSpeed?: string;
+    windBearing?: string;
+    rainChance?: string;
+    uv?: string;
+    cloudCover?: string;
+    moon?: string;
+    hourly?: string;
+    windy?: { lat: number; lon: number };
+  };
+  energyPage: {
+    plugs: string[];
+    spare?: {
+      plug: string;
+      name: string;
+      duration: string;
+      increment: string;
+      decrement: string;
+      remaining: string;
+      power?: string;
+      autoOff: string;
+    };
+    fans: string[];
+  };
+  system: {
+    trackers: { entity: string; name: string; icon: string }[];
+    speedtest?: { download: string; upload: string; ping: string; run?: string };
+    ethernet?: { in: string; out: string };
+    ha: { disk?: string; memory?: string; cpu?: string; lastBoot?: string };
+    tablet?: {
+      name: string;
+      screen: string;
+      brightness?: string;
+      screensaver?: string;
+      plugged?: string;
+      battery?: string;
+      memory?: string;
+      storage?: string;
+      reload?: string;
+      restartBrowser?: string;
+    };
+    backups?: { last: string; next: string; state: string };
+    automations: { entity: string; name: string }[];
   };
 }
 
@@ -234,8 +290,103 @@ export const config: KaoruHomeConfig = {
     },
     nextRain: "sensor.meteo_france_next_rain",
     outdoorTemperature: "sensor.openweathermap_temperature",
-    stocks: [{ entity: "sensor.yahoofinance_sxr8_de", name: "ETF S&P 500" }],
+    stocks: [
+      { entity: "sensor.yahoofinance_sxr8_de", name: "ETF S&P 500", home: true },
+      { entity: "sensor.yahoofinance_aapl", name: "Apple" },
+      { entity: "sensor.yahoofinance_nvda", name: "Nvidia" },
+      { entity: "sensor.yahoofinance_ntoa_f", name: "Nintendo" },
+      { entity: "sensor.yahoofinance_btc_eur", name: "Bitcoin" },
+    ],
     leave: "script.home_leave",
     wifiQr: "/local/qr_wifi.jpg",
+  },
+  media: {
+    speakers: ["media_player.google_home_cuisine", "media_player.google_home_chambre"],
+    box: {
+      player: "media_player.bouygtel4k",
+      remote: "remote.bouygtel4k",
+      apps: [
+        { name: "YouTube", icon: "mdi:youtube", activity: "https://www.youtube.com", color: "red" },
+        { name: "Netflix", icon: "mdi:netflix", activity: "netflix://", color: "red" },
+        { name: "Apple TV", icon: "mdi:apple", activity: "https://tv.apple.com", color: "grey" },
+        { name: "Spotify", icon: "mdi:spotify", activity: "spotify://", color: "spotify" },
+      ],
+    },
+    jellyfin: [
+      { title: "Films", entity: "sensor.jelly_jellyfin_recently_added_movies" },
+      { title: "Séries", entity: "sensor.jelly_jellyfin_recently_added_tvshows" },
+    ],
+  },
+  weatherPage: {
+    feelsLike: "sensor.openweathermap_feels_like_temperature",
+    humidity: "sensor.openweathermap_humidity",
+    windSpeed: "sensor.openweathermap_wind_speed",
+    windBearing: "sensor.openweathermap_wind_bearing",
+    rainChance: "sensor.meteo_france_rain_chance",
+    uv: "sensor.openweathermap_uv_index",
+    cloudCover: "sensor.meteo_france_cloud_cover",
+    moon: "sensor.moon_phase",
+    hourly: "weather.openweathermap",
+    windy: { lat: 49.966, lon: 2.557 },
+  },
+  energyPage: {
+    plugs: ["switch.smart_plug_homelab_switch", "switch.smart_plug_shiro_switch"],
+    spare: {
+      plug: "switch.smart_plug_spare_switch",
+      name: "Trottinette",
+      duration: "input_number.smart_plug_spare_duration",
+      increment: "script.smart_plug_spare_duration_increment",
+      decrement: "script.smart_plug_spare_duration_decrement",
+      remaining: "sensor.smart_plug_spare_remaining_time",
+      power: "sensor.smart_plug_spare_active_power",
+      autoOff: "automation.turn_off_smart_plug_spare_switch",
+    },
+    fans: ["fan.xiaomi_smart_fan_2"],
+  },
+  system: {
+    trackers: [
+      { entity: "device_tracker.cles", name: "Clés", icon: "mdi:key-variant" },
+      { entity: "device_tracker.portefeuille", name: "Portefeuille", icon: "mdi:wallet" },
+      { entity: "device_tracker.sac_photo", name: "Sac photo", icon: "mdi:camera" },
+      { entity: "device_tracker.velo_de_course", name: "Vélo de course", icon: "mdi:bike" },
+    ],
+    speedtest: {
+      download: "sensor.speedtest_download",
+      upload: "sensor.speedtest_upload",
+      ping: "sensor.speedtest_ping",
+      run: "automation.run_speedtest_addon_every_12_hours",
+    },
+    ethernet: {
+      in: "sensor.system_monitor_paquets_entrant_via_enp2s0",
+      out: "sensor.system_monitor_paquets_sortants_via_enp2s0",
+    },
+    ha: {
+      disk: "sensor.system_monitor_utilisation_du_disque",
+      memory: "sensor.memory_use_percent",
+      cpu: "sensor.processor_use",
+      lastBoot: "sensor.last_boot",
+    },
+    tablet: {
+      name: "Tablette murale",
+      screen: "switch.lenovotab_screen",
+      brightness: "number.lenovotab_screen_brightness",
+      screensaver: "switch.lenovotab_screensaver",
+      plugged: "binary_sensor.lenovotab_plugged_in",
+      battery: "sensor.lenovotab_batterie",
+      memory: "sensor.template_fullykiosk_memory",
+      storage: "sensor.template_fullykiosk_storage",
+      reload: "button.lenovotab_load_start_url",
+      restartBrowser: "button.lenovotab_restart_browser",
+    },
+    backups: {
+      last: "sensor.backup_derniere_sauvegarde_automatique_reussie",
+      next: "sensor.backup_prochaine_sauvegarde_automatique_programmee",
+      state: "sensor.backup_etat_du_gestionnaire_de_sauvegarde",
+    },
+    automations: [
+      { entity: "automation.turn_off_gps_william_absence", name: "Kaoru part : couper sa chambre" },
+      { entity: "automation.turn_off_gps_papa_absence", name: "Papa part : couper son PC, sa TV, sa lumière" },
+      { entity: "automation.turn_off_gps_home_absence", name: "Tout le monde part : tout couper" },
+    ],
   },
 };

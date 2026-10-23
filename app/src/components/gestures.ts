@@ -40,3 +40,21 @@ export class Press {
   /** The long-press menu of mobile browsers would cover our popup. */
   contextmenu = (e: Event): void => e.preventDefault();
 }
+
+/**
+ * Starts a ripple at the pointer on the nearest button / link of the event
+ * path (the panel and popups listen once, so every button gets it).
+ */
+export function ripple(e: PointerEvent): void {
+  const target = (e.composedPath() as Element[]).find(
+    (el) => el instanceof HTMLElement && (el.tagName === "BUTTON" || el.tagName === "A"),
+  ) as HTMLElement | undefined;
+  if (!target || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const r = target.getBoundingClientRect();
+  target.style.setProperty("--rx", `${e.clientX - r.left}px`);
+  target.style.setProperty("--ry", `${e.clientY - r.top}px`);
+  target.classList.remove("rippling");
+  void target.offsetWidth; // restart the animation
+  target.classList.add("rippling");
+  window.setTimeout(() => target.classList.remove("rippling"), 600);
+}

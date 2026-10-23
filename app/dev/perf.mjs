@@ -15,7 +15,7 @@ const runs = Number(process.argv[3] ?? 3);
 const only = process.env.ONLY;
 const allTargets = {
   lovelace: { path: "/lovelace/home", ready: ["MUSHROOM-TEMPLATE-CARD", "MUSHROOM-CHIPS-CARD", "HUI-ENTITIES-CARD"] },
-  "kaoru-home": { path: "/maison", ready: ["KH-ROOM-CARD"] },
+  "kaoru-home": { path: "/maison", ready: ["KH-LIGHT-CARD"] },
 };
 
 const targets = only ? { [only]: allTargets[only] } : allTargets;

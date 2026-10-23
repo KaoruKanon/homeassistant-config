@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing } from "lit";
-import { openMoreInfo, setBrightness, toggle } from "../actions.ts";
+import { needsConfirmation, openMoreInfo, setBrightness, toggle } from "../actions.ts";
 import { brightnessPercent, isActive, isDimmable, isUnavailable } from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
@@ -15,15 +15,34 @@ export class KhLightCard extends LitElement {
     name: {},
     icon: {},
     dragging: { state: true },
+    optimistic: { state: true },
   };
   declare entityId: string;
   declare name: string;
   declare icon?: string;
   declare dragging?: number;
+  /** Shown state right after a tap, before Home Assistant confirms it. */
+  declare optimistic?: boolean;
+  private optimisticTimer?: number;
   private press = new Press(
-    () => toggle(this.entityId, this.name),
+    () => this.tap(),
     () => openMoreInfo(this, this.entityId),
   );
+
+  private async tap(): Promise<void> {
+    const s = store.get(this.entityId);
+    if (isUnavailable(s)) return;
+    if (!needsConfirmation(this.entityId)) {
+      this.optimistic = !isActive(s);
+      window.clearTimeout(this.optimisticTimer);
+      this.optimisticTimer = window.setTimeout(() => (this.optimistic = undefined), 4000);
+    }
+    try {
+      if (!(await toggle(this.entityId, this.name))) this.optimistic = undefined;
+    } catch {
+      this.optimistic = undefined;
+    }
+  }
 
   constructor() {
     super();
@@ -41,11 +60,13 @@ export class KhLightCard extends LitElement {
       .card {
         padding: 12px;
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 12px;
         transition: background-color 200ms ease;
       }
       .card.on {
         background: rgba(var(--rgb), 0.22);
+        animation: kh-glow 900ms ease-out;
       }
       .head {
         display: flex;
@@ -124,13 +145,14 @@ export class KhLightCard extends LitElement {
     // A light switched off elsewhere mid-drag: drop the stale value.
     const state = store.get(this.entityId)?.state;
     if (this.lastState === "on" && state !== "on") this.dragging = undefined;
+    if (state !== this.lastState) this.optimistic = undefined; // HA answered
     this.lastState = state;
   }
 
   render() {
     const s = store.get(this.entityId);
     if (!store.hass) return nothing;
-    const on = isActive(s);
+    const on = this.optimistic ?? isActive(s);
     const pct = this.dragging ?? (on ? (brightnessPercent(s) ?? 100) : 0);
     const state = isUnavailable(s) ? "Indisponible" : on ? (isDimmable(s) ? `${pct} %` : "Allumé") : "Éteint";
     return html`

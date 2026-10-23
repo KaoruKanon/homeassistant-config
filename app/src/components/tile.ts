@@ -115,10 +115,13 @@ export class KhTile extends LitElement {
         content: ", envoi…";
       }
       .guard {
-        grid-column: 2;
-        color: var(--kh-alert);
-        font-size: 0.75rem;
-        font-weight: 700;
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        color: var(--kh-text-2);
+      }
+      .guard ha-icon {
+        --mdc-icon-size: 18px;
       }
       .tile.dimmable {
         padding-bottom: 60px;
@@ -212,7 +215,9 @@ export class KhTile extends LitElement {
         <span class="icon">${stateIcon(hass, s)}</span>
         <span class="name">${this.name}</span>
         <span class="state">${state}</span>
-        ${needsConfirmation(this.entityId) ? html`<span class="guard">Confirmation demandée</span>` : nothing}
+        ${needsConfirmation(this.entityId)
+          ? html`<span class="guard" title="Demande une confirmation"><ha-icon icon="mdi:shield-lock-outline"></ha-icon></span>`
+          : nothing}
       </button>
       ${dimmable
         ? html`<input

@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing, type TemplateResult } from "lit";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base, tokens } from "../styles.ts";
+import { ripple } from "./gestures.ts";
 
 export interface PopupSpec {
   title: string;
@@ -46,6 +47,21 @@ class KhPopup extends LitElement {
       dialog::backdrop {
         background: rgb(0 0 0 / 0.45);
         backdrop-filter: blur(6px);
+        animation: fade 220ms ease-out;
+      }
+      dialog[open] {
+        animation: spring 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      @keyframes spring {
+        from {
+          opacity: 0;
+          transform: scale(0.9) translateY(12px);
+        }
+      }
+      @keyframes fade {
+        from {
+          opacity: 0;
+        }
       }
       @media (max-width: 599px) {
         dialog {
@@ -136,7 +152,7 @@ class KhPopup extends LitElement {
       }
       .grid2 {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
       .action {
@@ -206,6 +222,7 @@ class KhPopup extends LitElement {
     if (!s || !store.hass) return nothing;
     return html`<dialog
       aria-labelledby="kh-popup-title"
+      @pointerdown=${ripple}
       @cancel=${(e: Event) => (e.preventDefault(), this.close())}
       @click=${(e: Event) => e.target === e.currentTarget && this.close()}
     >

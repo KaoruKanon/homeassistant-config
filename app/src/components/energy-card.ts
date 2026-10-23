@@ -14,13 +14,17 @@ const REFRESH_MS = 10 * 60_000;
 
 /** Power now, today's kWh and cost, and today's consumption per hour. */
 export class KhEnergyCard extends LitElement {
-  static properties = { hours: { state: true } };
+  static properties = { hours: { state: true }, width: { state: true } };
   declare hours: { hour: number; kwh: number }[];
+  /** Drawing width in px: the chart keeps a fixed height whatever the width. */
+  declare width: number;
   private timer?: number;
+  private resize = new ResizeObserver(([e]) => (this.width = Math.max(240, Math.round(e.contentRect.width))));
 
   constructor() {
     super();
     this.hours = [];
+    this.width = 320;
     new RegistryController(this);
     new EntitiesController(this, () => {
       const e = config.home.energy;
@@ -52,7 +56,7 @@ export class KhEnergyCard extends LitElement {
       }
       .axis {
         fill: var(--kh-text-2);
-        font-size: 10px;
+        font-size: 11px;
         font-family: var(--kh-font);
       }
       .grid {
@@ -60,6 +64,14 @@ export class KhEnergyCard extends LitElement {
       }
       .bar {
         fill: rgb(var(--rgb-orange));
+        transform-origin: bottom;
+        transform-box: fill-box;
+        animation: grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      @keyframes grow {
+        from {
+          transform: scaleY(0);
+        }
       }
       .now {
         stroke: rgb(var(--rgb-light-blue));
@@ -72,11 +84,13 @@ export class KhEnergyCard extends LitElement {
     super.connectedCallback();
     this.load();
     this.timer = window.setInterval(() => this.load(), REFRESH_MS);
+    this.resize.observe(this);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     window.clearInterval(this.timer);
+    this.resize.disconnect();
   }
 
   private async load(): Promise<void> {
@@ -100,7 +114,7 @@ export class KhEnergyCard extends LitElement {
   }
 
   private chart() {
-    const W = 320, H = 120, left = 26, bottom = 18, top = 6;
+    const W = this.width - 24, H = 140, left = 30, bottom = 20, top = 8;
     const max = Math.max(0.1, ...this.hours.map((h) => h.kwh));
     const x = (hour: number) => left + (hour / 24) * (W - left - 4);
     const y = (v: number) => top + (1 - v / max) * (H - top - bottom);

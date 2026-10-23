@@ -35,7 +35,7 @@ export class KhHomeView extends LitElement {
       }
       .cols {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: 8px 28px;
         align-items: start;
       }
@@ -66,29 +66,36 @@ export class KhHomeView extends LitElement {
       }
       .pair {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--kh-gap);
       }
-      @container kh (min-width: 760px) {
+      /* Light cards: as many as fit, never narrower than 170 px. */
+      .lights {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: var(--kh-gap);
+      }
+      /* Columns are never narrower than ~400 px: 1, 2 or 3 of them. */
+      @container kh (min-width: 972px) {
         .cols {
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
         .col.c3 {
           grid-column: 1 / -1;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           column-gap: 28px;
         }
         .col.c3 > .weather {
           grid-row: span 4;
         }
       }
-      @container kh (min-width: 1150px) {
+      @container kh (min-width: 1400px) {
         .cols {
-          grid-template-columns: 1fr 1fr 1fr;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
         .col.c3 {
           grid-column: auto;
-          grid-template-columns: 1fr;
+          grid-template-columns: minmax(0, 1fr);
         }
         .col.c3 > .weather {
           grid-row: auto;
@@ -142,7 +149,7 @@ export class KhHomeView extends LitElement {
           ${spotifyOn || tvsOn.length
             ? html`${this.heading("Media", "medias")}
                 <div class="stack">
-                  ${spotifyOn ? html`<kh-media-card entity-id=${h.spotify!} kind="music"></kh-media-card>` : nothing}
+                  ${spotifyOn ? html`<kh-media-card entity-id=${h.spotify!} kind="music" name="Spotify"></kh-media-card>` : nothing}
                   ${tvsOn.map((id) => html`<kh-media-card entity-id=${id} kind="tv"></kh-media-card>`)}
                 </div>`
             : nothing}
@@ -153,7 +160,7 @@ export class KhHomeView extends LitElement {
         </div>
         <div class="col c2">
           ${this.heading("Lumières", "pieces")}
-          <div class="pair">
+          <div class="lights">
             ${h.lights
               .filter((l) => hass.states[l.entity])
               .map((l) => html`<kh-light-card entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-card>`)}
@@ -162,10 +169,10 @@ export class KhHomeView extends LitElement {
         </div>
         <div class="col c3">
           <div class="weather">${this.heading("Météo", "meteo")}<kh-weather-card></kh-weather-card></div>
-          ${h.stocks.length
+          ${h.stocks.some((s) => s.home)
             ? html`<div>
                 ${this.heading("News", "meteo")}
-                <div class="stack">${h.stocks.map((s) => html`<kh-stock entity-id=${s.entity} name=${s.name}></kh-stock>`)}</div>
+                <div class="stack">${h.stocks.filter((s) => s.home).map((s) => html`<kh-stock entity-id=${s.entity} name=${s.name}></kh-stock>`)}</div>
               </div>`
             : nothing}
           <div>${this.heading("Autres")}<kh-others></kh-others></div>

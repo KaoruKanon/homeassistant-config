@@ -70,6 +70,10 @@ export function fakeConfig(overrides: Partial<KaoruHomeConfig> = {}): KaoruHomeC
     roomIcons: {},
     people: {},
     home: { chips: {}, tvs: [], lights: [], computers: [], stocks: [] },
+    media: { speakers: [], jellyfin: [] },
+    weatherPage: {},
+    energyPage: { plugs: [], fans: [] },
+    system: { trackers: [], ha: {}, automations: [] },
     ...overrides,
   };
 }

@@ -28,7 +28,7 @@ const FROG_RGB: Record<string, string> = {
 /** Animated Meteocons icon in www/weather for an HA condition. */
 export function weatherIcon(condition: string, night = false, precipitation = 0): string {
   const slug: Record<string, string> = {
-    sunny: "clear-day",
+    sunny: night ? "clear-night" : "clear-day",
     "clear-night": "clear-night",
     partlycloudy: night ? "partly-cloudy-night" : "partly-cloudy-day",
     cloudy: "cloudy",

@@ -134,6 +134,60 @@ export async function ringPhone(notifyService: string): Promise<void> {
   });
 }
 
+/** One key of a TV box remote (DPAD_UP, BACK, HOME...). */
+export async function remoteKey(remote: string, command: string): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !remote.startsWith("remote.")) return;
+  await hass.callService("remote", "send_command", { command }, { entity_id: remote });
+}
+
+/** Opens an app on a TV box (YouTube, Netflix...). */
+export async function remoteApp(remote: string, activity: string): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !remote.startsWith("remote.")) return;
+  await hass.callService("remote", "turn_on", { activity }, { entity_id: remote });
+}
+
+export async function setFanSpeed(fan: string, percentage: number): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !fan.startsWith("fan.")) return;
+  await hass.callService("fan", "set_percentage", { percentage: Math.round(percentage) }, { entity_id: fan });
+}
+
+export async function setFanOscillation(fan: string, oscillating: boolean): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !fan.startsWith("fan.")) return;
+  await hass.callService("fan", "oscillate", { oscillating }, { entity_id: fan });
+}
+
+/** Presses an HA button entity (e.g. reload the tablet browser). */
+export async function pressButton(entityId: string): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("button.")) return;
+  await hass.callService("button", "press", {}, { entity_id: entityId });
+}
+
+export async function setNumber(entityId: string, value: number): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("number.")) return;
+  await hass.callService("number", "set_value", { value }, { entity_id: entityId });
+}
+
+/** Restarts Home Assistant, after an explicit confirmation. */
+export async function restartHomeAssistant(): Promise<boolean> {
+  const hass = store.hass;
+  if (!hass?.user?.is_admin) return false;
+  const ok = await confirmAction({
+    title: "Redémarrer Home Assistant ?",
+    body: "La maison ne répondra plus pendant une à deux minutes.",
+    confirmLabel: "Redémarrer",
+    danger: true,
+  });
+  if (!ok) return false;
+  await hass.callService("homeassistant", "restart", {});
+  return true;
+}
+
 /** Room-level action. Unprotected lights only: plugs and devices are never grouped. */
 export async function setLights(entityIds: readonly string[], on: boolean): Promise<void> {
   const hass = store.hass;

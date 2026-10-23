@@ -121,6 +121,80 @@ export const base = css`
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+  /* Motion: everything answers a touch, on transform/opacity only (GPU). */
+  button,
+  a {
+    position: relative;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 250ms ease, color 250ms ease;
+  }
+  button:active,
+  a:active {
+    transform: scale(0.96);
+    transition-duration: 90ms;
+  }
+  /* Tap ripple from the finger (position set by ripple() in gestures.ts). */
+  .rippling {
+    overflow: hidden;
+  }
+  .rippling::after {
+    content: "";
+    position: absolute;
+    left: var(--rx, 50%);
+    top: var(--ry, 50%);
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    background: currentColor;
+    pointer-events: none;
+    animation: kh-ripple 560ms ease-out forwards;
+  }
+  @keyframes kh-ripple {
+    from {
+      opacity: 0.28;
+      transform: scale(0);
+    }
+    to {
+      opacity: 0;
+      transform: scale(36);
+    }
+  }
+  .shape {
+    transition: background-color 280ms ease, color 280ms ease;
+  }
+  /* An icon pops when its device switches on. */
+  .on .shape ha-icon,
+  .shape.on ha-icon {
+    animation: kh-pop 460ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes kh-pop {
+    0% {
+      transform: scale(0.6) rotate(-12deg);
+    }
+    60% {
+      transform: scale(1.18) rotate(4deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  /* A halo of lamp light spreads when a light turns on. */
+  @keyframes kh-glow {
+    from {
+      box-shadow: 0 0 0 0 rgba(var(--rgb-amber), 0.55);
+    }
+    to {
+      box-shadow: 0 0 0 18px rgba(var(--rgb-amber), 0);
+    }
+  }
+  @keyframes kh-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
   @keyframes kh-blink {
     50% {
       opacity: 0.35;

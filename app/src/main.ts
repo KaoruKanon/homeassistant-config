@@ -2,6 +2,8 @@ import { LitElement, css, html, nothing } from "lit";
 import { config } from "./config.ts";
 import { setProtectedEntities } from "./actions.ts";
 import { cancelConfirmation } from "./components/confirm-dialog.ts";
+import { ripple } from "./components/gestures.ts";
+import { keyed } from "lit/directives/keyed.js";
 import { buildHouse, currentPerson, roomsFor, type HouseModel } from "./rooms.ts";
 import { RegistryController, store } from "./store.ts";
 import { base, tokens } from "./styles.ts";
@@ -9,9 +11,16 @@ import type { HomeAssistant, PanelRoute } from "./types.ts";
 import "./views/home-view.ts";
 import "./views/room-view.ts";
 import "./views/rooms-view.ts";
-import "./views/soon-view.ts";
 
 const TRANSLATED_DOMAINS = ["weather", "light", "switch", "fan", "media_player", "binary_sensor", "person", "automation"];
+
+/** Theme pages, loaded on first visit so the home view stays light. */
+const PAGES: Record<string, { tag: string; load: () => Promise<unknown> }> = {
+  medias: { tag: "kh-media-view", load: () => import("./views/media-view.ts") },
+  meteo: { tag: "kh-weather-view", load: () => import("./views/weather-view.ts") },
+  energie: { tag: "kh-energy-view", load: () => import("./views/energy-view.ts") },
+  systeme: { tag: "kh-system-view", load: () => import("./views/system-view.ts") },
+};
 
 /** Main navigation, by theme. Pages not rebuilt yet point to the old dashboard. */
 const NAV = [
@@ -76,6 +85,7 @@ class KaoruHomePanel extends LitElement {
         min-height: 100dvh;
       }
       main {
+        min-width: 0;
         box-sizing: border-box;
         padding: max(12px, env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom));
         max-width: 1600px;
@@ -122,6 +132,12 @@ class KaoruHomePanel extends LitElement {
         background: #f2f3f4;
         color: #1f2326;
       }
+      .loading {
+        height: 40vh;
+      }
+      .page {
+        animation: kh-rise 320ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
       .sr {
         position: absolute;
         width: 1px;
@@ -132,7 +148,7 @@ class KaoruHomePanel extends LitElement {
       @container kh (min-width: 760px) {
         .shell {
           display: grid;
-          grid-template-columns: 92px 1fr;
+          grid-template-columns: 92px minmax(0, 1fr);
         }
         /* Tablet and PC: floating rail of icons on the left. */
         nav.bar {
@@ -212,10 +228,17 @@ class KaoruHomePanel extends LitElement {
     else if (section === "pieces" && room)
       page = html`<kh-room-view .room=${room} .model=${model} .rooms=${rooms} prefix=${prefix}></kh-room-view>`;
     else if (section === "pieces") page = html`<kh-rooms-view .rooms=${rooms} prefix=${prefix}></kh-rooms-view>`;
-    else page = html`<kh-soon-view section=${section}></kh-soon-view>`;
+    else if (PAGES[section]) {
+      const p = PAGES[section];
+      if (customElements.get(p.tag)) page = staticPage(p.tag, model.power);
+      else {
+        p.load().then(() => this.requestUpdate());
+        page = html`<div class="loading" aria-busy="true"></div>`;
+      }
+    } else page = html`<p>Page introuvable.</p>`;
 
     return html`
-      <div class="shell" @click=${this.navigate}>
+      <div class="shell" @click=${this.navigate} @pointerdown=${ripple}>
         <nav class="bar" aria-label="Navigation">
           ${NAV.map(
             (n) => html`<a href=${n.path ? `${prefix}/${n.path}` : prefix} aria-current=${n.path === section ? "page" : nothing} title=${n.label}>
@@ -226,9 +249,16 @@ class KaoruHomePanel extends LitElement {
             ? html`<button aria-label="Menu Home Assistant" @click=${this.toggleMenu}><ha-icon icon="mdi:menu"></ha-icon></button>`
             : nothing}
         </nav>
-        <main>${page}</main>
+        <main>${keyed(section, html`<div class="page">${page}</div>`)}</main>
       </div>
     `;
   }
 }
 customElements.define("kaoru-home", KaoruHomePanel);
+
+/** Renders a lazily defined page element by tag name. */
+function staticPage(tag: string, power: Record<string, string>) {
+  const el = document.createElement(tag) as HTMLElement & { power?: Record<string, string> };
+  el.power = power;
+  return el;
+}

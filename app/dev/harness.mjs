@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { chromium } from "playwright-core";
 
 const out = process.argv[2];
-const bundle = readFileSync(new URL("../../www/kaoru-home/kaoru-home.js", import.meta.url), "utf8");
+const dist = new URL("../../www/kaoru-home/", import.meta.url);
 
 const fakeHass = () => {
   const st = (entity_id, state, attributes = {}) => ({ entity_id, state, attributes, last_changed: "", last_updated: "" });
@@ -46,13 +46,16 @@ const fakeHass = () => {
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome" });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-await page.route("http://harness.test/**", (route) =>
-  route.request().url().endsWith(".js")
-    ? route.fulfill({ contentType: "text/javascript", body: bundle })
-    : route.fulfill({ contentType: "text/html", body: "<!doctype html><body style='margin:0'></body>" }),
-);
+// Serve the built files (main module + chunks) as /kaoru-home/...; anything else is the empty page.
+await page.route("http://harness.test/**", (route) => {
+  const path = new URL(route.request().url()).pathname;
+  return path.startsWith("/kaoru-home/")
+    ? route.fulfill({ contentType: "text/javascript", body: readFileSync(new URL(path.replace("/kaoru-home/", ""), dist), "utf8") })
+    : route.fulfill({ contentType: "text/html", body: "<!doctype html><body style='margin:0'></body>" });
+});
 await page.goto("http://harness.test/maison/pieces/bureau");
-await page.addScriptTag({ url: "http://harness.test/kaoru-home.js", type: "module" });
+await page.addScriptTag({ url: "http://harness.test/kaoru-home/kaoru-home.js", type: "module" });
+await page.waitForFunction(() => customElements.get("kaoru-home"));
 await page.evaluate((src) => {
   const hass = eval(`(${src})`)();
   window.__hass = hass;

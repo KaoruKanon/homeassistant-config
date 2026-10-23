@@ -1,5 +1,5 @@
 import { html, nothing } from "lit";
-import { openMoreInfo, refresh, ringPhone, toggle, triggerAutomation } from "../actions.ts";
+import { openMoreInfo, pressButton, refresh, ringPhone, setNumber, toggle, triggerAutomation } from "../actions.ts";
 import "../components/sparkline.ts";
 import { openPopup } from "../components/popup.ts";
 import { config, type Computer, type Favorite } from "../config.ts";
@@ -175,5 +175,56 @@ export function openWifiQr(): void {
       <img class="shot" style="background:#fff; padding:16px; box-sizing:border-box; max-width:320px; justify-self:center" src=${config.home.wifiQr} alt="QR code du Wi-Fi" />
       <div class="muted" style="text-align:center">Scanne le code avec l'appareil photo pour rejoindre le Wi-Fi.</div>
     `,
+  });
+}
+
+/** A Jellyfin item: artwork, summary, rating, genres, runtime. */
+export function openMediaItem(item: Record<string, any>): void {
+  openPopup({
+    title: item.title,
+    icon: "mdi:filmstrip-box-multiple",
+    color: "purple",
+    watch: [],
+    body: () => html`
+      ${item.fanart || item.poster ? html`<img class="shot" style="max-height:260px" src=${item.fanart || item.poster} alt="" />` : nothing}
+      <div class="secondary">
+        ${[item.number, item.episode, item.rating, item.runtime ? `${item.runtime} min` : "", item.genres].filter(Boolean).join(", ")}
+      </div>
+      ${item.summary ? html`<p style="margin:0; line-height:1.5">${item.summary}</p>` : nothing}
+    `,
+  });
+}
+
+/** Wall tablet (Fully Kiosk): screen, brightness, screensaver, battery, browser. */
+export function openTablet(): void {
+  const t = config.system.tablet;
+  if (!t) return;
+  openPopup({
+    title: t.name,
+    icon: "mdi:tablet",
+    color: "indigo",
+    watch: [t.screen, t.brightness, t.screensaver, t.plugged, t.battery, t.memory, t.storage].filter((x): x is string => !!x),
+    body: () => {
+      const hass = store.hass!;
+      const screenOn = isActive(st(t.screen));
+      const bright = Number(st(t.brightness)?.state);
+      return html`
+        ${row("mdi:tablet", screenOn ? "indigo" : "grey", "Écran", screenOn ? "Allumé" : "Éteint", "", () => toggle(t.screen, "l'écran"))}
+        ${t.brightness && !isNaN(bright)
+          ? html`<label class="bar" style="--rgb: var(--rgb-amber)">
+              <span class="label"><span>Luminosité</span><span>${Math.round((bright / 255) * 100)} %</span></span>
+              <input type="range" min="0" max="255" .value=${String(bright)} style="width:100%"
+                @change=${(e: Event) => setNumber(t.brightness!, Number((e.target as HTMLInputElement).value))} />
+            </label>`
+          : nothing}
+        ${t.screensaver ? row("mdi:power-sleep", isActive(st(t.screensaver)) ? "purple" : "grey", "Économiseur d'écran", isActive(st(t.screensaver)) ? "Actif" : "Inactif", "", () => toggle(t.screensaver!, "l'économiseur")) : nothing}
+        ${t.battery ? row(isActive(st(t.plugged)) ? "mdi:battery-charging" : "mdi:battery", "green", "Batterie", stateLabel(hass, st(t.battery)), isActive(st(t.plugged)) ? "Branchée" : "Sur batterie") : nothing}
+        <div class="grid2">${t.memory ? bar("Mémoire", t.memory) : nothing}${t.storage ? bar("Stockage", t.storage) : nothing}</div>
+        <div class="grid2">
+          ${t.reload ? html`<button class="action" style="--rgb: var(--rgb-blue)" @click=${() => pressButton(t.reload!)}><ha-icon icon="mdi:refresh"></ha-icon>Recharger</button>` : nothing}
+          ${t.restartBrowser ? html`<button class="action" style="--rgb: var(--rgb-orange)" @click=${() => pressButton(t.restartBrowser!)}><ha-icon icon="mdi:restart"></ha-icon>Redémarrer le navigateur</button>` : nothing}
+        </div>
+      `;
+    },
   });
 }

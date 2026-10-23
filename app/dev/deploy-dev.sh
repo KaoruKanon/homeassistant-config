@@ -11,7 +11,8 @@ container="${HASS_DEV_CONTAINER:-hass-dev}"
 
 (cd "$repo/app" && npm run --silent build)
 
-docker exec "$container" mkdir -p /config/www/kaoru-home
+# Start from an empty folder: old chunks must not linger next to new ones.
+docker exec "$container" sh -c 'rm -rf /config/www/kaoru-home && mkdir -p /config/www/kaoru-home'
 docker cp "$repo/www/kaoru-home/." "$container:/config/www/kaoru-home/"
 
 if [[ "${1:-}" == "--restart" ]]; then

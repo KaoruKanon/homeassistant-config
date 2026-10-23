@@ -17,11 +17,13 @@ export function isPlayerActive(entityId: string): boolean {
  * progress bar and transport buttons; TVs get power and volume.
  */
 export class KhMediaCard extends LitElement {
-  static properties = { entityId: { attribute: "entity-id" }, name: {}, kind: {}, now: { state: true } };
+  static properties = { entityId: { attribute: "entity-id" }, name: {}, kind: {}, icon: {}, now: { state: true } };
   declare entityId: string;
   declare name?: string;
   /** "music" (cover, transport) or "tv" (power, volume) */
   declare kind: "music" | "tv";
+  /** Icon of a music player that is not Spotify (e.g. a speaker). */
+  declare icon?: string;
   declare now: number;
   private tick?: number;
 
@@ -190,12 +192,13 @@ export class KhMediaCard extends LitElement {
     const playing = s.state === "playing";
     const cover = a.entity_picture as string | undefined;
     const title = a.media_title ?? name;
+    // Idle: the player's name; playing: the track (name stays in the icon tooltip).
     const artist = [a.media_artist, a.media_album_name].filter(Boolean).join(", ");
     return html`
-      <div class="card ${cover ? "has-cover" : ""}" style="--rgb: var(--rgb-spotify)">
+      <div class="card ${cover ? "has-cover" : ""}" style="--rgb: var(--rgb-${this.icon ? "blue" : "spotify"})">
         ${cover ? html`<div class="cover" style="background-image:url('${cover}')"></div>` : nothing}
         <button class="head" @click=${() => openMoreInfo(this, this.entityId)}>
-          <span class="shape ${playing ? "playing" : ""}"><ha-icon icon="mdi:spotify"></ha-icon></span>
+          <span class="shape ${playing ? "playing" : isPlayerActive(this.entityId) ? "" : "off"}"><ha-icon icon=${this.icon ?? "mdi:spotify"}></ha-icon></span>
           <div>
             <div class="primary ellipsis">${title}</div>
             <div class="secondary ellipsis">${artist || stateLabel(hass, s)}</div>
