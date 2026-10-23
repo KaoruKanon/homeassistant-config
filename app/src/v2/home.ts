@@ -16,7 +16,7 @@ import { EntitiesController, RegistryController, store } from "../store.ts";
 import { alarmBadge, badgeClass, badgeStyle, badgeStyles, lightsBadge, temperatureBadge, timerBadge, windowsBadge } from "../badges.ts";
 import { base } from "../styles.ts";
 import { FROG_SKY, forecastDays } from "../weather-utils.ts";
-import { WALL, head, pagesOf, ring, v2 } from "./styles.ts";
+import { head, pagesOf, ring, v2 } from "./styles.ts";
 
 const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const date = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
@@ -42,20 +42,18 @@ function greeting(h: number): string {
  * size follows importance, each family of tiles tinted with its colour.
  */
 export class KhHomeV2 extends LitElement {
-  static properties = { prefix: {}, model: { attribute: false }, now: { state: true }, wall: { state: true } };
+  static properties = { prefix: {}, model: { attribute: false }, now: { state: true }, wall: { attribute: false } };
   declare prefix: string;
   declare model?: HouseModel;
   declare now: Date;
-  /** Landscape tablet (the wall tablet): the whole home fits one screen. */
+  /** Wall layout, decided by the shell (landscape tablet or tablet-shaped window). */
   declare wall: boolean;
   private timer?: number;
-  private wallQuery = window.matchMedia(WALL);
-  private onWall = () => (this.wall = this.wallQuery.matches);
 
   constructor() {
     super();
     this.now = new Date();
-    this.wall = this.wallQuery.matches;
+    this.wall = false;
     new RegistryController(this);
     new EntitiesController(this, () => {
       const h = config.home;
@@ -424,7 +422,6 @@ export class KhHomeV2 extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.wallQuery.addEventListener("change", this.onWall);
     const tick = () => {
       this.now = new Date();
       this.timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50);
@@ -434,7 +431,6 @@ export class KhHomeV2 extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.wallQuery.removeEventListener("change", this.onWall);
     this.slotSizes.disconnect();
     window.clearTimeout(this.timer);
   }
@@ -629,13 +625,13 @@ export class KhHomeV2 extends LitElement {
             )}
           </kh-swipe>
         </section>`,
-      media: this.wall && !playing ? nothing : html`<section class="tile ${playing ? "" : "flush"}" style="--tint: var(--rgb-purple); --w: 5; --w6: 6; --w2: 2; --wt: 4">
+      media: this.wall && !playing ? nothing : html`<section class="tile" style="--tint: var(--rgb-purple); --w: 5; --w6: 6; --w2: 2; --wt: 4">
           ${playing
             ? html`${head("mdi:play-circle", "En lecture", { href: `${p}/medias`, label: "Médias" })}
                 <kh-media-card entity-id=${playing} kind=${playing === h.spotify ? "music" : "tv"} name=${playing === h.spotify ? "Spotify" : nothing}></kh-media-card>`
-            : html`<kh-jellyfin></kh-jellyfin>`}
+            : html`${head("mdi:filmstrip-box-multiple", "Ajouté sur Jellyfin", { href: `${p}/medias`, label: "Médias" })}<kh-jellyfin></kh-jellyfin>`}
         </section>`,
-      jellyfin: this.wall && h.jellyfin ? html`<section class="tile flush"><kh-jellyfin></kh-jellyfin></section>` : nothing,
+      jellyfin: this.wall && h.jellyfin ? html`<section class="tile" style="--tint: var(--rgb-jellyfin)">${head("mdi:filmstrip-box-multiple", "Ajouté sur Jellyfin", { href: `${this.prefix}/medias`, label: "Médias" })}<kh-jellyfin></kh-jellyfin></section>` : nothing,
       climate: html`<section class="tile" style="--tint: var(--rgb-green); --w: 6; --w6: 6; --w2: 2; --wt: 4">
           ${head("mdi:home-thermometer", "Climat", { href: `${p}/meteo`, label: "Météo" })}
           ${this.rooms().length
@@ -662,7 +658,7 @@ export class KhHomeV2 extends LitElement {
       energy: h.energy
           ? html`<section class="tile" style="--tint: var(--rgb-orange); --w: 3; --w6: 3; --w2: 2; --wt: 2">
               ${head("mdi:lightning-bolt", "Énergie", { href: `${p}/energie`, label: "Détail" })}
-              ${this.wall ? html`<kh-energy-card></kh-energy-card>` : this.energy()}
+              ${this.wall ? html`<kh-energy-card compact></kh-energy-card>` : this.energy()}
             </section>`
           : nothing,
       favorites: favorites.length

@@ -323,5 +323,11 @@ export function pagesOf<T>(items: T[], n: number): T[][] {
   return out;
 }
 
-/** Landscape tablets (the wall tablet): the home fits one screen, the menu is a rail on the left. */
-export const WALL = "(min-width: 1000px) and (max-height: 1100px) and (orientation: landscape)";
+/**
+ * Wall layout (landscape tablet, or a PC window shaped like one): judged on
+ * the width the panel really has (the HA sidebar excluded) and the window's
+ * height, so a docked sidebar never squeezes the three columns.
+ */
+export function isWall(panelWidth: number): boolean {
+  return panelWidth >= 1000 && window.innerHeight <= 1100 && window.innerWidth > window.innerHeight;
+}

@@ -97,121 +97,94 @@ export class KhJellyfin extends Widget {
   static styles = [
     ...Widget.styles,
     css`
-      /* Latest additions, one per page: blurred cover behind, poster, title,
-         episode, rating and runtime, summary; tap for the details. */
-      :host {
-        container-type: inline-size;
-      }
+      /* Same build as the Spotify card: the artwork on the right fading in,
+         icon and titles on the left, a row of grey chips, and a 42 px bar
+         along the bottom (here: watch it on Jellyfin). */
       .jf {
         position: relative;
         overflow: hidden;
-        height: 196px;
-        content-visibility: auto;
-        contain-intrinsic-size: auto 196px;
+        isolation: isolate;
+        padding: 12px;
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        gap: 14px;
-        padding: 14px;
-        box-sizing: border-box;
-        color: #fff;
-        text-align: left;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
         width: 100%;
-        background: #1d1830;
+        box-sizing: border-box;
+        text-align: left;
+        cursor: pointer;
       }
-      /* Blurred at a quarter of the size then scaled up: the same look for
-         a fraction of the cost on the wall tablet. */
-      .jf .bg {
+      .art {
         position: absolute;
-        left: -5%;
-        top: -5%;
-        width: 27.5%;
-        height: 27.5%;
-        transform: scale(4);
-        transform-origin: 0 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(260px, 60%);
+        z-index: -1;
         background-size: cover;
-        background-position: center 30%;
-        filter: blur(4px) brightness(0.5) saturate(1.3);
+        background-position: center 25%;
+        -webkit-mask-image: linear-gradient(to right, transparent, black 70%);
+        mask-image: linear-gradient(to right, transparent, black 70%);
       }
-      .jf > :not(.bg) {
-        position: relative;
-      }
-      .jf .poster {
-        height: 168px;
-        aspect-ratio: 2 / 3;
-        border-radius: 12px;
-        object-fit: cover;
-        box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
-        background: rgb(255 255 255 / 0.08);
-      }
-      .jf .info {
-        display: grid;
-        align-content: start;
-        gap: 6px;
+      .head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
         min-width: 0;
       }
-      .jf .eyebrow {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: rgb(255 255 255 / 0.75);
+      .head > div {
+        min-width: 0;
       }
-      .jf .title {
-        font-size: 1.2rem;
-        font-weight: 800;
-        line-height: 1.2;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
+      .head .primary,
+      .head .secondary {
+        text-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+      }
+      .jf .shape {
+        background: var(--kh-card-2);
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        flex-wrap: nowrap;
         overflow: hidden;
       }
-      .jf .ep {
-        font-weight: 600;
-        color: rgb(255 255 255 / 0.85);
-      }
-      .jf .meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-      .jf .meta span {
-        padding: 2px 8px;
-        border-radius: 8px;
-        background: rgb(255 255 255 / 0.14);
-        font-size: 0.75rem;
-        font-weight: 700;
-      }
-      .jf .summary {
-        font-size: 0.8125rem;
-        line-height: 1.4;
-        color: rgb(255 255 255 / 0.75);
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-      .jf .watch {
-        justify-self: start;
+      .chips span {
+        flex: none;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        margin-top: 2px;
-        padding: 6px 12px;
-        border-radius: 999px;
+        gap: 4px;
+        height: 40px;
+        padding: 0 12px;
+        border-radius: var(--kh-radius-icon);
+        background: rgb(74 74 74 / 0.7);
+        color: #fff;
+        font-size: 0.8125rem;
+        font-weight: 700;
+      }
+      .chips ha-icon {
+        --mdc-icon-size: 16px;
+      }
+      .watch {
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 0 14px;
+        border-radius: var(--kh-radius-icon);
         background: linear-gradient(90deg, #aa5cc3, #00a4dc);
         color: #fff;
         font-size: 0.8125rem;
         font-weight: 800;
         text-decoration: none;
       }
-      .jf .watch ha-icon {
-        --mdc-icon-size: 16px;
+      .watch span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
       }
-      @container (max-width: 360px) {
-        .jf .summary {
-          display: none;
-        }
+      .watch .when {
+        font-weight: 600;
+        opacity: 0.9;
       }
     `,
   ];
@@ -226,23 +199,24 @@ export class KhJellyfin extends Widget {
         const art = item.fanart || item.poster;
         return html`<div class="card jf" role="button" tabindex="0" @click=${() => openMediaItem(item)}
           @keydown=${(e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && openMediaItem(item)}>
-          <span class="bg" style=${art ? `background-image:url('${art}')` : ""}></span>
-          ${item.poster ? html`<img class="poster" src=${item.poster} alt="" loading="lazy" />` : html`<span class="poster"></span>`}
-          <div class="info">
-            <div class="eyebrow">${jellyfinLogo(16)}Ajouté ${item.airdate ? ago(item.airdate) : "récemment"}</div>
-            <div class="title">${item.title}</div>
-            ${item.number || item.episode ? html`<div class="ep ellipsis">${[item.number, item.episode].filter(Boolean).join(", ")}</div>` : nothing}
-            <div class="meta">
-              ${item.rating ? html`<span><ha-icon icon="mdi:star" style="--mdc-icon-size:12px; color:#ffd34d"></ha-icon> ${String(item.rating).replace(/[★☆]/g, "").trim()}</span>` : nothing}
-              ${item.runtime ? html`<span>${item.runtime} min</span>` : nothing}
-              ${item.genres ? html`<span>${String(item.genres).split(",")[0]}</span>` : nothing}
+          ${art ? html`<div class="art" style="background-image:url('${art}')"></div>` : nothing}
+          <div class="head">
+            <span class="shape">${jellyfinLogo(22)}</span>
+            <div>
+              <div class="primary ellipsis">${item.title}</div>
+              <div class="secondary ellipsis">${[item.number, item.episode].filter(Boolean).join(", ") || (item.aired ?? "").slice(0, 4)}</div>
             </div>
-            ${item.summary ? html`<div class="summary">${item.summary}</div>` : nothing}
-            ${item.deep_link
-              ? html`<a class="watch" href=${item.deep_link} target="_blank" rel="noopener" @click=${(e: Event) => e.stopPropagation()}>
-                  <ha-icon icon="mdi:play"></ha-icon>Regarder</a>`
-              : nothing}
           </div>
+          <div class="chips">
+            ${item.rating ? html`<span><ha-icon icon="mdi:star" style="color:#ffd34d"></ha-icon>${String(item.rating).replace(/[★☆]/g, "").trim()}</span>` : nothing}
+            ${item.runtime ? html`<span>${item.runtime} min</span>` : nothing}
+            ${item.genres ? html`<span>${String(item.genres).split(",")[0]}</span>` : nothing}
+          </div>
+          ${item.deep_link
+            ? html`<a class="watch" href=${item.deep_link} target="_blank" rel="noopener" @click=${(e: Event) => e.stopPropagation()}>
+                <span><ha-icon icon="mdi:play"></ha-icon>Regarder</span><span class="when">Ajouté ${item.airdate ? ago(item.airdate) : "récemment"}</span>
+              </a>`
+            : html`<div class="watch"><span>Ajouté ${item.airdate ? ago(item.airdate) : "récemment"}</span></div>`}
         </div>`;
       })}
     </kh-swipe>`;

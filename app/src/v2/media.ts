@@ -74,7 +74,7 @@ export class KhV2Media extends LitElement {
                 <kh-swipe label="En lecture">${playing.map((id) => html`<div>${card(id)}</div>`)}</kh-swipe>
               </section>`
             : nothing}
-          ${config.home.jellyfin ? html`<section class="tile flush"><kh-jellyfin></kh-jellyfin></section>` : nothing}
+          ${config.home.jellyfin ? html`<section class="tile" style="--tint: var(--rgb-jellyfin)">${head("mdi:filmstrip-box-multiple", "Ajouté sur Jellyfin")}<kh-jellyfin></kh-jellyfin></section>` : nothing}
         </div>
         <div class="col" style="--w: 5; --w6: 6; --w2: 2">
           ${m.box

@@ -8,7 +8,7 @@ import { house } from "../house.ts";
 import { currentPerson, roomsFor } from "../rooms.ts";
 import { RegistryController, store } from "../store.ts";
 import { base, tokens } from "../styles.ts";
-import { WALL } from "./styles.ts";
+import { isWall } from "./styles.ts";
 import type { PanelRoute } from "../types.ts";
 import "./home.ts";
 
@@ -45,15 +45,16 @@ export class KhV2App extends LitElement {
   declare phone: boolean;
   /** Wall tablet: the menu becomes a rail on the left, out of the tiles' way. */
   declare wall: boolean;
-  private wallQuery = window.matchMedia(WALL);
-  private onWall = () => (this.wall = this.wallQuery.matches);
   private loaded = new Set<string>();
-  private resize = new ResizeObserver(([e]) => (this.phone = e.contentRect.width < 680));
+  private resize = new ResizeObserver(([e]) => {
+    this.phone = e.contentRect.width < 680;
+    this.wall = !this.phone && isWall(e.contentRect.width);
+  });
 
   constructor() {
     super();
     this.phone = false;
-    this.wall = this.wallQuery.matches;
+    this.wall = false;
     new RegistryController(this);
   }
 
@@ -133,19 +134,33 @@ export class KhV2App extends LitElement {
         color: rgb(var(--c));
       }
       /* Phones: the dock spans the width, labels under the icons. */
-      /* Wall tablet: a rail of icons on the left, as on the old tablet view. */
+      /* Wall layout: a rail of icons in its own column on the left of the
+         panel (beside the HA sidebar, never under it), vertically centred. */
+      :host([wall]) .shell {
+        display: grid;
+        grid-template-columns: 76px minmax(0, 1fr);
+        min-height: 100dvh;
+      }
       :host([wall]) main {
-        max-width: none;
-        padding: max(16px, env(safe-area-inset-top)) 24px 16px 104px;
+        grid-column: 2;
+        grid-row: 1;
+        max-width: 1600px;
+        padding: max(16px, env(safe-area-inset-top)) 24px 16px 8px;
       }
       nav.rail {
-        left: 18px;
+        grid-column: 1;
+        grid-row: 1;
+        position: sticky;
         top: 50%;
+        left: auto;
         bottom: auto;
+        align-self: start;
+        margin-left: 14px;
         transform: translateY(-50%);
         flex-direction: column;
         gap: 6px;
         padding: 8px;
+        width: max-content;
       }
       nav.rail a,
       nav.rail button {
@@ -177,13 +192,11 @@ export class KhV2App extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.wallQuery.addEventListener("change", this.onWall);
     this.resize.observe(this);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.wallQuery.removeEventListener("change", this.onWall);
     this.resize.disconnect();
     cancelConfirmation(); // a question left open must not be answered later
   }
@@ -249,7 +262,7 @@ export class KhV2App extends LitElement {
     const rooms = roomsFor(model, (person && config.people[person]?.favoriteRooms) || []);
     switch (section) {
       case "":
-        return html`<kh-home-v2 prefix=${prefix} .model=${model}></kh-home-v2>`;
+        return html`<kh-home-v2 prefix=${prefix} .model=${model} .wall=${this.wall}></kh-home-v2>`;
       case "pieces": {
         const room = sub ? rooms.find((r) => r.id === sub) : undefined;
         return room
@@ -275,7 +288,7 @@ export class KhV2App extends LitElement {
     const items = this.phone ? NAV.filter((n) => PHONE.includes(n.path)) : NAV;
     const elsewhere = this.phone && !PHONE.includes(section);
     return html`
-      <div @click=${this.navigate}>
+      <div class="shell" @click=${this.navigate}>
         <main>${keyed(`${section}/${sub ?? ""}`, html`<div class="page">${this.page(section, sub, prefix)}</div>`)}</main>
         <nav class=${this.phone ? "phone" : this.wall ? "rail" : ""} aria-label="Navigation">
           ${items.map(

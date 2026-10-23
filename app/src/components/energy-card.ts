@@ -34,7 +34,10 @@ export class KhEnergyCard extends LitElement {
     view: { state: true },
     picked: { state: true },
     width: { state: true },
+    compact: { type: Boolean },
   };
+  /** Home tile: one line of figures over a low graph of today; details on the Énergie page. */
+  declare compact: boolean;
   declare today: number[];
   declare yesterday: number[];
   declare days: { date: Date; kwh: number }[];
@@ -51,6 +54,7 @@ export class KhEnergyCard extends LitElement {
     this.days = [];
     this.view = "day";
     this.width = 320;
+    this.compact = false;
     new RegistryController(this);
     new EntitiesController(this, () => {
       const e = config.home.energy;
@@ -181,6 +185,33 @@ export class KhEnergyCard extends LitElement {
         margin-right: 6px;
         vertical-align: -1px;
       }
+      /* Compact: the figures on one line, separated by thin dots. */
+      .line {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: baseline;
+        gap: 6px 14px;
+        overflow: hidden;
+        white-space: nowrap;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--kh-text-2);
+        margin-bottom: 4px;
+      }
+      .line b {
+        font-size: 1.05rem;
+        color: var(--kh-text);
+        font-variant-numeric: tabular-nums;
+      }
+      .line .up b {
+        color: rgb(var(--rgb-red));
+      }
+      .line .down b {
+        color: rgb(var(--rgb-green));
+      }
+      .line button {
+        color: inherit;
+      }
       @keyframes grow {
         from {
           transform: scaleY(0);
@@ -234,7 +265,7 @@ export class KhEnergyCard extends LitElement {
   }
 
   private chart(bars: Bar[], unit: (kwh: number) => string) {
-    const W = this.width - 28, H = 150, left = 34, bottom = 20, top = 18;
+    const W = this.width - (this.compact ? 0 : 28), H = this.compact ? 96 : 150, left = 34, bottom = 20, top = this.compact ? 14 : 18;
     const max = Math.max(0.1, ...bars.map((b) => Math.max(b.kwh, b.ghost ?? 0)));
     const slot = (W - left) / bars.length;
     const bw = Math.max(3, slot - (bars.length > 10 ? 3 : 10));
@@ -283,6 +314,17 @@ export class KhEnergyCard extends LitElement {
             now: d.date.toDateString() === new Date().toDateString(),
           }));
     const unit = (k: number) => `${formatNumber(k, 2)} kWh, ${euro(k)}`;
+
+    if (this.compact) {
+      const has = this.today.some((v) => v > 0);
+      return html`<div class="line" role="list">
+          <button role="listitem" @click=${() => openMoreInfo(this, e.power)}><b>${isNaN(watts) ? "—" : formatNumber(watts, 0)}</b> W</button>
+          <button role="listitem" @click=${() => openMoreInfo(this, e.today)}><b>${isNaN(kwh) ? "—" : formatNumber(kwh, 2)}</b> kWh, ${isNaN(kwh) ? "—" : euro(kwh)}</button>
+          ${!isNaN(delta) ? html`<span role="listitem" class=${delta > 0 ? "up" : "down"}><b>${delta > 0 ? "+" : ""}${formatNumber(delta, 0)} %</b> vs hier</span>` : nothing}
+          ${has ? html`<span role="listitem">pic <b>${peak} h</b></span>` : nothing}
+        </div>
+        ${bars.length ? this.chart(bars, unit) : html`<div class="secondary">Pas encore de statistiques</div>`}`;
+    }
 
     return html`
       <div class="card">
