@@ -18,6 +18,8 @@ export interface PersonSettings {
   favorites?: Favorite[];
   /** Not a resident (e.g. the wall tablet's account): no presence chip. */
   device?: boolean;
+  /** Person popup: phone tracking and "find my phone". */
+  phone?: Phone;
 }
 
 export interface HomeLight {
@@ -31,6 +33,23 @@ export interface Computer {
   name: string;
   /** On while the PC is starting or shutting down. */
   busy?: string;
+  /** Details popup (long press). */
+  stats?: { label: string; entity: string }[];
+  uptime?: string;
+  lock?: string;
+  camera?: string;
+  /** Automation that takes a fresh screenshot. */
+  screenshot?: string;
+  sleep?: string;
+  reboot?: string;
+  wake?: string;
+}
+
+export interface Phone {
+  tracker?: string;
+  ping?: string;
+  /** notify service, e.g. "mobile_app_oneplus12" */
+  notify?: string;
 }
 
 export interface KaoruHomeConfig {
@@ -80,7 +99,14 @@ export const config: KaoruHomeConfig = {
   ],
   // The Tuya plugs power the homelab: one wrong tap can switch it off.
   // The PCs: a tap on the wall tablet must not shut one down by accident.
-  confirm: ["switch.smart_plug_*", "switch.prise_protegee", "switch.computer_*"],
+  confirm: [
+    "switch.smart_plug_*",
+    "switch.prise_protegee",
+    "switch.computer_*",
+    "switch.*_sleep",
+    "switch.*_reboot",
+    "switch.wol_*",
+  ],
   names: {
     "light.switch_wall_*": "Lumière",
     "light.chambre": "Chambre",
@@ -105,6 +131,7 @@ export const config: KaoruHomeConfig = {
   people: {
     kaoru: {
       favoriteRooms: ["chambre_william"],
+      phone: { tracker: "device_tracker.oneplus12", ping: "binary_sensor.ping_oneplus12", notify: "mobile_app_oneplus12" },
       favorites: [
         { type: "battery", name: "OnePlus 12", entity: "sensor.oneplus12_battery_level", charging: "binary_sensor.oneplus12_is_charging" },
         { type: "jellyfin" },
@@ -122,6 +149,7 @@ export const config: KaoruHomeConfig = {
     },
     papa: {
       favoriteRooms: ["chambre_papa"],
+      phone: { tracker: "device_tracker.samsung_s24", ping: "binary_sensor.ping_samsung_s24", notify: "mobile_app_samsung_s24" },
       favorites: [
         // the old dashboard read an S10e here: the S24 is the current phone
         { type: "battery", name: "Samsung S24", entity: "sensor.samsung_s24_battery_level", charging: "binary_sensor.samsung_s24_is_charging" },
@@ -154,8 +182,42 @@ export const config: KaoruHomeConfig = {
       { entity: "light.switch_wall_salle_de_bain", name: "Salle de bain", icon: "mdi:shower" },
     ],
     computers: [
-      { entity: "switch.computer_rig_kaoru", name: "Kaoru RIG", busy: "input_boolean.computer_rig_kaoru_load" },
-      { entity: "switch.computer_papa", name: "Papa PC", busy: "input_boolean.computer_papa_load" },
+      {
+        entity: "switch.computer_rig_kaoru",
+        name: "Kaoru RIG",
+        busy: "input_boolean.computer_rig_kaoru_load",
+        stats: [
+          { label: "Processeur", entity: "sensor.rig_kaoru_cpuload" },
+          { label: "Mémoire", entity: "sensor.rig_kaoru_memoryusage" },
+          { label: "Disque C", entity: "sensor.rig_kaoru_storage_c_used_space_percentage" },
+          { label: "Disque D", entity: "sensor.rig_kaoru_storage_d_used_space_percentage" },
+          { label: "Disque G", entity: "sensor.rig_kaoru_storage_g_used_space_percentage" },
+        ],
+        uptime: "sensor.rig_kaoru_uptime",
+        lock: "input_boolean.computer_rig_kaoru_lock",
+        camera: "camera.rig_kaoru",
+        screenshot: "automation.rig_kaoru_screenshot",
+        sleep: "switch.rig_kaoru_sleep",
+        reboot: "switch.rig_kaoru_reboot",
+        wake: "switch.wol_rig_kaoru",
+      },
+      {
+        entity: "switch.computer_papa",
+        name: "Papa PC",
+        busy: "input_boolean.computer_papa_load",
+        stats: [
+          { label: "Mémoire", entity: "sensor.bruno_memoryusage" },
+          { label: "Disque C", entity: "sensor.bruno_storage_c_used_space_percentage" },
+          { label: "Disque D", entity: "sensor.bruno_storage_d_used_space_percentage" },
+        ],
+        uptime: "sensor.bruno_uptime",
+        lock: "input_boolean.computer_papa_lock",
+        camera: "camera.bruno",
+        screenshot: "automation.bruno_screenshot",
+        sleep: "switch.bruno_sleep",
+        reboot: "switch.bruno_reboot",
+        wake: "switch.wol_papa",
+      },
     ],
     jellyfin: "sensor.jelly_jellyfin_recently_added",
     energy: {

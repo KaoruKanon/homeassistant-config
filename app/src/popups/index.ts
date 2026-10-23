@@ -1,0 +1,179 @@
+import { html, nothing } from "lit";
+import { openMoreInfo, refresh, ringPhone, toggle, triggerAutomation } from "../actions.ts";
+import "../components/sparkline.ts";
+import { openPopup } from "../components/popup.ts";
+import { config, type Computer, type Favorite } from "../config.ts";
+import { formatNumber, isActive, isUnavailable, stateLabel } from "../format.ts";
+import { store } from "../store.ts";
+
+// Details popups, rebuilt from the old browser_mod popups (popup/*.yaml).
+
+const since = new Intl.RelativeTimeFormat("fr-FR", { numeric: "auto" });
+
+/** "il y a 3 heures" from an ISO date. */
+export function ago(iso?: string): string {
+  if (!iso) return "";
+  const s = (Date.parse(iso) - Date.now()) / 1000;
+  const abs = Math.abs(s);
+  if (abs < 60) return "à l'instant";
+  if (abs < 3600) return since.format(Math.round(s / 60), "minute");
+  if (abs < 86400) return since.format(Math.round(s / 3600), "hour");
+  return since.format(Math.round(s / 86400), "day");
+}
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const st = (id?: string) => (id ? store.hass?.states[id] : undefined);
+
+function row(icon: string, color: string, label: string, value: string, sub?: string, onClick?: () => void) {
+  const content = html`<span class="shape" style="--rgb: var(--rgb-${color})"><ha-icon icon=${icon}></ha-icon></span>
+    <div><div class="primary">${label}</div>${sub ? html`<div class="secondary">${sub}</div>` : nothing}</div>
+    <span class="value">${value}</span>`;
+  return onClick ? html`<button class="row" @click=${onClick}>${content}</button>` : html`<div class="row">${content}</div>`;
+}
+
+function bar(label: string, entity: string) {
+  const v = Number(st(entity)?.state);
+  const color = isNaN(v) ? "grey" : v > 85 ? "red" : v > 65 ? "orange" : "green";
+  return html`<button class="bar" style="--rgb: var(--rgb-${color})" title="Actualiser" @click=${() => refresh([entity])}>
+    <span class="label"><span>${label}</span><span>${isNaN(v) ? "—" : `${formatNumber(v, 0)} %`}</span></span>
+    <span class="track"><span class="fill" style="display:block; width:${isNaN(v) ? 0 : Math.min(100, v)}%"></span></span>
+  </button>`;
+}
+
+/** PC: state, CPU / RAM / disks, uptime, lock, live screenshot, sleep / reboot / start. */
+export function openComputer(c: Computer): void {
+  openPopup({
+    title: c.name,
+    icon: "mdi:desktop-tower-monitor",
+    color: "blue",
+    watch: [c.entity, c.busy, c.uptime, c.lock, c.camera, ...(c.stats ?? []).map((s) => s.entity)].filter((x): x is string => !!x),
+    body: () => {
+      const s = st(c.entity);
+      const on = isActive(s);
+      const locked = isActive(st(c.lock));
+      const cam = st(c.camera);
+      return html`
+        ${row("mdi:power", on ? "green" : "grey", on ? "Allumé" : "Éteint", "", s ? `depuis ${ago(s.last_changed).replace("il y a ", "")}` : "")}
+        ${on && c.stats?.length ? html`<div class="grid2">${c.stats.map((x) => bar(x.label, x.entity))}</div>` : nothing}
+        ${on && c.uptime ? row("mdi:timer-sand", "indigo", "Allumé depuis", stateLabel(store.hass!, st(c.uptime))) : nothing}
+        ${c.lock
+          ? row(locked ? "mdi:lock" : "mdi:lock-open-variant", locked ? "red" : "grey", "Verrou", locked ? "Activé" : "Désactivé",
+              "Empêche l'extinction depuis Home Assistant", () => toggle(c.lock!, "le verrou"))
+          : nothing}
+        ${on && cam && !isUnavailable(cam)
+          ? html`<button title="Nouvelle capture" @click=${() => c.screenshot && triggerAutomation(c.screenshot)}>
+              <img class="shot" src=${cam.attributes.entity_picture} alt="Capture d'écran de ${c.name}" />
+            </button>`
+          : nothing}
+        <div class="grid2">
+          ${on
+            ? html`${c.sleep
+                ? html`<button class="action" style="--rgb: var(--rgb-indigo)" @click=${() => toggle(c.sleep!, `la veille de ${c.name}`)}>
+                    <ha-icon icon="mdi:power-sleep"></ha-icon>Mettre en veille</button>`
+                : nothing}
+              ${c.reboot
+                ? html`<button class="action" style="--rgb: var(--rgb-orange)" @click=${() => toggle(c.reboot!, `le redémarrage de ${c.name}`)}>
+                    <ha-icon icon="mdi:restart"></ha-icon>Redémarrer</button>`
+                : nothing}`
+            : c.wake
+              ? html`<button class="action" style="--rgb: var(--rgb-green)" @click=${() => toggle(c.wake!, c.name)}>
+                  <ha-icon icon="mdi:power"></ha-icon>Démarrer ${c.name}</button>`
+              : nothing}
+        </div>
+      `;
+    },
+  });
+}
+
+/** Person: where, since when, GPS and Wi-Fi, history link, "find my phone". */
+export function openPerson(personKey: string): void {
+  const id = `person.${personKey}`;
+  const phone = config.people[personKey]?.phone;
+  openPopup({
+    title: capitalize(st(id)?.attributes.friendly_name ?? personKey),
+    icon: "mdi:account",
+    color: "green",
+    watch: [id, phone?.tracker, phone?.ping].filter((x): x is string => !!x),
+    body: () => {
+      const p = st(id);
+      const home = p?.state === "home";
+      const gps = st(phone?.tracker);
+      const wifi = st(phone?.ping);
+      return html`
+        ${p?.attributes.entity_picture ? html`<img class="shot" style="max-height:220px" src=${p.attributes.entity_picture} alt="" />` : nothing}
+        ${row(home ? "mdi:home-account" : "mdi:map-marker-account", home ? "green" : "red", home ? "À la maison" : stateLabel(store.hass!, p), "",
+          p ? `depuis ${ago(p.last_changed).replace("il y a ", "")}` : "")}
+        ${gps ? row("mdi:crosshairs-gps", "blue", "GPS", stateLabel(store.hass!, gps), ago(gps.last_changed)) : nothing}
+        ${wifi ? row("mdi:wifi", isActive(wifi) ? "green" : "grey", "Wi-Fi de la maison", isActive(wifi) ? "Connecté" : "Absent") : nothing}
+        <div class="grid2">
+          <a class="action" style="--rgb: var(--rgb-blue); text-decoration:none; color:inherit" href="/map"><ha-icon icon="mdi:map"></ha-icon>Voir sur la carte</a>
+          ${phone?.notify
+            ? html`<button class="action" style="--rgb: var(--rgb-red)" @click=${() => ringPhone(phone.notify!)}>
+                <ha-icon icon="mdi:cellphone-sound"></ha-icon>Trouver le téléphone</button>`
+            : nothing}
+        </div>
+      `;
+    },
+  });
+}
+
+/** Room thermometer: values, battery, 24 h graph. */
+export function openThermometer(spec: Extract<Favorite, { type: "thermometer" }>): void {
+  openPopup({
+    title: spec.name,
+    icon: "mdi:thermometer",
+    color: "green",
+    watch: [spec.temperature, spec.humidity, spec.battery].filter((x): x is string => !!x),
+    body: () => html`
+      ${row("mdi:thermometer", "orange", "Température", stateLabel(store.hass!, st(spec.temperature)))}
+      ${spec.humidity ? row("mdi:water-percent", "light-blue", "Humidité", stateLabel(store.hass!, st(spec.humidity))) : nothing}
+      ${spec.battery ? row("mdi:battery", "green", "Pile", stateLabel(store.hass!, st(spec.battery))) : nothing}
+      <kh-sparkline
+        .entities=${[
+          { entity: spec.temperature, label: "Température", color: "var(--rgb-orange)", unit: "°C" },
+          ...(spec.humidity ? [{ entity: spec.humidity, label: "Humidité", color: "var(--rgb-light-blue)", unit: "%" }] : []),
+        ]}
+      ></kh-sparkline>
+    `,
+  });
+}
+
+/** Windows and doors: which are open, since when. */
+export function openOpenings(ids: string[]): void {
+  openPopup({
+    title: "Fenêtres et portes",
+    icon: "mdi:window-open-variant",
+    color: "red",
+    watch: ids,
+    body: () =>
+      html`${ids
+        .map((id) => st(id))
+        .filter((s) => !!s)
+        .sort((a, b) => Number(isActive(b)) - Number(isActive(a)))
+        .map((s) =>
+          row(
+            isActive(s) ? "mdi:window-open-variant" : "mdi:window-closed-variant",
+            isActive(s) ? "red" : "green",
+            (s!.attributes.friendly_name as string).replaceAll("_", " "),
+            stateLabel(store.hass!, s),
+            ago(s!.last_changed),
+            () => openMoreInfo(document.body, s!.entity_id),
+          ),
+        )}`,
+  });
+}
+
+/** Wi-Fi QR code for guests. */
+export function openWifiQr(): void {
+  openPopup({
+    title: "Wi-Fi de la maison",
+    icon: "mdi:qrcode",
+    color: "teal",
+    watch: [],
+    body: () => html`
+      <img class="shot" style="background:#fff; padding:16px; box-sizing:border-box; max-width:320px; justify-self:center" src=${config.home.wifiQr} alt="QR code du Wi-Fi" />
+      <div class="muted" style="text-align:center">Scanne le code avec l'appareil photo pour rejoindre le Wi-Fi.</div>
+    `,
+  });
+}

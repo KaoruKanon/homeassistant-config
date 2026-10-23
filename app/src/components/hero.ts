@@ -1,5 +1,6 @@
 import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo } from "../actions.ts";
+import { openOpenings, openPerson } from "../popups/index.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive } from "../format.ts";
 import { currentPerson } from "../rooms.ts";
@@ -7,6 +8,12 @@ import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 
 const timeFormat = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+/** Window and door sensors of the house, for the open-windows popup. */
+const openingIds = () =>
+  Object.values(store.hass?.states ?? {})
+    .filter((s) => s.entity_id.startsWith("binary_sensor.") && ["window", "door", "opening"].includes(s.attributes.device_class))
+    .map((s) => s.entity_id);
 
 const residents = () => Object.keys(config.people).filter((p) => !config.people[p].device);
 
@@ -193,9 +200,9 @@ export class KhHero extends LitElement {
               </a>`
             : nothing}
           ${windows > 0
-            ? html`<a class="chip tint" style="--rgb: var(--rgb-red)" href=${this.mapHref ?? "#"} aria-label="${windows} fenêtres ouvertes">
+            ? html`<button class="chip tint" style="--rgb: var(--rgb-red)" @click=${() => openOpenings(openingIds())} aria-label="${windows} fenêtres ouvertes">
                 <ha-icon icon="mdi:window-open-variant"></ha-icon>${windows}
-              </a>`
+              </button>`
             : nothing}
           ${alarm && alarm.state !== "disarmed" && alarm.state !== "unavailable"
             ? html`<button class="chip tint ${alarm.state === "triggered" || alarm.state === "pending" ? "blink" : ""}"
@@ -212,7 +219,7 @@ export class KhHero extends LitElement {
               const pic = s!.attributes.entity_picture as string | undefined;
               const label = `${s!.attributes.friendly_name} : ${home ? "à la maison" : "absent"}`;
               return html`<button class="chip person ${home ? "home" : ""}" style="--rgb:${home ? "var(--rgb-green)" : "var(--rgb-red)"}"
-                aria-label=${label} title=${label} @click=${() => openMoreInfo(this, s!.entity_id)}>
+                aria-label=${label} title=${label} @click=${() => openPerson(s!.entity_id.replace("person.", ""))}>
                 ${pic ? html`<img src=${pic} alt="" />` : html`<ha-icon icon="mdi:account"></ha-icon>`}
               </button>`;
             })}

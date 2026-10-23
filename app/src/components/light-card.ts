@@ -3,6 +3,7 @@ import { openMoreInfo, setBrightness, toggle } from "../actions.ts";
 import { brightnessPercent, isActive, isDimmable, isUnavailable } from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
+import { Press } from "./gestures.ts";
 
 /**
  * Light card of the old dashboard: the whole card warms up when the light is
@@ -19,6 +20,10 @@ export class KhLightCard extends LitElement {
   declare name: string;
   declare icon?: string;
   declare dragging?: number;
+  private press = new Press(
+    () => toggle(this.entityId, this.name),
+    () => openMoreInfo(this, this.entityId),
+  );
 
   constructor() {
     super();
@@ -130,7 +135,16 @@ export class KhLightCard extends LitElement {
     const state = isUnavailable(s) ? "Indisponible" : on ? (isDimmable(s) ? `${pct} %` : "Allumé") : "Éteint";
     return html`
       <div class="card ${on ? "on" : ""} ${isUnavailable(s) ? "unavailable" : ""}">
-        <button class="head" aria-pressed=${String(on)} @click=${() => toggle(this.entityId, this.name)}>
+        <button
+          class="head"
+          aria-pressed=${String(on)}
+          aria-description="Appui long : couleur et réglages"
+          @pointerdown=${this.press.down}
+          @pointerup=${this.press.cancel}
+          @pointerleave=${this.press.cancel}
+          @contextmenu=${this.press.contextmenu}
+          @click=${this.press.click}
+        >
           <span class="shape ${on ? "" : "off"}">
             <ha-icon icon=${this.icon ?? (on ? "mdi:lightbulb-on" : "mdi:lightbulb-outline")}></ha-icon>
           </span>

@@ -58,6 +58,9 @@ function confirmBody(entityId: string, turnOn: boolean): string {
       ? "Cette prise alimente du matériel du homelab."
       : "Cette prise alimente du matériel du homelab. L'éteindre coupe tout ce qui y est branché.";
   }
+  if (/^switch\..*_sleep$/.test(entityId)) return "L'ordinateur va passer en veille.";
+  if (/^switch\..*_reboot$/.test(entityId)) return "L'ordinateur va redémarrer : enregistre ton travail avant.";
+  if (entityId.startsWith("switch.wol_")) return "L'ordinateur va démarrer.";
   if (entityId.startsWith("switch.computer_")) {
     return turnOn ? "L'ordinateur va démarrer." : "L'ordinateur va s'éteindre : enregistre ton travail avant.";
   }
@@ -104,6 +107,31 @@ export async function setAutomation(entityId: string, on: boolean): Promise<void
   const hass = store.hass;
   if (!hass || !entityId.startsWith("automation.")) return;
   await hass.callService("automation", on ? "turn_on" : "turn_off", {}, { entity_id: entityId });
+}
+
+/** Asks an integration to refresh a sensor now (e.g. PC stats). */
+export async function refresh(entityIds: string[]): Promise<void> {
+  const hass = store.hass;
+  if (!hass || entityIds.length === 0) return;
+  await hass.callService("homeassistant", "update_entity", {}, { entity_id: entityIds });
+}
+
+/** Runs an automation now (e.g. take a PC screenshot). */
+export async function triggerAutomation(entityId: string): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("automation.")) return;
+  await hass.callService("automation", "trigger", { skip_condition: true }, { entity_id: entityId });
+}
+
+/** Makes a phone ring loudly, even in silent mode ("Trouver mon téléphone"). */
+export async function ringPhone(notifyService: string): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !/^mobile_app_[a-z0-9_]+$/.test(notifyService)) return;
+  await hass.callService("notify", notifyService, {
+    title: "Trouver mon téléphone",
+    message: "Kaoru Home te cherche",
+    data: { ttl: 0, priority: "high", channel: "alarm_stream" },
+  });
 }
 
 /** Room-level action. Unprotected lights only: plugs and devices are never grouped. */

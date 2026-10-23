@@ -1,5 +1,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo, runScript, setAutomation, toggle } from "../actions.ts";
+import { openComputer, openThermometer, openWifiQr } from "../popups/index.ts";
+import { Press } from "./gestures.ts";
 import { config, type Favorite } from "../config.ts";
 import { formatNumber, isActive, isUnavailable, sensorValue } from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
@@ -226,7 +228,7 @@ export class KhThermometer extends Widget {
     const hum = sensorValue(hass, this.spec.humidity, 0);
     const battery = Number(this.spec.battery ? hass.states[this.spec.battery]?.state : NaN);
     const rgb = isNaN(t) ? "var(--rgb-grey)" : t < 18 ? "var(--rgb-light-blue)" : t < 24 ? "var(--rgb-green)" : "var(--rgb-orange)";
-    return html`<button class="card tile" @click=${() => openMoreInfo(this, this.spec.temperature)}>
+    return html`<button class="card tile" @click=${() => openThermometer(this.spec)}>
       <span class="shape" style="--rgb:${rgb}"><ha-icon icon="mdi:thermometer"></ha-icon></span>
       <div>
         <div class="primary">${this.spec.name}</div>
@@ -245,6 +247,13 @@ export class KhComputer extends Widget {
   declare entityId: string;
   declare name: string;
   declare busy?: string;
+  private press = new Press(
+    () => toggle(this.entityId, this.name),
+    () => {
+      const c = config.home.computers.find((x) => x.entity === this.entityId);
+      if (c) openComputer(c);
+    },
+  );
   protected watched() {
     return [this.entityId, this.busy].filter((x): x is string => !!x);
   }
@@ -276,7 +285,12 @@ export class KhComputer extends Widget {
     return html`<button
       class="card tile ${on ? "on" : ""} ${busy ? "busy" : ""}"
       aria-pressed=${String(on)}
-      @click=${() => toggle(this.entityId, this.name)}
+      aria-description="Appui long : détails"
+      @pointerdown=${this.press.down}
+      @pointerup=${this.press.cancel}
+      @pointerleave=${this.press.cancel}
+      @contextmenu=${this.press.contextmenu}
+      @click=${this.press.click}
     >
       <span class="shape ${on ? "" : "off"}"><ha-icon icon="mdi:desktop-tower-monitor"></ha-icon></span>
       <div>
@@ -355,8 +369,6 @@ customElements.define("kh-stock", KhStock);
 
 /** "Partir" and "QR Wifi" buttons. */
 export class KhOthers extends Widget {
-  static properties = { showQr: { state: true } };
-  declare showQr: boolean;
   protected watched() {
     return config.home.leave ? [config.home.leave] : [];
   }
@@ -393,15 +405,12 @@ export class KhOthers extends Widget {
             </button>`
           : nothing}
         ${h.wifiQr
-          ? html`<button class="card tile" aria-expanded=${String(!!this.showQr)} @click=${() => (this.showQr = !this.showQr)}>
+          ? html`<button class="card tile" @click=${() => openWifiQr()}>
               <span class="shape" style="--rgb: var(--rgb-teal)"><ha-icon icon="mdi:qrcode"></ha-icon></span>
-              <div><div class="primary">QR Wi-Fi</div><div class="secondary">${this.showQr ? "Masquer" : "Afficher"}</div></div>
+              <div><div class="primary">QR Wi-Fi</div><div class="secondary">Pour les invités</div></div>
             </button>`
           : nothing}
-      </div>
-      ${this.showQr && h.wifiQr
-        ? html`<div class="card qr"><img src=${h.wifiQr} alt="QR code du Wi-Fi de la maison" /><div class="secondary">Scanne pour rejoindre le Wi-Fi</div></div>`
-        : nothing}`;
+      </div>`;
   }
 }
 customElements.define("kh-others", KhOthers);
