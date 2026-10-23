@@ -1,7 +1,7 @@
 import { LitElement, css, html, nothing, type TemplateResult } from "lit";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base, tokens } from "../styles.ts";
-import { ripple } from "./gestures.ts";
+import { installPressFeedback } from "./gestures.ts";
 
 export interface PopupSpec {
   title: string;
@@ -178,6 +178,129 @@ class KhPopup extends LitElement {
         color: var(--kh-text-2);
         font-size: 0.875rem;
       }
+      /* Light popup */
+      .big-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: var(--kh-radius);
+        background: var(--kh-card-2);
+        font-weight: 700;
+        font-size: 1.0625rem;
+      }
+      .big-toggle.on {
+        background: rgba(var(--rgb-amber), 0.25);
+      }
+      .switch {
+        width: 52px;
+        height: 30px;
+        border-radius: 15px;
+        background: var(--kh-card-2);
+        position: relative;
+        transition: background-color 250ms ease;
+      }
+      .switch::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .on .switch {
+        background: rgb(var(--rgb-amber));
+      }
+      .on .switch::after {
+        transform: translateX(22px);
+      }
+      .slider-block {
+        display: grid;
+        gap: 8px;
+      }
+      .slider-block .label {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 700;
+      }
+      .fat {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 100%;
+        height: 56px;
+        margin: 0;
+        border-radius: 16px;
+        cursor: pointer;
+      }
+      .fat::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 8px;
+        height: 34px;
+        border-radius: 4px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+      }
+      .fat::-moz-range-thumb {
+        width: 8px;
+        height: 34px;
+        border: 0;
+        border-radius: 4px;
+        background: #fff;
+      }
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+        gap: 10px;
+      }
+      .swatch {
+        aspect-ratio: 1;
+        border-radius: 50%;
+        box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.15);
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
+      }
+      .chip {
+        flex: none;
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 999px;
+        background: var(--kh-card-2);
+        font-weight: 600;
+        font-size: 0.875rem;
+      }
+      .chip.active {
+        background: rgba(var(--rgb-amber), 0.3);
+      }
+      .link {
+        justify-self: start;
+        color: var(--kh-text-2);
+        font-weight: 600;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 40px;
+      }
+      .hero-value {
+        font-size: 2.75rem;
+        font-weight: 800;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .hero-value small {
+        font-size: 1rem;
+        color: var(--kh-text-2);
+        margin-left: 4px;
+      }
     `,
   ];
 
@@ -187,6 +310,7 @@ class KhPopup extends LitElement {
 
   firstUpdated(): void {
     this.opener = deepActive();
+    installPressFeedback(this.renderRoot as ShadowRoot);
     this.renderRoot.querySelector("dialog")!.showModal();
   }
 
@@ -222,7 +346,6 @@ class KhPopup extends LitElement {
     if (!s || !store.hass) return nothing;
     return html`<dialog
       aria-labelledby="kh-popup-title"
-      @pointerdown=${ripple}
       @cancel=${(e: Event) => (e.preventDefault(), this.close())}
       @click=${(e: Event) => e.target === e.currentTarget && this.close()}
     >

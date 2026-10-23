@@ -2,6 +2,8 @@ import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo, runScript, setAutomation, toggle } from "../actions.ts";
 import { openComputer, openThermometer, openWifiQr } from "../popups/index.ts";
 import { Press } from "./gestures.ts";
+import "./sparkline.ts";
+import { jellyfinLogo } from "./brand-icons.ts";
 import { config, type Favorite } from "../config.ts";
 import { formatNumber, isActive, isUnavailable, sensorValue } from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
@@ -109,7 +111,7 @@ export class KhJellyfin extends Widget {
       }
       .art .shape {
         margin: 14px;
-        background: rgba(var(--rgb-jellyfin), 0.35);
+        background: rgb(16 18 20 / 0.55);
         color: #fff;
         backdrop-filter: blur(6px);
       }
@@ -132,7 +134,7 @@ export class KhJellyfin extends Widget {
     const art = item.fanart || item.poster;
     const what = [item.title, item.number || item.episode].filter(Boolean).join(", ");
     return html`<button class="card art" style=${art ? `background-image:url('${art}')` : ""} @click=${() => openMoreInfo(this, id!)}>
-      <span class="shape"><ha-icon icon="mdi:filmstrip-box-multiple"></ha-icon></span>
+      <span class="shape">${jellyfinLogo(26)}</span>
       <div class="caption">
         <div class="primary">Ajouté récemment sur Jellyfin</div>
         <div class="secondary ellipsis">${what}</div>
@@ -214,8 +216,23 @@ export class KhCalendar extends Widget {
 }
 customElements.define("kh-calendar", KhCalendar);
 
-/** Room thermometer: temperature, humidity, low-battery warning. */
+/** Room thermometer: temperature, humidity, low-battery warning, 24 h graph. */
 export class KhThermometer extends Widget {
+  static styles = [
+    ...Widget.styles,
+    css`
+      .thermo {
+        display: block;
+        width: 100%;
+        padding: 0 0 6px;
+        text-align: left;
+        overflow: hidden;
+      }
+      .thermo kh-sparkline {
+        margin-top: -6px;
+      }
+    `,
+  ];
   static properties = { spec: { attribute: false } };
   declare spec: Extract<Favorite, { type: "thermometer" }>;
   protected watched() {
@@ -228,14 +245,20 @@ export class KhThermometer extends Widget {
     const hum = sensorValue(hass, this.spec.humidity, 0);
     const battery = Number(this.spec.battery ? hass.states[this.spec.battery]?.state : NaN);
     const rgb = isNaN(t) ? "var(--rgb-grey)" : t < 18 ? "var(--rgb-light-blue)" : t < 24 ? "var(--rgb-green)" : "var(--rgb-orange)";
-    return html`<button class="card tile" @click=${() => openThermometer(this.spec)}>
-      <span class="shape" style="--rgb:${rgb}"><ha-icon icon="mdi:thermometer"></ha-icon></span>
-      <div>
-        <div class="primary">${this.spec.name}</div>
-        <div class="secondary">
-          ${isNaN(t) ? "Indisponible" : `${formatNumber(t)} °C${hum ? ` / ${hum} %` : ""}`}${!isNaN(battery) && battery < 20 ? ", pile faible" : ""}
+    return html`<button class="card thermo" @click=${() => openThermometer(this.spec)}>
+      <div class="tile">
+        <span class="shape" style="--rgb:${rgb}"><ha-icon icon="mdi:thermometer"></ha-icon></span>
+        <div>
+          <div class="primary">${this.spec.name}</div>
+          <div class="secondary">
+            ${isNaN(t) ? "Indisponible" : `${formatNumber(t)} °C${hum ? ` / ${hum} %` : ""}`}${!isNaN(battery) && battery < 20 ? ", pile faible" : ""}
+          </div>
         </div>
       </div>
+      <kh-sparkline compact .entities=${[
+        { entity: this.spec.temperature, label: "Température", color: "var(--rgb-orange)", unit: "°C" },
+        ...(this.spec.humidity ? [{ entity: this.spec.humidity, label: "Humidité", color: "var(--rgb-light-blue)", unit: "%" }] : []),
+      ]}></kh-sparkline>
     </button>`;
   }
 }
@@ -288,6 +311,8 @@ export class KhComputer extends Widget {
       aria-description="Appui long : détails"
       @pointerdown=${this.press.down}
       @pointerup=${this.press.cancel}
+          @pointermove=${this.press.move}
+          @pointercancel=${this.press.cancel}
       @pointerleave=${this.press.cancel}
       @contextmenu=${this.press.contextmenu}
       @click=${this.press.click}

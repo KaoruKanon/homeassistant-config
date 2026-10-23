@@ -2,7 +2,8 @@ import { LitElement, css, html, nothing } from "lit";
 import { config } from "./config.ts";
 import { setProtectedEntities } from "./actions.ts";
 import { cancelConfirmation } from "./components/confirm-dialog.ts";
-import { ripple } from "./components/gestures.ts";
+import { installPressFeedback } from "./components/gestures.ts";
+import { closePopup, openPopup } from "./components/popup.ts";
 import { keyed } from "lit/directives/keyed.js";
 import { buildHouse, currentPerson, roomsFor, type HouseModel } from "./rooms.ts";
 import { RegistryController, store } from "./store.ts";
@@ -16,6 +17,7 @@ const TRANSLATED_DOMAINS = ["weather", "light", "switch", "fan", "media_player",
 
 /** Theme pages, loaded on first visit so the home view stays light. */
 const PAGES: Record<string, { tag: string; load: () => Promise<unknown> }> = {
+  "home-v2": { tag: "kh-home-v2", load: () => import("./views/home-v2.ts") },
   medias: { tag: "kh-media-view", load: () => import("./views/media-view.ts") },
   meteo: { tag: "kh-weather-view", load: () => import("./views/weather-view.ts") },
   energie: { tag: "kh-energy-view", load: () => import("./views/energy-view.ts") },
@@ -25,6 +27,7 @@ const PAGES: Record<string, { tag: string; load: () => Promise<unknown> }> = {
 /** Main navigation, by theme. Pages not rebuilt yet point to the old dashboard. */
 const NAV = [
   { path: "", label: "Accueil", icon: "mdi:home" },
+  { path: "v2", label: "Maison V2", icon: "mdi:view-dashboard-variant" },
   { path: "pieces", label: "Maison", icon: "mdi:floor-plan" },
   { path: "medias", label: "Médias", icon: "mdi:play-box-multiple-outline" },
   { path: "meteo", label: "Météo", icon: "mdi:weather-partly-cloudy" },
@@ -51,6 +54,13 @@ class KaoruHomePanel extends LitElement {
   constructor() {
     super();
     new RegistryController(this);
+    // HA may set `hass` before the loader has defined this element: the value
+    // then sits on the instance and hides the setter. Re-apply it.
+    if (Object.prototype.hasOwnProperty.call(this, "hass")) {
+      const early = (this as unknown as { hass: HomeAssistant }).hass;
+      delete (this as unknown as { hass?: HomeAssistant }).hass;
+      this.hass = early;
+    }
   }
 
   disconnectedCallback(): void {
@@ -91,29 +101,64 @@ class KaoruHomePanel extends LitElement {
         max-width: 1600px;
         margin: 0 auto;
       }
-      /* Phone: floating bar at the bottom, as on the old dashboard. */
+      /* Phone: floating bar at the bottom, 5 roomy entries with labels. */
+      nav.rail {
+        display: none;
+      }
       nav.bar {
         position: fixed;
         z-index: 2;
-        left: 12px;
-        right: 12px;
-        bottom: max(12px, env(safe-area-inset-bottom));
+        left: 10px;
+        right: 10px;
+        bottom: max(10px, env(safe-area-inset-bottom));
         display: flex;
-        justify-content: space-around;
-        padding: 8px;
-        border-radius: 22px;
-        background: rgb(60 64 68 / 0.55);
+        padding: 6px 4px;
+        border-radius: 24px;
+        background: rgb(52 56 60 / 0.72);
         backdrop-filter: blur(18px);
         -webkit-backdrop-filter: blur(18px);
+        box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
       }
       :host(:not([dark])) nav.bar {
-        background: rgb(255 255 255 / 0.7);
-        box-shadow: 0 2px 12px rgb(0 0 0 / 0.12);
+        background: rgb(255 255 255 / 0.82);
+        box-shadow: 0 4px 18px rgb(0 0 0 / 0.14);
       }
-      nav a,
-      nav button {
-        width: 48px;
-        height: 48px;
+      nav.bar a,
+      nav.bar button {
+        flex: 1;
+        min-width: 0;
+        display: grid;
+        justify-items: center;
+        gap: 3px;
+        padding: 4px 0 2px;
+        color: var(--kh-text-2);
+        text-decoration: none;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        background: none;
+      }
+      nav.bar .pill {
+        width: 56px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+        transition: background-color 250ms ease;
+      }
+      nav.bar a[aria-current="page"] {
+        color: var(--kh-text);
+      }
+      nav.bar a[aria-current="page"] .pill {
+        background: rgba(var(--rgb-blue), 0.3);
+      }
+      nav ha-icon {
+        --mdc-icon-size: 24px;
+      }
+      /* Tablet and PC: floating rail of icons on the left. */
+      nav.rail a,
+      nav.rail button {
+        width: 52px;
+        height: 52px;
         display: grid;
         place-items: center;
         border-radius: 14px;
@@ -121,14 +166,11 @@ class KaoruHomePanel extends LitElement {
         text-decoration: none;
         background: var(--kh-card-2);
       }
-      nav ha-icon {
-        --mdc-icon-size: 24px;
-      }
-      nav a[aria-current="page"] {
+      nav.rail a[aria-current="page"] {
         background: var(--kh-text);
         color: var(--kh-bg);
       }
-      :host([dark]) nav a[aria-current="page"] {
+      :host([dark]) nav.rail a[aria-current="page"] {
         background: #f2f3f4;
         color: #1f2326;
       }
@@ -150,29 +192,25 @@ class KaoruHomePanel extends LitElement {
           display: grid;
           grid-template-columns: 92px minmax(0, 1fr);
         }
-        /* Tablet and PC: floating rail of icons on the left. */
         nav.bar {
+          display: none;
+        }
+        nav.rail {
           position: sticky;
           top: 24px;
-          left: auto;
-          right: auto;
-          bottom: auto;
           margin: 24px 0 0 16px;
           align-self: start;
+          display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 12px;
           padding: 10px;
           width: 52px;
-          justify-content: flex-start;
-        }
-        nav a,
-        nav button {
-          width: 52px;
-          height: 52px;
+          border-radius: 22px;
+          background: var(--kh-card);
         }
         main {
           padding: 24px 32px 48px 20px;
-          margin: 0;
+          margin: 0 auto;
           width: 100%;
         }
       }
@@ -205,8 +243,42 @@ class KaoruHomePanel extends LitElement {
     window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
   }
 
+  /** "Plus" on phones: the other pages and the HA menu, in a sheet. */
+  private more(prefix: string): void {
+    const go = (path: string) => {
+      // Closing the sheet goes back one history step: navigate once that is done.
+      window.addEventListener("popstate", () => goTo(`${prefix}/${path}`), { once: true });
+      closePopup();
+    };
+    openPopup({
+      title: "Plus",
+      icon: "mdi:dots-horizontal-circle-outline",
+      color: "blue",
+      watch: [],
+      body: () => html`
+        ${MORE.map(
+          (n) => html`<button class="row" @click=${() => go(n.path)}>
+            <span class="shape" style="--rgb: var(--rgb-blue)"><ha-icon icon=${n.icon}></ha-icon></span>
+            <div><div class="primary">${n.label}</div></div>
+          </button>`,
+        )}
+        <button class="row" @click=${() => {
+          closePopup();
+          this.toggleMenu();
+        }}>
+          <span class="shape"><ha-icon icon="mdi:menu"></ha-icon></span>
+          <div><div class="primary">Menu Home Assistant</div><div class="secondary">Paramètres, historique, carte…</div></div>
+        </button>
+      `,
+    });
+  }
+
   private toggleMenu(): void {
     this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
+  }
+
+  protected firstUpdated(): void {
+    installPressFeedback(this.renderRoot as ShadowRoot);
   }
 
   protected updated(): void {
@@ -224,7 +296,14 @@ class KaoruHomePanel extends LitElement {
     const room = section === "pieces" && sub ? rooms.find((r) => r.id === sub) : undefined;
 
     let page;
-    if (section === "") page = html`<kh-home-view prefix=${prefix}></kh-home-view>`;
+    if (section === "v2") {
+      const p = PAGES["home-v2"];
+      if (customElements.get(p.tag)) page = html`<kh-home-v2 prefix=${prefix} .model=${model}></kh-home-v2>`;
+      else {
+        p.load().then(() => this.requestUpdate());
+        page = html`<div class="loading" aria-busy="true"></div>`;
+      }
+    } else if (section === "") page = html`<kh-home-view prefix=${prefix}></kh-home-view>`;
     else if (section === "pieces" && room)
       page = html`<kh-room-view .room=${room} .model=${model} .rooms=${rooms} prefix=${prefix}></kh-room-view>`;
     else if (section === "pieces") page = html`<kh-rooms-view .rooms=${rooms} prefix=${prefix}></kh-rooms-view>`;
@@ -238,8 +317,8 @@ class KaoruHomePanel extends LitElement {
     } else page = html`<p>Page introuvable.</p>`;
 
     return html`
-      <div class="shell" @click=${this.navigate} @pointerdown=${ripple}>
-        <nav class="bar" aria-label="Navigation">
+      <div class="shell" @click=${this.navigate}>
+        <nav class="rail" aria-label="Navigation">
           ${NAV.map(
             (n) => html`<a href=${n.path ? `${prefix}/${n.path}` : prefix} aria-current=${n.path === section ? "page" : nothing} title=${n.label}>
               <ha-icon icon=${n.icon}></ha-icon><span class="sr">${n.label}</span>
@@ -249,12 +328,34 @@ class KaoruHomePanel extends LitElement {
             ? html`<button aria-label="Menu Home Assistant" @click=${this.toggleMenu}><ha-icon icon="mdi:menu"></ha-icon></button>`
             : nothing}
         </nav>
+        <nav class="bar" aria-label="Navigation">
+          ${BAR.map(
+            (n) => html`<a href=${n.path ? `${prefix}/${n.path}` : prefix} aria-current=${n.path === section ? "page" : nothing}>
+              <span class="pill"><ha-icon icon=${n.icon}></ha-icon></span>${n.label}
+            </a>`,
+          )}
+          <button aria-haspopup="dialog" @click=${() => this.more(prefix)}>
+            <span class="pill" style=${MORE.some((n) => n.path === section) ? "background: rgba(var(--rgb-blue), 0.3)" : ""}>
+              <ha-icon icon="mdi:dots-horizontal-circle-outline"></ha-icon>
+            </span>Plus
+          </button>
+        </nav>
         <main>${keyed(section, html`<div class="page">${page}</div>`)}</main>
       </div>
     `;
   }
 }
 customElements.define("kaoru-home", KaoruHomePanel);
+
+/** Navigates inside the panel (HA's router listens to location-changed). */
+function goTo(path: string): void {
+  history.pushState(null, "", path + location.search);
+  window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+}
+
+/** Phone bar: four pages and "Plus"; the rest open from "Plus". */
+const BAR = NAV.filter((n) => ["", "pieces", "medias", "meteo"].includes(n.path));
+const MORE = NAV.filter((n) => !BAR.includes(n));
 
 /** Renders a lazily defined page element by tag name. */
 function staticPage(tag: string, power: Record<string, string>) {

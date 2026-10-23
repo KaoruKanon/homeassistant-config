@@ -118,9 +118,12 @@ export class KhHero extends LitElement {
         animation: kh-breathe 3s ease-in-out infinite;
       }
       .person img {
+        position: absolute;
+        inset: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
+        border-radius: 50%;
       }
       @container kh (max-width: 599px) {
         time {

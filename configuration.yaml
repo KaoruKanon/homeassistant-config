@@ -36,7 +36,7 @@ panel_custom:
     sidebar_title: Maison
     sidebar_icon: mdi:home-variant
     url_path: maison
-    module_url: /local/kaoru-home/kaoru-home.js?v=0.1.0
+    module_url: /local/kaoru-home/kaoru-home.js?v=0.2.0
     embed_iframe: false
     require_admin: false
 

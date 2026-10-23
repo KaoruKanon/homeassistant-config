@@ -5,25 +5,51 @@ import { formatNumber } from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 
-interface HourStat {
+interface Stat {
   start: number;
   change?: number | null;
 }
 
-const REFRESH_MS = 10 * 60_000;
+interface Bar {
+  key: number;
+  label: string;
+  kwh: number;
+  ghost?: number;
+  now?: boolean;
+}
 
-/** Power now, today's kWh and cost, and today's consumption per hour. */
+const REFRESH_MS = 10 * 60_000;
+const DAY = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
+
+/**
+ * Énergie: power now, today's kWh and cost, versus yesterday at the same
+ * hour, peak hour; today per hour (yesterday in the background) or the last
+ * 7 days. Tap a bar for its value.
+ */
 export class KhEnergyCard extends LitElement {
-  static properties = { hours: { state: true }, width: { state: true } };
-  declare hours: { hour: number; kwh: number }[];
-  /** Drawing width in px: the chart keeps a fixed height whatever the width. */
+  static properties = {
+    today: { state: true },
+    yesterday: { state: true },
+    days: { state: true },
+    view: { state: true },
+    picked: { state: true },
+    width: { state: true },
+  };
+  declare today: number[];
+  declare yesterday: number[];
+  declare days: { date: Date; kwh: number }[];
+  declare view: "day" | "week";
+  declare picked?: number;
   declare width: number;
   private timer?: number;
   private resize = new ResizeObserver(([e]) => (this.width = Math.max(240, Math.round(e.contentRect.width))));
 
   constructor() {
     super();
-    this.hours = [];
+    this.today = [];
+    this.yesterday = [];
+    this.days = [];
+    this.view = "day";
     this.width = 320;
     new RegistryController(this);
     new EntitiesController(this, () => {
@@ -39,20 +65,75 @@ export class KhEnergyCard extends LitElement {
         display: block;
       }
       .card {
-        padding: 12px;
+        padding: 14px;
         display: grid;
-        gap: 12px;
+        gap: 14px;
+      }
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+        gap: 10px;
+      }
+      .kpi {
+        display: grid;
+        gap: 2px;
+        padding: 10px 12px;
+        border-radius: var(--kh-radius-icon);
+        background: var(--kh-card-2);
+        text-align: left;
+      }
+      .kpi .v {
+        font-size: 1.25rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .kpi .v small {
+        font-size: 0.75rem;
+        color: var(--kh-text-2);
+        margin-left: 2px;
+      }
+      .kpi .k {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--kh-text-2);
+      }
+      .up {
+        color: rgb(var(--rgb-red));
+      }
+      .down {
+        color: rgb(var(--rgb-green));
       }
       .head {
         display: flex;
         align-items: center;
-        gap: 12px;
-        text-align: left;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .seg {
+        display: inline-flex;
+        padding: 3px;
+        border-radius: 12px;
+        background: var(--kh-card-2);
+      }
+      .seg button {
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 9px;
+        font-weight: 700;
+        font-size: 0.8125rem;
+        color: var(--kh-text-2);
+      }
+      .seg button[aria-pressed="true"] {
+        background: var(--kh-card);
+        color: var(--kh-text);
+        box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
       }
       svg {
+        display: block;
         width: 100%;
         height: auto;
-        display: block;
+        touch-action: pan-y;
       }
       .axis {
         fill: var(--kh-text-2);
@@ -67,15 +148,43 @@ export class KhEnergyCard extends LitElement {
         transform-origin: bottom;
         transform-box: fill-box;
         animation: grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        cursor: pointer;
+      }
+      .bar.now {
+        fill: rgb(var(--rgb-amber));
+      }
+      .bar.dim {
+        opacity: 0.45;
+      }
+      .ghost {
+        fill: var(--kh-text-2);
+        opacity: 0.18;
+      }
+      .tip {
+        fill: var(--kh-text);
+        font-size: 12px;
+        font-weight: 700;
+        font-family: var(--kh-font);
+      }
+      .legend {
+        display: flex;
+        gap: 14px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--kh-text-2);
+      }
+      .legend i {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        margin-right: 6px;
+        vertical-align: -1px;
       }
       @keyframes grow {
         from {
           transform: scaleY(0);
         }
-      }
-      .now {
-        stroke: rgb(var(--rgb-light-blue));
-        stroke-dasharray: 3 3;
       }
     `,
   ];
@@ -97,36 +206,57 @@ export class KhEnergyCard extends LitElement {
     const e = config.home.energy;
     const conn = store.hass?.connection;
     if (!e || !conn) return;
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    try {
-      const res = await conn.sendMessagePromise<Record<string, HourStat[]>>({
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    const yesterday = new Date(midnight.getTime() - 86400000);
+    const weekAgo = new Date(midnight.getTime() - 6 * 86400000);
+    const ask = (start: Date, period: "hour" | "day") =>
+      conn.sendMessagePromise<Record<string, Stat[]>>({
         type: "recorder/statistics_during_period",
         start_time: start.toISOString(),
         statistic_ids: [e.meter],
-        period: "hour",
+        period,
         types: ["change"],
       });
-      this.hours = (res[e.meter] ?? []).map((r) => ({ hour: new Date(r.start).getHours(), kwh: Math.max(0, r.change ?? 0) }));
+    try {
+      const [hours, days] = await Promise.all([ask(yesterday, "hour"), ask(weekAgo, "day")]);
+      const t = Array(24).fill(0), y = Array(24).fill(0);
+      for (const r of hours[e.meter] ?? []) {
+        const d = new Date(r.start);
+        (d >= midnight ? t : y)[d.getHours()] += Math.max(0, r.change ?? 0);
+      }
+      this.today = t;
+      this.yesterday = y;
+      this.days = (days[e.meter] ?? []).map((r) => ({ date: new Date(r.start), kwh: Math.max(0, r.change ?? 0) }));
     } catch {
-      this.hours = [];
+      this.today = [];
     }
   }
 
-  private chart() {
-    const W = this.width - 24, H = 140, left = 30, bottom = 20, top = 8;
-    const max = Math.max(0.1, ...this.hours.map((h) => h.kwh));
-    const x = (hour: number) => left + (hour / 24) * (W - left - 4);
+  private chart(bars: Bar[], unit: (kwh: number) => string) {
+    const W = this.width - 28, H = 150, left = 34, bottom = 20, top = 18;
+    const max = Math.max(0.1, ...bars.map((b) => Math.max(b.kwh, b.ghost ?? 0)));
+    const slot = (W - left) / bars.length;
+    const bw = Math.max(3, slot - (bars.length > 10 ? 3 : 10));
     const y = (v: number) => top + (1 - v / max) * (H - top - bottom);
-    const bw = (W - left - 4) / 24 - 2;
-    const now = new Date();
-    const nowX = x(now.getHours() + now.getMinutes() / 60);
-    return svg`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Consommation par heure aujourd'hui">
-      ${[0, 0.5, 1].map((f) => svg`<line class="grid" x1=${left} x2=${W - 4} y1=${y(max * f)} y2=${y(max * f)} />
-        <text class="axis" x=${left - 4} y=${y(max * f) + 3} text-anchor="end">${formatNumber(max * f, 1)}</text>`)}
-      ${this.hours.map((h) => svg`<rect class="bar" rx="2" x=${x(h.hour) + 1} y=${y(h.kwh)} width=${bw} height=${Math.max(0, y(0) - y(h.kwh))}><title>${h.hour} h : ${formatNumber(h.kwh, 2)} kWh</title></rect>`)}
-      <line class="now" x1=${nowX} x2=${nowX} y1=${top} y2=${y(0)} />
-      ${[0, 6, 12, 18].map((hr) => svg`<text class="axis" x=${x(hr)} y=${H - 4}>${hr} h</text>`)}
+    const picked = this.picked !== undefined ? bars.find((b) => b.key === this.picked) : undefined;
+    const every = bars.length > 10 ? 6 : 1;
+    return svg`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Consommation">
+      ${[0, 0.5, 1].map((f) => svg`<line class="grid" x1=${left} x2=${W} y1=${y(max * f)} y2=${y(max * f)} />
+        <text class="axis" x=${left - 6} y=${y(max * f) + 4} text-anchor="end">${formatNumber(max * f, max < 1 ? 2 : 1)}</text>`)}
+      ${bars.map((b, i) => {
+        const x = left + i * slot + (slot - bw) / 2;
+        return svg`
+          ${b.ghost ? svg`<rect class="ghost" rx="3" x=${x} y=${y(b.ghost)} width=${bw} height=${Math.max(0, y(0) - y(b.ghost))} />` : nothing}
+          <rect class="bar ${b.now ? "now" : ""} ${picked && picked !== b ? "dim" : ""}" rx="3" x=${x} y=${y(b.kwh)} width=${bw}
+            height=${Math.max(b.kwh > 0 ? 2 : 0, y(0) - y(b.kwh))} style="animation-delay:${i * 18}ms"
+            @click=${() => (this.picked = this.picked === b.key ? undefined : b.key)}><title>${b.label} : ${unit(b.kwh)}</title></rect>
+          ${i % every === 0 ? svg`<text class="axis" x=${x + bw / 2} y=${H - 4} text-anchor="middle">${b.label}</text>` : nothing}`;
+      })}
+      ${picked
+        ? svg`<text class="tip" x=${Math.min(W - 4, Math.max(left + 4, left + bars.indexOf(picked) * slot + slot / 2))} y=${Math.max(13, y(picked.kwh) - 6)}
+            text-anchor="middle">${unit(picked.kwh)}</text>`
+        : nothing}
     </svg>`;
   }
 
@@ -134,21 +264,60 @@ export class KhEnergyCard extends LitElement {
     const hass = store.hass;
     const e = config.home.energy;
     if (!hass || !e) return nothing;
-    const power = hass.states[e.power];
-    const watts = Number(power?.state);
+    const watts = Number(hass.states[e.power]?.state);
     const kwh = Number(hass.states[e.today]?.state);
+    const hour = new Date().getHours();
+    const soFarYesterday = this.yesterday.slice(0, hour + 1).reduce((a, b) => a + b, 0);
+    const soFarToday = this.today.slice(0, hour + 1).reduce((a, b) => a + b, 0);
+    const delta = soFarYesterday > 0 ? ((soFarToday - soFarYesterday) / soFarYesterday) * 100 : NaN;
+    const peak = this.today.reduce((best, v, i) => (v > this.today[best] ? i : best), 0);
+    const euro = (k: number) => `${formatNumber(k * e.pricePerKwh, 2)} €`;
+
+    const bars: Bar[] =
+      this.view === "day"
+        ? this.today.map((v, i) => ({ key: i, label: `${i} h`, kwh: v, ghost: this.yesterday[i], now: i === hour }))
+        : this.days.map((d, i) => ({
+            key: i,
+            label: DAY.format(d.date).replace(".", ""),
+            kwh: d.kwh,
+            now: d.date.toDateString() === new Date().toDateString(),
+          }));
+    const unit = (k: number) => `${formatNumber(k, 2)} kWh, ${euro(k)}`;
+
     return html`
       <div class="card">
-        <button class="head" @click=${() => openMoreInfo(this, e.today)}>
-          <span class="shape" style="--rgb: var(--rgb-orange)"><ha-icon icon="mdi:lightning-bolt"></ha-icon></span>
-          <div>
-            <div class="primary">Actuellement : ${isNaN(watts) ? "indisponible" : `${formatNumber(watts, 0)} W`}</div>
-            <div class="secondary">
-              ${isNaN(kwh) ? "" : `Aujourd'hui : ${formatNumber(kwh, 2)} kWh, ${formatNumber(kwh * e.pricePerKwh, 2)} €`}
-            </div>
+        <div class="kpis">
+          <button class="kpi" @click=${() => openMoreInfo(this, e.power)}>
+            <span class="k">En ce moment</span>
+            <span class="v">${isNaN(watts) ? "—" : formatNumber(watts, 0)}<small>W</small></span>
+          </button>
+          <button class="kpi" @click=${() => openMoreInfo(this, e.today)}>
+            <span class="k">Aujourd'hui</span>
+            <span class="v">${isNaN(kwh) ? "—" : formatNumber(kwh, 2)}<small>kWh</small></span>
+            <span class="k">${isNaN(kwh) ? "" : euro(kwh)}</span>
+          </button>
+          <div class="kpi">
+            <span class="k">Vs hier même heure</span>
+            <span class="v ${delta > 0 ? "up" : "down"}">${isNaN(delta) ? "—" : `${delta > 0 ? "+" : ""}${formatNumber(delta, 0)}`}<small>%</small></span>
           </div>
-        </button>
-        ${this.hours.length ? this.chart() : nothing}
+          <div class="kpi">
+            <span class="k">Pic du jour</span>
+            <span class="v">${this.today.some((v) => v > 0) ? `${peak} h` : "—"}</span>
+            <span class="k">${this.today.some((v) => v > 0) ? `${formatNumber(this.today[peak], 2)} kWh` : ""}</span>
+          </div>
+        </div>
+        <div class="head">
+          <div class="legend">
+            ${this.view === "day"
+              ? html`<span><i style="background: rgb(var(--rgb-orange))"></i>Aujourd'hui</span><span><i style="background: var(--kh-text-2); opacity: .35"></i>Hier</span>`
+              : html`<span>7 derniers jours</span>`}
+          </div>
+          <div class="seg" role="group" aria-label="Période">
+            <button aria-pressed=${String(this.view === "day")} @click=${() => ((this.view = "day"), (this.picked = undefined))}>Jour</button>
+            <button aria-pressed=${String(this.view === "week")} @click=${() => ((this.view = "week"), (this.picked = undefined))}>7 jours</button>
+          </div>
+        </div>
+        ${bars.length ? this.chart(bars, unit) : html`<div class="secondary">Pas encore de statistiques</div>`}
       </div>
     `;
   }

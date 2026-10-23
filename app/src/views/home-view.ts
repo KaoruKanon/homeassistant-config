@@ -4,6 +4,7 @@ import "../components/hero.ts";
 import "../components/light-card.ts";
 import { isPlayerActive } from "../components/media-card.ts";
 import "../components/media-card.ts";
+import "../components/swipe.ts";
 import "../components/weather-card.ts";
 import "../components/widgets.ts";
 import { config, type Favorite } from "../config.ts";
@@ -17,11 +18,19 @@ import { base } from "../styles.ts";
  * on a small tablet, one on a phone.
  */
 export class KhHomeView extends LitElement {
-  static properties = { prefix: {} };
+  static properties = { prefix: {}, columns: { state: true } };
   declare prefix: string;
+  /** 1, 2 or 3 columns, from the view's own width (columns stay >= ~400 px). */
+  declare columns: number;
+  private resize = new ResizeObserver(([e]) => {
+    const w = e.contentRect.width;
+    const n = w >= 1240 ? 3 : w >= 828 ? 2 : 1;
+    if (n !== this.columns) this.columns = n;
+  });
 
   constructor() {
     super();
+    this.columns = 1;
     new RegistryController(this);
     // Only what decides which blocks show; each block watches its own data.
     new EntitiesController(this, () => [config.home.spotify, ...config.home.tvs].filter((x): x is string => !!x));
@@ -35,13 +44,13 @@ export class KhHomeView extends LitElement {
       }
       .cols {
         display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 8px 28px;
+        grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr));
+        gap: 0 28px;
         align-items: start;
       }
       .col {
-        display: grid;
-        gap: 8px;
+        display: flex;
+        flex-direction: column;
         min-width: 0;
       }
       h2 {
@@ -75,34 +84,18 @@ export class KhHomeView extends LitElement {
         grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
         gap: var(--kh-gap);
       }
-      /* Columns are never narrower than ~400 px: 1, 2 or 3 of them. */
-      @container kh (min-width: 972px) {
-        .cols {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-        .col.c3 {
-          grid-column: 1 / -1;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          column-gap: 28px;
-        }
-        .col.c3 > .weather {
-          grid-row: span 4;
-        }
-      }
-      @container kh (min-width: 1400px) {
-        .cols {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-        .col.c3 {
-          grid-column: auto;
-          grid-template-columns: minmax(0, 1fr);
-        }
-        .col.c3 > .weather {
-          grid-row: auto;
-        }
-      }
     `,
   ];
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.resize.observe(this);
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.resize.disconnect();
+  }
 
   private heading(label: string, path?: string) {
     return html`<h2>
@@ -141,42 +134,51 @@ export class KhHomeView extends LitElement {
     const favorites = (person && config.people[person]?.favorites) || config.people.tablet?.favorites || [];
     const spotifyOn = !!h.spotify && isPlayerActive(h.spotify);
     const tvsOn = h.tvs.filter((id) => isPlayerActive(id));
+    const lights = h.lights.filter((l) => hass.states[l.entity]);
+    // Lights as swipeable pages of 6 (the old swipe-card): denser on every screen.
+    const pages: (typeof lights)[] = [];
+    for (let i = 0; i < lights.length; i += 6) pages.push(lights.slice(i, i + 6));
+
+    const S = {
+      media:
+        spotifyOn || tvsOn.length
+          ? html`<section>${this.heading("Media", "medias")}
+              <div class="stack">
+                ${spotifyOn ? html`<kh-media-card entity-id=${h.spotify!} kind="music" name="Spotify"></kh-media-card>` : nothing}
+                ${tvsOn.map((id) => html`<kh-media-card entity-id=${id} kind="tv"></kh-media-card>`)}
+              </div></section>`
+          : nothing,
+      favorites: favorites.length
+        ? html`<section>${this.heading("Favoris")}<div class="stack">${favorites.map((f) => this.favorite(f))}</div></section>`
+        : nothing,
+      lights: html`<section>${this.heading("Lumières", "pieces")}
+        <kh-swipe label="Lumières">
+          ${pages.map(
+            (pg) => html`<div class="lights">
+              ${pg.map((l) => html`<kh-light-card entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-card>`)}
+            </div>`,
+          )}
+        </kh-swipe></section>`,
+      energy: h.energy ? html`<section>${this.heading("Énergie", "energie")}<kh-energy-card></kh-energy-card></section>` : nothing,
+      weather: html`<section>${this.heading("Météo", "meteo")}<kh-weather-card></kh-weather-card></section>`,
+      news: h.stocks.some((s) => s.home)
+        ? html`<section>${this.heading("News", "meteo")}
+            <div class="stack">${h.stocks.filter((s) => s.home).map((s) => html`<kh-stock entity-id=${s.entity} name=${s.name}></kh-stock>`)}</div></section>`
+        : nothing,
+      others: html`<section>${this.heading("Autres")}<kh-others></kh-others></section>`,
+    };
+    // Independent column stacks: no row alignment, so no holes.
+    const layout: (keyof typeof S)[][] =
+      this.columns >= 3
+        ? [["media", "favorites"], ["lights", "energy"], ["weather", "news", "others"]]
+        : this.columns === 2
+          ? [["media", "favorites", "weather"], ["lights", "energy", "news", "others"]]
+          : [["media", "favorites", "lights", "energy", "weather", "news", "others"]];
 
     return html`
       <kh-hero .mapHref=${`${this.prefix}/pieces`}></kh-hero>
-      <div class="cols">
-        <div class="col c1">
-          ${spotifyOn || tvsOn.length
-            ? html`${this.heading("Media", "medias")}
-                <div class="stack">
-                  ${spotifyOn ? html`<kh-media-card entity-id=${h.spotify!} kind="music" name="Spotify"></kh-media-card>` : nothing}
-                  ${tvsOn.map((id) => html`<kh-media-card entity-id=${id} kind="tv"></kh-media-card>`)}
-                </div>`
-            : nothing}
-          ${favorites.length
-            ? html`${this.heading("Favoris")}
-                <div class="stack">${favorites.map((f) => this.favorite(f))}</div>`
-            : nothing}
-        </div>
-        <div class="col c2">
-          ${this.heading("Lumières", "pieces")}
-          <div class="lights">
-            ${h.lights
-              .filter((l) => hass.states[l.entity])
-              .map((l) => html`<kh-light-card entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-card>`)}
-          </div>
-          ${h.energy ? html`${this.heading("Énergie", "energie")}<kh-energy-card></kh-energy-card>` : nothing}
-        </div>
-        <div class="col c3">
-          <div class="weather">${this.heading("Météo", "meteo")}<kh-weather-card></kh-weather-card></div>
-          ${h.stocks.some((s) => s.home)
-            ? html`<div>
-                ${this.heading("News", "meteo")}
-                <div class="stack">${h.stocks.filter((s) => s.home).map((s) => html`<kh-stock entity-id=${s.entity} name=${s.name}></kh-stock>`)}</div>
-              </div>`
-            : nothing}
-          <div>${this.heading("Autres")}<kh-others></kh-others></div>
-        </div>
+      <div class="cols" style="--n:${layout.length}">
+        ${layout.map((col) => html`<div class="col">${col.map((k) => S[k])}</div>`)}
       </div>
     `;
   }

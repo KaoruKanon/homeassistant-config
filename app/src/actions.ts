@@ -204,13 +204,36 @@ export async function setBrightness(entityId: string, percent: number): Promise<
   await hass.callService("light", "turn_on", { brightness_pct: pct }, { entity_id: entityId });
 }
 
+/** Details of an entity, in the app's own popups (popups/details.ts). */
+export function openMoreInfo(_from: HTMLElement, entityId: string): void {
+  void import("./popups/details.ts").then((m) => m.openDetails(entityId));
+}
+
 /**
- * Opens Home Assistant's own detail dialog (brightness, colour, history).
- * Not for protected entities: that dialog has its own unguarded switch.
+ * Home Assistant's own detail dialog, offered as "Plus d'infos" from our
+ * popups. Not for protected entities: it has its own unguarded switch.
  */
-export function openMoreInfo(from: HTMLElement, entityId: string): void {
+export function openNativeMoreInfo(entityId: string): void {
   if (needsConfirmation(entityId)) return;
-  from.dispatchEvent(
-    new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }),
-  );
+  document
+    .querySelector("home-assistant")
+    ?.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
+}
+
+export async function setColorTemp(entityId: string, kelvin: number): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("light.") || needsConfirmation(entityId)) return;
+  await hass.callService("light", "turn_on", { color_temp_kelvin: Math.round(kelvin) }, { entity_id: entityId });
+}
+
+export async function setHue(entityId: string, hs: [number, number]): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("light.") || needsConfirmation(entityId)) return;
+  await hass.callService("light", "turn_on", { hs_color: hs }, { entity_id: entityId });
+}
+
+export async function setEffect(entityId: string, effect: string): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("light.") || needsConfirmation(entityId)) return;
+  await hass.callService("light", "turn_on", { effect }, { entity_id: entityId });
 }

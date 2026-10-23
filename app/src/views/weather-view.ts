@@ -1,4 +1,6 @@
-import { LitElement, css, html, nothing } from "lit";
+import { LitElement, css, html, nothing, svg } from "lit";
+import "../components/sparkline.ts";
+import "../components/swipe.ts";
 import "../components/weather-card.ts";
 import { weatherIcon } from "../components/weather-card.ts";
 import "../components/widgets.ts";
@@ -37,25 +39,82 @@ const MOON: [number, string, string][] = [
   [1.01, "Nouvelle lune", "mdi:moon-new"],
 ];
 
-/** Météo: now and its details, next hours, next days, sun, radar, stocks. */
+/** Météo: now, condensed details, next hours, next days, radar, stocks. */
 export class KhWeatherView extends LitElement {
-  static properties = { hourly: { state: true }, radar: { state: true } };
+  static properties = { hourly: { state: true } };
   declare hourly: any[];
-  declare radar: boolean;
   private unsub?: Promise<() => Promise<void>>;
 
   constructor() {
     super();
     this.hourly = [];
-    this.radar = false;
     new RegistryController(this);
-    new EntitiesController(this, () => [...Object.values(config.weatherPage).filter((v): v is string => typeof v === "string"), "sun.sun"]);
+    new EntitiesController(this, () => [
+      ...Object.values(config.weatherPage).filter((v): v is string => typeof v === "string"),
+      config.home.outdoorTemperature ?? "",
+      "sun.sun",
+    ]);
   }
 
   static styles = [
     base,
     pageStyles,
     css`
+      .now {
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+      .temp {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .temp .big {
+        font-size: 3rem;
+        font-weight: 800;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 36px;
+        padding: 0 12px;
+        border-radius: var(--kh-radius-icon);
+        background: var(--kh-card-2);
+        font-weight: 700;
+        font-size: 0.875rem;
+      }
+      .chip ha-icon {
+        --mdc-icon-size: 18px;
+        color: rgb(var(--rgb, var(--rgb-grey)));
+      }
+      .arrow {
+        display: inline-block;
+        transition: transform 900ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .sun {
+        padding: 16px;
+        display: grid;
+        gap: 6px;
+      }
+      .sun svg {
+        width: 100%;
+        height: auto;
+      }
+      .sun .times {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 700;
+      }
       .hours {
         display: grid;
         grid-auto-flow: column;
@@ -82,32 +141,23 @@ export class KhWeatherView extends LitElement {
         color: var(--kh-text-2);
         font-weight: 600;
       }
-      .details {
-        --min: 150px;
-      }
-      .detail {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px;
-      }
-      .arrow {
-        display: inline-block;
-        transition: transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      .radar-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0 28px;
       }
       iframe {
         width: 100%;
-        aspect-ratio: 4 / 3;
+        height: clamp(320px, 62vh, 640px);
         border: 0;
         border-radius: var(--kh-radius);
         background: var(--kh-card);
+        display: block;
       }
-      .radar-cta {
-        width: 100%;
-        min-height: 120px;
-        display: grid;
-        place-items: center;
-        gap: 6px;
+      @container kh (min-width: 1100px) {
+        .radar-row {
+          grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+        }
       }
     `,
   ];
@@ -131,11 +181,19 @@ export class KhWeatherView extends LitElement {
     this.unsub?.then((u) => u()).catch(() => {});
   }
 
-  private detail(icon: string, color: string, label: string, value: string) {
-    return html`<div class="card detail">
-      <span class="shape" style="--rgb: var(--rgb-${color})">${icon.startsWith("mdi:") ? html`<ha-icon icon=${icon}></ha-icon>` : icon}</span>
-      <div><div class="secondary">${label}</div><div class="primary">${value}</div></div>
-    </div>`;
+  /** Sun course today: dawn to dusk arc, the sun where it is now. */
+  private sunArc(rise: number, set: number) {
+    const now = Date.now();
+    const W = 300, H = 110;
+    const f = Math.min(1, Math.max(0, (now - rise) / (set - rise)));
+    const up = now > rise && now < set;
+    const x = 20 + f * (W - 40);
+    const y = H - 18 - Math.sin(f * Math.PI) * (H - 36);
+    return svg`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Course du soleil">
+      <line x1="10" x2=${W - 10} y1=${H - 18} y2=${H - 18} stroke="var(--kh-line)" stroke-width="2" />
+      <path d="M20 ${H - 18} Q ${W / 2} ${-H + 54} ${W - 20} ${H - 18}" fill="none" stroke="rgba(var(--rgb-amber), 0.35)" stroke-width="3" stroke-dasharray="4 6" />
+      ${up ? svg`<circle cx=${x} cy=${y} r="11" fill="rgb(var(--rgb-amber))"><animate attributeName="r" values="10;12;10" dur="3s" repeatCount="indefinite" /></circle>` : nothing}
+    </svg>`;
   }
 
   render() {
@@ -146,41 +204,72 @@ export class KhWeatherView extends LitElement {
     const weather = config.weather.map((id) => hass.states[id]).find((s) => s && s.state !== "unavailable");
     const sun = hass.states["sun.sun"];
     const day = sun?.state === "above_horizon";
+    const temp = num(config.home.outdoorTemperature);
+    const feels = num(w.feelsLike);
+    const hum = num(w.humidity);
     const wind = num(w.windSpeed);
     const bearing = num(w.windBearing);
+    const rain = num(w.rainChance);
+    const clouds = num(w.cloudCover);
     const uv = num(w.uv);
-    const phase = moonPhase();
-    const moon = MOON.find(([max]) => phase < max)!;
-    // Night for a forecast hour: between the next sunset and the next sunrise.
-    const nextRise = Date.parse(sun?.attributes.next_rising ?? ""), nextSet = Date.parse(sun?.attributes.next_setting ?? "");
+    const moon = MOON.find(([max]) => moonPhase() < max)!;
+
+    const nextRise = Date.parse(sun?.attributes.next_rising ?? "");
+    const nextSet = Date.parse(sun?.attributes.next_setting ?? "");
+    // Today's sunrise/sunset from the next ones (yesterday's rise if the sun is up).
+    const rise = day ? nextRise - 86400000 : nextRise;
+    const set = nextSet;
     const isNight = (t: number) =>
       isNaN(nextRise) || isNaN(nextSet) ? false : nextSet < nextRise ? t >= nextSet && t < nextRise : t < nextRise || t >= nextSet;
-    const rise = sun?.attributes.next_rising ? hourFormat.format(new Date(sun.attributes.next_rising)) : "";
-    const set = sun?.attributes.next_setting ? hourFormat.format(new Date(sun.attributes.next_setting)) : "";
+
+    const graph = [
+      ...(config.home.outdoorTemperature ? [{ entity: config.home.outdoorTemperature, label: "Température", color: "var(--rgb-orange)", unit: "°C" }] : []),
+      ...(w.humidity ? [{ entity: w.humidity, label: "Humidité", color: "var(--rgb-light-blue)", unit: "%" }] : []),
+    ];
 
     return html`
-      ${pageHead("mdi:weather-partly-cloudy", "light-blue", "Météo", weather ? `${stateLabel(hass, weather)}, ${formatNumber(num(config.home.outdoorTemperature) || weather.attributes.temperature)} °C` : "")}
+      ${pageHead("mdi:weather-partly-cloudy", "light-blue", "Météo", weather ? `${stateLabel(hass, weather)}, ${formatNumber(isNaN(temp) ? weather.attributes.temperature : temp)} °C` : "")}
       <div class="cols">
         <div>
-          <h2>Maintenant</h2>
+          <h2>En ce moment</h2>
           <kh-weather-card></kh-weather-card>
         </div>
         <div>
           <h2>Détails</h2>
-          <div class="grid details">
-            ${!isNaN(num(w.feelsLike)) ? this.detail("mdi:thermometer", "orange", "Ressenti", `${formatNumber(num(w.feelsLike))} °C`) : nothing}
-            ${!isNaN(num(w.humidity)) ? this.detail("mdi:water-percent", "light-blue", "Humidité", `${formatNumber(num(w.humidity), 0)} %`) : nothing}
-            ${!isNaN(wind)
-              ? this.detail("mdi:weather-windy", "teal", "Vent", `${formatNumber(wind, 0)} km/h, force ${beaufort(wind)}${!isNaN(bearing) ? ` ${COMPASS[Math.round(bearing / 45) % 8]}` : ""}`)
-              : nothing}
-            ${!isNaN(num(w.rainChance)) ? this.detail("mdi:umbrella-outline", "blue", "Risque de pluie", `${formatNumber(num(w.rainChance), 0)} %`) : nothing}
-            ${!isNaN(num(w.cloudCover)) ? this.detail("mdi:cloud-outline", "grey", "Nuages", `${formatNumber(num(w.cloudCover), 0)} %`) : nothing}
-            ${day && !isNaN(uv)
-              ? this.detail("mdi:sun-wireless-outline", uv > 5 ? "red" : uv > 2 ? "orange" : "green", "Indice UV", formatNumber(uv, 1))
-              : this.detail(moon[2], "indigo", "Lune", moon[1])}
-            ${rise ? this.detail("mdi:weather-sunset-up", "amber", "Lever du soleil", rise) : nothing}
-            ${set ? this.detail("mdi:weather-sunset-down", "orange", "Coucher du soleil", set) : nothing}
-          </div>
+          <kh-swipe label="Détails météo">
+            <div class="card now">
+              <div class="temp">
+                <span class="big">${isNaN(temp) ? "—" : `${formatNumber(temp)}°`}</span>
+                <span class="secondary">${!isNaN(feels) ? `ressenti ${formatNumber(feels)}°` : ""}${!isNaN(hum) ? `, humidité ${formatNumber(hum, 0)} %` : ""}</span>
+              </div>
+              <kh-sparkline .entities=${graph}></kh-sparkline>
+              <div class="chips">
+                ${!isNaN(wind)
+                  ? html`<span class="chip" style="--rgb: var(--rgb-teal)" title="Vent">
+                      <ha-icon icon="mdi:weather-windy"></ha-icon>${formatNumber(wind, 0)} km/h, force ${beaufort(wind)}
+                      ${!isNaN(bearing)
+                        ? html`<span class="arrow" style="transform: rotate(${bearing + 180}deg)" aria-label="vers ${COMPASS[Math.round(bearing / 45) % 8]}">↑</span>${COMPASS[Math.round(bearing / 45) % 8]}`
+                        : nothing}
+                    </span>`
+                  : nothing}
+                ${!isNaN(rain) ? html`<span class="chip" style="--rgb: var(--rgb-blue)"><ha-icon icon="mdi:umbrella-outline"></ha-icon>${formatNumber(rain, 0)} %</span>` : nothing}
+                ${!isNaN(clouds) ? html`<span class="chip"><ha-icon icon="mdi:cloud-outline"></ha-icon>${formatNumber(clouds, 0)} %</span>` : nothing}
+                ${day && !isNaN(uv)
+                  ? html`<span class="chip" style="--rgb: var(--rgb-${uv > 5 ? "red" : uv > 2 ? "orange" : "green"})"><ha-icon icon="mdi:sun-wireless-outline"></ha-icon>UV ${formatNumber(uv, 1)}</span>`
+                  : html`<span class="chip" style="--rgb: var(--rgb-indigo)"><ha-icon icon=${moon[2]}></ha-icon>${moon[1]}</span>`}
+              </div>
+            </div>
+            <div class="card sun">
+              <div class="primary">Soleil</div>
+              ${!isNaN(rise) && !isNaN(set) ? this.sunArc(rise, set) : nothing}
+              <div class="times">
+                <span><ha-icon icon="mdi:weather-sunset-up"></ha-icon> ${isNaN(rise) ? "" : hourFormat.format(new Date(rise))}</span>
+                <span class="secondary">${!isNaN(rise) && !isNaN(set) ? `${Math.floor((set - rise) / 3600000)} h ${Math.round(((set - rise) % 3600000) / 60000)} de jour` : ""}</span>
+                <span>${isNaN(set) ? "" : hourFormat.format(new Date(set))} <ha-icon icon="mdi:weather-sunset-down"></ha-icon></span>
+              </div>
+              <div class="secondary"><ha-icon icon=${moon[2]}></ha-icon> ${moon[1]}</div>
+            </div>
+          </kh-swipe>
         </div>
       </div>
       ${this.hourly.length
@@ -196,19 +285,15 @@ export class KhWeatherView extends LitElement {
               )}
             </div>`
         : nothing}
-      <div class="cols">
+      <div class="radar-row">
         <div>
           <h2>Radar de pluie</h2>
-          ${this.radar && w.windy
+          ${w.windy
             ? html`<iframe
                 title="Radar Windy"
-                loading="lazy"
                 src="https://embed.windy.com/embed2.html?lat=${w.windy.lat}&lon=${w.windy.lon}&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=&calendar=now&type=map&location=coordinates&metricWind=km%2Fh&metricTemp=%C2%B0C"
               ></iframe>`
-            : html`<button class="card radar-cta" @click=${() => (this.radar = true)}>
-                <span class="shape" style="--rgb: var(--rgb-blue)"><ha-icon icon="mdi:radar"></ha-icon></span>
-                <span class="primary">Afficher le radar Windy</span>
-              </button>`}
+            : nothing}
         </div>
         <div>
           <h2>Bourse</h2>

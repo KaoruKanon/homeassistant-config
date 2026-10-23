@@ -1,10 +1,12 @@
 import { html, nothing } from "lit";
 import { openMoreInfo, pressButton, refresh, ringPhone, setNumber, toggle, triggerAutomation } from "../actions.ts";
+import "../components/mini-map.ts";
 import "../components/sparkline.ts";
 import { openPopup } from "../components/popup.ts";
 import { config, type Computer, type Favorite } from "../config.ts";
 import { formatNumber, isActive, isUnavailable, stateLabel } from "../format.ts";
 import { store } from "../store.ts";
+import type { HassEntity } from "../types.ts";
 
 // Details popups, rebuilt from the old browser_mod popups (popup/*.yaml).
 
@@ -101,18 +103,65 @@ export function openPerson(personKey: string): void {
       const gps = st(phone?.tracker);
       const wifi = st(phone?.ping);
       return html`
-        ${p?.attributes.entity_picture ? html`<img class="shot" style="max-height:220px" src=${p.attributes.entity_picture} alt="" />` : nothing}
         ${row(home ? "mdi:home-account" : "mdi:map-marker-account", home ? "green" : "red", home ? "À la maison" : stateLabel(store.hass!, p), "",
           p ? `depuis ${ago(p.last_changed).replace("il y a ", "")}` : "")}
         ${gps ? row("mdi:crosshairs-gps", "blue", "GPS", stateLabel(store.hass!, gps), ago(gps.last_changed)) : nothing}
         ${wifi ? row("mdi:wifi", isActive(wifi) ? "green" : "grey", "Wi-Fi de la maison", isActive(wifi) ? "Connecté" : "Absent") : nothing}
+        ${where(p, gps)}
         <div class="grid2">
-          <a class="action" style="--rgb: var(--rgb-blue); text-decoration:none; color:inherit" href="/map"><ha-icon icon="mdi:map"></ha-icon>Voir sur la carte</a>
+          ${directions(p, gps)}
           ${phone?.notify
             ? html`<button class="action" style="--rgb: var(--rgb-red)" @click=${() => ringPhone(phone.notify!)}>
                 <ha-icon icon="mdi:cellphone-sound"></ha-icon>Trouver le téléphone</button>`
             : nothing}
         </div>
+      `;
+    },
+  });
+}
+
+/** Map of where an entity (person or tracker) is, with its photo or icon. */
+function coords(...states: (HassEntity | undefined)[]) {
+  for (const s of states) {
+    const lat = Number(s?.attributes.latitude), lon = Number(s?.attributes.longitude);
+    if (isFinite(lat) && isFinite(lon) && s?.attributes.latitude !== undefined) return { lat, lon, accuracy: Number(s.attributes.gps_accuracy) || undefined };
+  }
+  return undefined;
+}
+
+function where(main?: HassEntity, fallback?: HassEntity, icon?: string) {
+  const c = coords(main, fallback);
+  if (!c || !main) return nothing;
+  return html`<kh-mini-map .markers=${[{ ...c, label: capitalize(String(main.attributes.friendly_name ?? "")), picture: main.attributes.entity_picture, icon }]}></kh-mini-map>`;
+}
+
+function directions(main?: HassEntity, fallback?: HassEntity) {
+  const c = coords(main, fallback);
+  return c
+    ? html`<a class="action" style="--rgb: var(--rgb-blue); text-decoration:none; color:inherit" target="_blank" rel="noopener"
+        href="https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lon}"><ha-icon icon="mdi:directions"></ha-icon>Itinéraire</a>`
+    : nothing;
+}
+
+/** A tracked object (Tile tag, phone...): where it is, since when, its accuracy. */
+export function openTracker(id: string, icon = "mdi:map-marker"): void {
+  const t = config.system.trackers.find((x) => x.entity === id);
+  openPopup({
+    title: t?.name ?? capitalize(String(st(id)?.attributes.friendly_name ?? id)),
+    icon: t?.icon ?? icon,
+    color: "orange",
+    watch: [id],
+    body: () => {
+      const s = st(id);
+      if (!s) return nothing;
+      const home = s.state === "home";
+      const acc = Number(s.attributes.gps_accuracy);
+      return html`
+        ${row(home ? "mdi:home-map-marker" : "mdi:map-marker-radius", home ? "green" : "orange", home ? "À la maison" : s.state === "not_home" ? "Ailleurs" : stateLabel(store.hass!, s), "",
+          `vu ${ago((s.attributes.last_seen as string | undefined) ?? s.last_updated)}${isFinite(acc) ? `, précision ${formatNumber(acc, 0)} m` : ""}`)}
+        ${where(s, undefined, t?.icon ?? icon)}
+        ${s.attributes.is_lost ? row("mdi:alert", "red", "Signalé perdu", "") : nothing}
+        <div class="grid2">${directions(s)}</div>
       `;
     },
   });

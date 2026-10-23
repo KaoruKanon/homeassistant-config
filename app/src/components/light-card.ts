@@ -163,6 +163,8 @@ export class KhLightCard extends LitElement {
           aria-description="Appui long : couleur et réglages"
           @pointerdown=${this.press.down}
           @pointerup=${this.press.cancel}
+          @pointermove=${this.press.move}
+          @pointercancel=${this.press.cancel}
           @pointerleave=${this.press.cancel}
           @contextmenu=${this.press.contextmenu}
           @click=${this.press.click}

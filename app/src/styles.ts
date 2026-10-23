@@ -127,10 +127,10 @@ export const base = css`
     position: relative;
     -webkit-user-select: none;
     user-select: none;
+    touch-action: manipulation;
     transition: transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 250ms ease, color 250ms ease;
   }
-  button:active,
-  a:active {
+  .pressed {
     transform: scale(0.96);
     transition-duration: 90ms;
   }

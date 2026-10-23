@@ -6,10 +6,39 @@ const ACTIVE_STATES = new Set(["on", "open", "playing", "paused", "home", "heat"
 export const isActive = (s?: HassEntity) => !!s && ACTIVE_STATES.has(s.state);
 export const isUnavailable = (s?: HassEntity) => !s || s.state === "unavailable";
 
+// French labels, whatever the language of the HA profile (the panel is French).
+const WEATHER_FR: Record<string, string> = {
+  "clear-night": "Nuit claire", cloudy: "Nuageux", exceptional: "Exceptionnel", fog: "Brouillard", hail: "Grêle",
+  lightning: "Orage", "lightning-rainy": "Orage et pluie", partlycloudy: "Éclaircies", pouring: "Averses",
+  rainy: "Pluvieux", snowy: "Neige", "snowy-rainy": "Pluie et neige", sunny: "Ensoleillé", windy: "Venteux",
+  "windy-variant": "Venteux et nuageux",
+};
+const STATE_FR: Record<string, string> = {
+  on: "Allumé", off: "Éteint", home: "À la maison", not_home: "Absent", playing: "En lecture", paused: "En pause",
+  idle: "Inactif", standby: "En veille", buffering: "Chargement", open: "Ouvert", closed: "Fermé", unknown: "Inconnu",
+  armed_away: "Armée (absence)", armed_home: "Armée (présence)", disarmed: "Désarmée", triggered: "Déclenchée",
+  pending: "En attente", arming: "Activation", active: "En cours",
+};
+const BINARY_FR: Record<string, [string, string]> = {
+  window: ["Ouverte", "Fermée"], door: ["Ouverte", "Fermée"], opening: ["Ouvert", "Fermé"], garage_door: ["Ouverte", "Fermée"],
+  motion: ["Mouvement", "Calme"], occupancy: ["Occupé", "Libre"], presence: ["Présent", "Absent"], plug: ["Branché", "Débranché"],
+  battery_charging: ["En charge", "Pas en charge"], connectivity: ["Connecté", "Déconnecté"], moisture: ["Humide", "Sec"],
+  smoke: ["Fumée", "Rien"], problem: ["Problème", "OK"], running: ["En marche", "Arrêté"],
+};
+
 export function stateLabel(hass: HomeAssistant, s?: HassEntity): string {
   if (!s) return "Introuvable";
   if (s.state === "unavailable") return "Indisponible";
-  return hass.formatEntityState?.(s) ?? s.state;
+  const domain = s.entity_id.split(".")[0];
+  if (domain === "weather") return WEATHER_FR[s.state] ?? s.state;
+  if (domain === "binary_sensor") {
+    const pair = BINARY_FR[s.attributes.device_class as string];
+    if (pair && (s.state === "on" || s.state === "off")) return s.state === "on" ? pair[0] : pair[1];
+  }
+  if (domain === "sensor" || domain === "number" || domain === "input_number") {
+    return hass.formatEntityState?.(s) ?? s.state; // numbers and units: HA formats them well
+  }
+  return STATE_FR[s.state] ?? hass.formatEntityState?.(s) ?? s.state;
 }
 
 const numberFormats = new Map<number, Intl.NumberFormat>();

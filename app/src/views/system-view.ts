@@ -31,14 +31,16 @@ function levelColor(v: number): string {
 
 /** Système: family, internet, HA, tablet, batteries, updates, backups, automations, search. */
 export class KhSystemView extends LitElement {
-  static properties = { query: { state: true }, allBatteries: { state: true } };
+  static properties = { query: { state: true }, allBatteries: { state: true }, allAutomations: { state: true } };
   declare query: string;
   declare allBatteries: boolean;
+  declare allAutomations: boolean;
 
   constructor() {
     super();
     this.query = "";
     this.allBatteries = false;
+    this.allAutomations = false;
     new RegistryController(this);
     new EntitiesController(this, () => {
       const s = config.system;
@@ -112,11 +114,38 @@ export class KhSystemView extends LitElement {
         --min: 220px;
       }
       .person img {
+        flex: none;
         width: 42px;
         height: 42px;
         border-radius: 50%;
         object-fit: cover;
         box-shadow: 0 0 0 3px rgba(var(--rgb), 0.8);
+      }
+      .toggle {
+        flex: none;
+        width: 46px;
+        height: 28px;
+        border-radius: 14px;
+        background: var(--kh-card-2);
+        position: relative;
+        transition: background-color 250ms ease;
+      }
+      .toggle::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .toggle.on {
+        background: rgb(var(--rgb-purple));
+      }
+      .toggle.on::after {
+        transform: translateX(18px);
       }
       .search {
         width: 100%;
@@ -142,6 +171,24 @@ export class KhSystemView extends LitElement {
     return html`<button class="bar" style="--rgb: var(--rgb-${tone}); text-align:left" @click=${() => openMoreInfo(this, id)}>
       <div class="label"><span>${label}</span><span>${isNaN(v) ? "—" : `${formatNumber(v, 0)} %`}</span></div>
       <div class="track"><div class="fill" style="width:${isNaN(v) ? 0 : Math.min(100, v)}%"></div></div>
+    </button>`;
+  }
+
+  /** One automation: what it does, when it last ran, and its switch. */
+  private automation(id: string, name: string, keep = false) {
+    const a = store.hass?.states[id];
+    if (!a && !keep) return nothing;
+    const on = isActive(a);
+    const missing = !a || a.state === "unavailable";
+    const last = a?.attributes.last_triggered as string | undefined;
+    return html`<button class="card row" aria-pressed=${String(on)} ?disabled=${missing} style=${missing ? "opacity:.5" : ""}
+      @click=${() => setAutomation(id, !on)}>
+      <span class="shape ${on ? "on" : "off"}" style="--rgb: var(--rgb-purple)"><ha-icon icon="mdi:creation"></ha-icon></span>
+      <div>
+        <div class="primary">${name}</div>
+        <div class="secondary">${missing ? "Absente de cette instance" : `${on ? "Activée" : "Désactivée"}${last ? `, dernière exécution ${ago(last)}` : ""}`}</div>
+      </div>
+      <span class="toggle ${on ? "on" : ""}" aria-hidden="true"></span>
     </button>`;
   }
 
@@ -271,15 +318,18 @@ export class KhSystemView extends LitElement {
           <h2>Automatisations</h2>
           <div class="stack">
             <div class="secondary">${autos} automatisations et ${scripts} scripts</div>
-            ${s.automations.map((a) => {
-              const as = st(a.entity);
-              if (!as) return nothing;
-              const on = isActive(as);
-              return html`<button class="card row" aria-pressed=${String(on)} @click=${() => setAutomation(a.entity, !on)}>
-                <span class="shape ${on ? "on" : "off"}" style="--rgb: var(--rgb-purple)"><ha-icon icon="mdi:creation"></ha-icon></span>
-                <div><div class="primary">${a.name}</div><div class="secondary">${on ? "Activée" : "Désactivée"}</div></div>
-              </button>`;
-            })}
+            ${s.automations.map((a) => this.automation(a.entity, a.name, true))}
+            <button class="action" style="justify-self:start" aria-expanded=${String(this.allAutomations)}
+              @click=${() => (this.allAutomations = !this.allAutomations)}>
+              <ha-icon icon=${this.allAutomations ? "mdi:chevron-up" : "mdi:chevron-down"}></ha-icon>
+              ${this.allAutomations ? "Masquer" : `Toutes les automatisations (${autos})`}
+            </button>
+            ${this.allAutomations
+              ? all
+                  .filter((x) => x.entity_id.startsWith("automation.") && !s.automations.some((a) => a.entity === x.entity_id))
+                  .sort((x, y) => Number(isActive(y)) - Number(isActive(x)) || String(x.attributes.friendly_name).localeCompare(String(y.attributes.friendly_name), "fr"))
+                  .map((x) => this.automation(x.entity_id, String(x.attributes.friendly_name ?? x.entity_id).replace(/_/g, " ")))
+              : nothing}
           </div>
         </div>
       </div>
