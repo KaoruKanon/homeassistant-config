@@ -241,6 +241,12 @@ export class KhSparkline extends LitElement {
     // The time axis spans the data, so the curves always fill the width.
     const t0 = Math.min(...all.map((p) => p.t)), t1 = Math.max(t0 + 3600_000, ...all.map((p) => p.t));
     const x = (t: number) => padX + ((t - t0) / (t1 - t0)) * (W - 2 * padX);
+    // A series whose sensor reported earlier than the other keeps its last
+    // value up to the end, as in Home Assistant's history graphs.
+    for (const pts of smoothed) {
+      const last = pts.at(-1);
+      if (last && last.t < t1) pts.push({ t: t1, v: last.v });
+    }
     const stale = now - t1 > 2 * 3600_000;
 
     const scales = smoothed.map((pts, i) => {

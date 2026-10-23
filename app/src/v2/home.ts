@@ -11,7 +11,7 @@ import "../components/widgets.ts";
 import { config, type Favorite } from "../config.ts";
 import { formatNumber, isActive, stateLabel } from "../format.ts";
 import { alarmLook, openAlarm, openOpenings, openPerson, openWifiQr } from "../popups/index.ts";
-import { currentPerson, entityName, type HouseModel } from "../rooms.ts";
+import { currentPerson, type HouseModel } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import { FROG_SKY, forecastDays } from "../weather-utils.ts";
@@ -52,7 +52,6 @@ export class KhHomeV2 extends LitElement {
         ...Object.values(h.chips), ...config.weather, h.energy?.today, h.energy?.power,
         ...Object.keys(config.people).map((p) => `person.${p}`),
         ...this.batteries().map((b) => b.entity), ...this.rooms().flatMap((r) => [r.temperature, r.humidity]),
-        ...Object.values(this.model?.power ?? {}),
       ].filter((x): x is string => !!x);
     });
   }
@@ -214,6 +213,9 @@ export class KhHomeV2 extends LitElement {
       .climate {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        /* A last page with one room keeps the size of the others. */
+        grid-auto-rows: max-content;
+        align-content: start;
         gap: 8px;
       }
       .climate .room {
@@ -245,69 +247,6 @@ export class KhHomeV2 extends LitElement {
       .climate kh-sparkline {
         grid-area: graph;
         margin: 6px -12px 0;
-      }
-      .energy-big {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
-      .energy-facts .watts {
-        font-size: 1.75rem;
-        font-weight: 800;
-        line-height: 1;
-        font-variant-numeric: tabular-nums;
-      }
-      .energy-facts .watts small {
-        font-size: 0.9rem;
-        font-weight: 700;
-        opacity: 0.8;
-      }
-      .energy-facts .primary {
-        margin-top: 6px;
-      }
-      .consumers {
-        display: grid;
-        gap: 8px;
-      }
-      .consumer {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 4px 8px;
-        font-size: 0.875rem;
-        font-weight: 600;
-      }
-      .consumer b {
-        font-variant-numeric: tabular-nums;
-      }
-      .consumer .bar {
-        grid-column: 1 / -1;
-        height: 6px;
-        border-radius: 3px;
-        background: var(--kh-card-2);
-        overflow: hidden;
-      }
-      .consumer .bar span {
-        display: block;
-        height: 100%;
-        border-radius: 3px;
-        background: rgb(var(--rgb-orange));
-        transition: width 600ms ease;
-      }
-      /* The day's power curve along the bottom of the tile, edge to edge. */
-      kh-sparkline.power {
-        margin: 0 -16px -16px;
-      }
-      .gauge {
-        position: relative;
-        width: 96px;
-        height: 96px;
-        display: grid;
-        place-items: center;
-        flex: none;
-      }
-      .gauge b {
-        font-size: 1.375rem;
-        font-variant-numeric: tabular-nums;
       }
       .days {
         display: grid;
@@ -461,47 +400,6 @@ export class KhHomeV2 extends LitElement {
       .map((s) => s.entity_id);
   }
 
-  private energy() {
-    const hass = store.hass!;
-    const e = config.home.energy;
-    if (!e) return nothing;
-    const today = hass.states[e.today];
-    const kwh = Number(today?.state);
-    const last = Number(today?.attributes.last_period);
-    const f = !isNaN(kwh) && last > 0 ? kwh / last : 0;
-    const watts = Number(hass.states[e.power]?.state);
-    // What draws the most right now: the plugs with a power sensor.
-    const top = Object.entries(this.model?.power ?? {})
-      .map(([sw, sensor]) => ({ name: entityName(hass, sw, config), w: Number(hass.states[sensor]?.state) }))
-      .filter((x) => x.w > 1)
-      .sort((a, b) => b.w - a.w)
-      .slice(0, 3);
-    const max = Math.max(1, watts || 0, ...top.map((x) => x.w));
-    return html`<div class="energy-big">
-        <div class="gauge">
-          ${ring(f, 96, 9, "rgb(var(--rgb-orange))")}
-          <div style="text-align:center"><b>${isNaN(kwh) ? "—" : formatNumber(kwh, 1)}</b><div class="secondary">kWh</div></div>
-        </div>
-        <div class="energy-facts">
-          <div class="watts">${isNaN(watts) ? "—" : formatNumber(watts, 0)}<small> W</small></div>
-          <div class="secondary">en ce moment</div>
-          <div class="primary">${isNaN(kwh) ? "" : `${formatNumber(kwh * e.pricePerKwh, 2)} € aujourd'hui`}</div>
-          <div class="secondary">${last > 0 ? `Hier ${formatNumber(last, 1)} kWh, ${formatNumber(last * e.pricePerKwh, 2)} €` : ""}${last > 0 && !isNaN(kwh) ? html`<br />${formatNumber(f * 100, 0)} % de la journée d'hier` : ""}</div>
-        </div>
-      </div>
-      ${top.length
-        ? html`<div class="consumers" aria-label="Ce qui consomme le plus">
-            ${top.map(
-              (x) => html`<div class="consumer">
-                <span class="ellipsis">${x.name}</span><b>${formatNumber(x.w, 0)} W</b>
-                <span class="bar"><span style="width:${Math.round((x.w / max) * 100)}%"></span></span>
-              </div>`,
-            )}
-          </div>`
-        : nothing}
-      <kh-sparkline class="power" compact height="46" .entities=${[{ entity: e.power, label: "Puissance", color: "var(--rgb-orange)", unit: "W" }]}></kh-sparkline>`;
-  }
-
   private favorite(f: Favorite) {
     switch (f.type) {
       case "battery":
@@ -549,7 +447,7 @@ export class KhHomeV2 extends LitElement {
             : html`<kh-jellyfin></kh-jellyfin>`}
         </section>
 
-        <section class="tile" style="--tint: var(--rgb-green); --w: 8; --w6: 6; --w2: 2">
+        <section class="tile" style="--tint: var(--rgb-green); --w: 6; --w6: 6; --w2: 2">
           ${head("mdi:home-thermometer", "Climat", { href: `${p}/meteo`, label: "Météo" })}
           ${this.rooms().length
             ? html`<kh-swipe label="Climat">
@@ -573,29 +471,12 @@ export class KhHomeV2 extends LitElement {
             : html`<div class="secondary">Aucun thermomètre joignable</div>`}
         </section>
 
-        <div class="col" style="--w: 4; --w6: 6; --w2: 2">
-          ${h.energy
-            ? html`<section class="tile" style="--tint: var(--rgb-orange); --w: 4; --w6: 3; --w2: 2">
-                ${head("mdi:lightning-bolt", "Énergie", { href: `${p}/energie`, label: "Détail" })}
-                ${this.energy()}
-              </section>`
-            : nothing}
-          ${days.length
-            ? html`<section class="tile" style="--tint: var(--rgb-light-blue); --w: 5; --w6: 6; --w2: 2">
-                ${head("mdi:calendar-week", "Cinq jours", { href: `${p}/meteo`, label: "Météo" })}
-                <div class="days" role="list">
-                  ${days.map(
-                    (d) => html`<div class="d" role="listitem">
-                      <span class="secondary" style="text-transform: capitalize">${d.day}</span>
-                      <img src=${still(weatherIcon(d.condition, false, d.precipitation ?? 0))} alt=${d.condition} />
-                      <b>${formatNumber(d.temperature, 0)}°</b>
-                      <span class="secondary">${d.templow !== undefined ? `${formatNumber(d.templow, 0)}°` : ""}</span>
-                    </div>`,
-                  )}
-                </div>
-              </section>`
-            : nothing}
-        </div>
+        ${h.energy
+          ? html`<section class="tile" style="--tint: var(--rgb-orange); --w: 6; --w6: 6; --w2: 2">
+              ${head("mdi:lightning-bolt", "Énergie", { href: `${p}/energie`, label: "Détail" })}
+              <kh-energy-card></kh-energy-card>
+            </section>`
+          : nothing}
 
         ${favorites.length
           ? html`<section class="tile first-on-phone" style="--tint: var(--rgb-yellow); --w: 4; --w6: 6; --w2: 2">
@@ -605,27 +486,45 @@ export class KhHomeV2 extends LitElement {
               </kh-swipe>
             </section>`
           : nothing}
-        <section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 3; --w2: 2">
-          ${head("mdi:desktop-tower-monitor", "Ordinateurs", { href: `${p}/energie`, label: "Énergie" })}
-          <div class="row2">
-            ${h.computers.map((c) => html`<kh-computer entity-id=${c.entity} name=${c.name} busy=${c.busy ?? nothing}></kh-computer>`)}
-          </div>
-        </section>
-        <section class="tile" style="--tint: var(--rgb-teal); --w: 4; --w6: 3; --w2: 2">
-          ${head("mdi:chart-line", "Bourse", { href: `${p}/meteo`, label: "Tout" })}
-          <div class="list">
-            ${(stocks.length ? stocks : h.stocks.slice(0, 3)).map((s) => {
-              const st = hass.states[s.entity];
-              const ch = Number(st?.attributes.regularMarketChangePercent);
-              return st
-                ? html`<button class="item" style="grid-template-columns: minmax(0, 1fr) auto" @click=${() => openMoreInfo(this, s.entity)}>
-                    <span class="primary ellipsis">${s.name}</span>
-                    <span class="v" style="color: rgb(var(--rgb-${ch >= 0 ? "green" : "red"}))">${isNaN(ch) ? "" : `${ch >= 0 ? "+" : ""}${formatNumber(ch, 1)} %`}</span>
-                  </button>`
-                : nothing;
-            })}
-          </div>
-        </section>
+        ${days.length
+          ? html`<section class="tile" style="--tint: var(--rgb-light-blue); --w: 4; --w6: 3; --w2: 2">
+              ${head("mdi:calendar-week", "Cinq jours", { href: `${p}/meteo`, label: "Météo" })}
+              <div class="days" role="list">
+                ${days.map(
+                  (d) => html`<div class="d" role="listitem">
+                    <span class="secondary" style="text-transform: capitalize">${d.day}</span>
+                    <img src=${still(weatherIcon(d.condition, false, d.precipitation ?? 0))} alt=${d.condition} />
+                    <b>${formatNumber(d.temperature, 0)}°</b>
+                    <span class="secondary">${d.templow !== undefined ? `${formatNumber(d.templow, 0)}°` : ""}</span>
+                  </div>`,
+                )}
+              </div>
+            </section>`
+          : nothing}
+
+        <div class="col" style="--w: 4; --w6: 6; --w2: 2">
+          <section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 3; --w2: 2">
+            ${head("mdi:desktop-tower-monitor", "Ordinateurs", { href: `${p}/energie`, label: "Énergie" })}
+            <div class="row2">
+              ${h.computers.map((c) => html`<kh-computer entity-id=${c.entity} name=${c.name} busy=${c.busy ?? nothing}></kh-computer>`)}
+            </div>
+          </section>
+          <section class="tile" style="--tint: var(--rgb-teal); --w: 4; --w6: 3; --w2: 2">
+            ${head("mdi:chart-line", "Bourse", { href: `${p}/meteo`, label: "Tout" })}
+            <div class="list">
+              ${(stocks.length ? stocks : h.stocks.slice(0, 3)).map((s) => {
+                const st = hass.states[s.entity];
+                const ch = Number(st?.attributes.regularMarketChangePercent);
+                return st
+                  ? html`<button class="item" style="grid-template-columns: minmax(0, 1fr) auto" @click=${() => openMoreInfo(this, s.entity)}>
+                      <span class="primary ellipsis">${s.name}</span>
+                      <span class="v" style="color: rgb(var(--rgb-${ch >= 0 ? "green" : "red"}))">${isNaN(ch) ? "" : `${ch >= 0 ? "+" : ""}${formatNumber(ch, 1)} %`}</span>
+                    </button>`
+                  : nothing;
+              })}
+            </div>
+          </section>
+        </div>
 
         <section class="tile" style="--tint: var(--rgb-indigo); --w: 12; --w6: 6; --w2: 2">
           ${head("mdi:gesture-tap-button", "Raccourcis")}

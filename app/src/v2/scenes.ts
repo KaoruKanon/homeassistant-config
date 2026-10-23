@@ -1,13 +1,13 @@
 import { css, svg, type SVGTemplateResult } from "lit";
 import { formatNumber } from "../format.ts";
-import { frog, glow, plant, window_ } from "./room-art.ts";
+import { cat, glow, plant, window_ } from "./room-art.ts";
 
 /**
  * Hero scenes of the theme pages, in the weather-frog style of the rooms
  * (same 800 × 240 frame, floor at y = 196, anchored bottom-right, wall and
  * ground running on past the left edge). They show live state: the TV
  * plays, the wind turbine turns with the power drawn, the meter shows it,
- * the system frog worries when something needs attention.
+ * the system cat worries when something needs attention.
  */
 
 const DEFS = svg`<defs>
@@ -31,7 +31,7 @@ function frame(cls: string, body: SVGTemplateResult) {
     <rect class="shade-night" x="-3200" y="-400" width="4000" height="700" /></svg>`;
 }
 
-/** Médias: the frog on the sofa with popcorn; the TV plays when something does. */
+/** Médias: the cat on the sofa with popcorn; the TV plays when something does. */
 export function mediaScene(playing: boolean, night: boolean, sky: string) {
   return frame(
     `${night && !playing ? "night" : night ? "lit night" : "day"}`,
@@ -51,7 +51,7 @@ export function mediaScene(playing: boolean, night: boolean, sky: string) {
     ${playing ? svg`<path class="note" d="M792 70v-18l10-3v18" stroke="#fff" stroke-width="3" fill="none" /><circle class="note" cx="789" cy="70" r="4" fill="#fff" />` : svg``}
     <ellipse cx="530" cy="214" rx="110" ry="10" fill="#4a3d6e" opacity="0.5" />
     <rect x="452" y="118" width="40" height="70" rx="16" fill="#e85d75" />
-    ${frog(520, 156, 1.0, night && !playing ? "sleep" : "sit", svg`
+    ${cat(520, 156, 1.0, night && !playing ? "nap" : "sit", svg`
       <path d="M14 -34h22l-4 22h-14z" fill="#fff" /><path d="M18 -34l2 22M26 -34v22M33 -34l-2 22" stroke="#e85d75" stroke-width="3" />
       <circle cx="19" cy="-37" r="4" fill="#fff6d6" /><circle cx="26" cy="-39" r="4.5" fill="#fff6d6" /><circle cx="32" cy="-36" r="4" fill="#fff6d6" />`, true)}
     <rect x="462" y="150" width="128" height="38" rx="14" fill="#f07087" />
@@ -62,7 +62,7 @@ export function mediaScene(playing: boolean, night: boolean, sky: string) {
 
 /**
  * Énergie: outdoors, a wind turbine that turns faster with the power drawn,
- * the line to the house and the Linky meter showing the watts, the frog
+ * the line to the house and the Linky meter showing the watts, the cat
  * reading it.
  */
 export function energyScene(watts: number, night: boolean, sky: string) {
@@ -81,7 +81,7 @@ export function energyScene(watts: number, night: boolean, sky: string) {
     <rect x="-3200" y="206" width="4000" height="60" fill=${night ? "#2f5a3a" : "#5aa469"} />
     <!-- wind turbine -->
     <path d="M472 206l4-120h6l4 120z" fill="#f2f2f2" />
-    <g class="rotor" style="animation-duration:${spin.toFixed(2)}s">
+    <g class="rotor" style="animation-duration:${spin.toFixed(2)}s; transform-origin: 479px 86px">
       <path d="M479 86l-4-62c0-4 8-4 8 0z" fill="#ffffff" />
       <path d="M479 86l-4-62c0-4 8-4 8 0z" fill="#ffffff" transform="rotate(120 479 86)" />
       <path d="M479 86l-4-62c0-4 8-4 8 0z" fill="#ffffff" transform="rotate(240 479 86)" />
@@ -98,14 +98,14 @@ export function energyScene(watts: number, night: boolean, sky: string) {
     <text x="707" y="122" text-anchor="middle" class="lcd">${isNaN(watts) ? "—" : `${formatNumber(watts, 0)} W`}</text>
     <circle cx="694" cy="142" r="5" fill="#9fb35a" /><circle cx="720" cy="142" r="5" fill="#9fb35a" /><rect x="688" y="156" width="38" height="14" rx="3" fill="#bccb6d" />
     <path d="M738 120h-14" stroke="#2b2f3a" stroke-width="2" />
-    ${frog(620, 206, 0.95, "stand", svg`<rect x="12" y="-40" width="22" height="28" rx="3" fill="#f6efe2" /><path d="M16 -32h14M16 -26h14M16 -20h10" stroke="#b8b1a3" stroke-width="2" />`)}
+    ${cat(620, 206, 0.95, "stand", svg`<rect x="12" y="-40" width="22" height="28" rx="3" fill="#f6efe2" /><path d="M16 -32h14M16 -26h14M16 -20h10" stroke="#b8b1a3" stroke-width="2" />`)}
     <path class="bolt" d="M598 108l-10 20h10l-6 18 18-24h-10l8-14z" fill="#ffd34d" />`,
   );
 }
 
 /**
  * Système: the homelab corner, racks blinking, the router sending waves, the
- * HA screen; the frog relaxes with a coffee when all is well, holds a wrench
+ * HA screen; the cat relaxes with a coffee when all is well, holds a wrench
  * under a warning sign when something needs attention.
  */
 export function systemScene(ok: boolean, night: boolean) {
@@ -127,8 +127,8 @@ export function systemScene(ok: boolean, night: boolean) {
     <path class="wave" d="M770 4a20 20 0 0 1 30 0" stroke="#4fc3f7" stroke-width="2.5" fill="none" />
     <path class="wave late" d="M764 -4a30 30 0 0 1 42 0" stroke="#4fc3f7" stroke-width="2.5" fill="none" />
     ${ok
-      ? frog(410, 196, 0.95, "sit", svg`<rect x="14" y="-34" width="16" height="16" rx="3" fill="#f6efe2" /><path d="M30 -30a5 5 0 0 1 0 8" stroke="#f6efe2" stroke-width="3" fill="none" /><path d="M18 -40c-2-6 4-8 2-12M24 -40c-2-6 4-8 2-12" stroke="#fff" stroke-width="2" fill="none" opacity="0.6" />`)
-      : svg`${frog(410, 196, 0.95, "stand", svg`<path d="M20 -24l18 -22" stroke="#9aa5ad" stroke-width="5" stroke-linecap="round" /><circle cx="40" cy="-48" r="6" fill="none" stroke="#9aa5ad" stroke-width="4" />`)}
+      ? cat(410, 196, 0.95, "sit", svg`<rect x="14" y="-34" width="16" height="16" rx="3" fill="#f6efe2" /><path d="M30 -30a5 5 0 0 1 0 8" stroke="#f6efe2" stroke-width="3" fill="none" /><path d="M18 -40c-2-6 4-8 2-12M24 -40c-2-6 4-8 2-12" stroke="#fff" stroke-width="2" fill="none" opacity="0.6" />`)
+      : svg`${cat(410, 196, 0.95, "stand", svg`<path d="M20 -24l18 -22" stroke="#9aa5ad" stroke-width="5" stroke-linecap="round" /><circle cx="40" cy="-48" r="6" fill="none" stroke="#9aa5ad" stroke-width="4" />`)}
           <path class="bolt" d="M640 16l18 30h-36z" fill="#ffd34d" /><rect x="638" y="26" width="4" height="10" rx="2" fill="#3d2f1f" /><circle cx="640" cy="40" r="2" fill="#3d2f1f" />`}
     ${glow(520, 0, 180)}
     <rect x="519" y="0" width="2" height="10" fill="#c8cfdb" /><path d="M504 10h32l-6 12h-20z" fill="#ffe08a" />`,
@@ -136,9 +136,9 @@ export function systemScene(ok: boolean, night: boolean) {
 }
 
 export const sceneStyles = css`
+  /* Turns around the hub (479, 86 in scene units), not its own box. */
   .room-scene .rotor {
-    transform-box: fill-box;
-    transform-origin: 50% 50%;
+    transform-box: view-box;
     animation: kh-spin linear infinite;
   }
   .room-scene .lcd {

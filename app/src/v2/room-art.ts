@@ -3,7 +3,7 @@ import type { Room } from "../rooms.ts";
 
 /**
  * Room scenes in the style of the Google weather frog: flat shapes without
- * outlines, soft colours, and the frog living in each room (asleep at night
+ * outlines, soft colours, and the cat living in each room (asleep at night
  * once the lights are off). The window shows the sky in the colour of the
  * weather frog of the moment; the room's lamp glows while it is lit.
  *
@@ -30,34 +30,42 @@ export function roomKind(r: Pick<Room, "id" | "name" | "icon">): Kind {
   return RULES.find(([re]) => re.test(key))?.[1] ?? "generic";
 }
 
-// The frog's colours.
-const G = "#4cbb6c", GS = "#379c55", BELLY = "#c4e8a4", INK = "#22302b", CHEEK = "#f49ab0";
+// The cat's colours: a round ginger cat, cream muzzle and belly.
+const FUR = "#f2a65a", FUR2 = "#de8a3e", CREAM = "#fde8cc", INK = "#3a2a22", PINK = "#f28b9a";
 
-type Pose = "sit" | "sleep" | "bath" | "stand";
+/**
+ * sit: sitting; nap: sitting, eyes closed (sofa at night); sleep: only the
+ * head, lying on a pillow; bath: only the head, above the water.
+ */
+type Pose = "sit" | "nap" | "sleep" | "bath" | "stand";
 
-/** The frog; (x, y) = bottom centre, `hand` = what it holds, drawn in front. */
-export function frog(x: number, y: number, s: number, pose: Pose, hand?: SVGTemplateResult, flip = false) {
-  const eyes =
-    pose === "sleep"
-      ? svg`<path d="M-17 -57q5 4 10 0M7 -57q5 4 10 0" stroke=${INK} stroke-width="2.2" fill="none" stroke-linecap="round" />`
-      : svg`<circle cx="-12" cy="-59" r="6.5" fill="#fff" /><circle cx="12" cy="-59" r="6.5" fill="#fff" />
-          <circle cx="-10.5" cy="-58.5" r="3.4" fill=${INK} /><circle cx="13.5" cy="-58.5" r="3.4" fill=${INK} />
-          <circle cx="-9.5" cy="-60" r="1.1" fill="#fff" /><circle cx="14.5" cy="-60" r="1.1" fill="#fff" />`;
+/** The cat, an original kawaii ginger cat; (x, y) = bottom centre, `hand` = what it holds, drawn in front. */
+export function cat(x: number, y: number, s: number, pose: Pose, hand?: SVGTemplateResult, flip = false) {
+  const closed = pose === "sleep" || pose === "nap";
+  const eyes = closed
+    ? svg`<path d="M-13 -45q4.5 3.5 9 0M4 -45q4.5 3.5 9 0" stroke=${INK} stroke-width="2.2" fill="none" stroke-linecap="round" />`
+    : svg`<ellipse cx="-9" cy="-46" rx="3.6" ry="4.6" fill=${INK} /><ellipse cx="9" cy="-46" rx="3.6" ry="4.6" fill=${INK} />
+        <circle cx="-7.8" cy="-47.6" r="1.3" fill="#fff" /><circle cx="10.2" cy="-47.6" r="1.3" fill="#fff" />`;
   const head = svg`
-    <ellipse cx="0" cy="-45" rx="26" ry="18" fill=${G} />
-    <circle cx="-12" cy="-58" r="10" fill=${G} /><circle cx="12" cy="-58" r="10" fill=${G} />
+    <path d="M-21 -52l-5 -21l18 10z" fill=${FUR} /><path d="M21 -52l5 -21l-18 10z" fill=${FUR} />
+    <path d="M-19 -56l-3 -11l9 6z" fill=${PINK} /><path d="M19 -56l3 -11l-9 6z" fill=${PINK} />
+    <ellipse cx="0" cy="-44" rx="25" ry="20" fill=${FUR} />
+    <path d="M-5 -63v7M0 -64v8M5 -63v7" stroke=${FUR2} stroke-width="2.4" stroke-linecap="round" />
+    <ellipse cx="0" cy="-36" rx="10" ry="7" fill=${CREAM} />
     ${eyes}
-    <path d=${pose === "sleep" ? "M-5 -40q5 2 10 0" : "M-9 -41q9 7 18 0"} stroke=${INK} stroke-width="2.2" fill="none" stroke-linecap="round" />
-    <ellipse cx="-17" cy="-42" rx="4.5" ry="2.6" fill=${CHEEK} opacity="0.75" /><ellipse cx="17" cy="-42" rx="4.5" ry="2.6" fill=${CHEEK} opacity="0.75" />`;
+    <path d="M-2.6 -40h5.2l-2.6 3z" fill=${PINK} />
+    <path d="M0 -37q-2.5 3 -5 1.5M0 -37q2.5 3 5 1.5" stroke=${INK} stroke-width="1.5" fill="none" stroke-linecap="round" />
+    <path d="M-11 -38h-11M-11 -35l-10 2M11 -38h11M11 -35l10 2" stroke=${INK} stroke-width="1" opacity="0.45" stroke-linecap="round" />
+    <ellipse cx="-16" cy="-38" rx="4" ry="2.4" fill=${PINK} opacity="0.55" /><ellipse cx="16" cy="-38" rx="4" ry="2.4" fill=${PINK} opacity="0.55" />`;
   const body =
     pose === "bath" || pose === "sleep"
       ? svg``
       : svg`
-        <ellipse cx="-14" cy="-3" rx="13" ry="5" fill=${GS} /><ellipse cx="14" cy="-3" rx="13" ry="5" fill=${GS} />
-        <path d=${pose === "stand" ? "M-17 -6c-4-14-2-30 6-36h22c8 6 10 22 6 36z" : "M-22 -8c-4-16 2-32 14-36h16c12 4 18 20 14 36z"} fill=${G} />
-        <ellipse cx="0" cy="-20" rx="12" ry="12" fill=${BELLY} />
-        <ellipse cx="-20" cy="-24" rx="5" ry="10" fill=${GS} transform="rotate(20 -20 -24)" />
-        <ellipse cx="20" cy="-24" rx="5" ry="10" fill=${GS} transform="rotate(-20 20 -24)" />`;
+        <path class="tail" d="M16 -6c18 2 22 -14 14 -24" stroke=${FUR} stroke-width="7" fill="none" stroke-linecap="round" />
+        <path d="M-20 -4c-4-16 2-30 12-32h16c10 2 16 16 12 32z" fill=${FUR} />
+        <path d="M-15 -20c3 2 5 2 8 0M7 -20c3 2 5 2 8 0" stroke=${FUR2} stroke-width="2.2" fill="none" stroke-linecap="round" />
+        <ellipse cx="0" cy="-16" rx="10" ry="11" fill=${CREAM} />
+        <ellipse cx="-8" cy="-3" rx="7" ry="4.5" fill=${CREAM} /><ellipse cx="8" cy="-3" rx="7" ry="4.5" fill=${CREAM} />`;
   return svg`<g transform="translate(${x} ${y}) scale(${flip ? -s : s} ${s})">${body}${head}${hand ?? svg``}</g>`;
 }
 
@@ -110,7 +118,7 @@ const SCENES: Record<Kind, Scene> = {
       <ellipse cx="610" cy="214" rx="150" ry="12" fill="#c9785a" opacity="0.55" />
       <rect x="492" y="120" width="210" height="46" rx="18" fill="#3f7fb5" />
       <rect x="520" y="126" width="34" height="26" rx="8" fill="#f2c14e" transform="rotate(-8 537 139)" />
-      ${frog(612, 154, 1.19, asleep(lit, night) ? "sleep" : "sit", svg`<rect x="-8" y="-34" width="16" height="12" rx="3" fill="#e9eef2" /><rect x="-3" y="-38" width="6" height="5" fill="#9fb3bf" />`)}
+      ${cat(612, 154, 1.19, asleep(lit, night) ? "nap" : "sit", svg`<rect x="-8" y="-34" width="16" height="12" rx="3" fill="#e9eef2" /><rect x="-3" y="-38" width="6" height="5" fill="#9fb3bf" />`)}
       <rect x="480" y="150" width="234" height="40" rx="16" fill="#4a90c8" />
       <rect x="470" y="132" width="34" height="58" rx="14" fill="#3f7fb5" /><rect x="690" y="132" width="34" height="58" rx="14" fill="#3f7fb5" />
       <rect x="500" y="188" width="10" height="10" fill="#5b3b28" /><rect x="684" y="188" width="10" height="10" fill="#5b3b28" />
@@ -129,8 +137,8 @@ const SCENES: Record<Kind, Scene> = {
       <rect x="490" y="176" width="226" height="14" rx="4" fill="#6a4a35" />
       <rect x="500" y="132" width="56" height="24" rx="12" fill="#ffffff" />
       ${asleep(lit, night)
-        ? svg`${frog(530, 160, 0.94, "sleep")}<text x="560" y="104" class="zz">z</text><text x="576" y="88" class="zz small">z</text>`
-        : frog(560, 156, 1.0, "sit", svg`<rect x="-14" y="-30" width="28" height="18" rx="2" fill="#e85d75" /><rect x="-1" y="-30" width="2" height="18" fill="#c2405a" />`)}
+        ? svg`${cat(530, 160, 0.94, "sleep")}<text x="560" y="104" class="zz">z</text><text x="576" y="88" class="zz small">z</text>`
+        : cat(560, 156, 1.0, "sit", svg`<rect x="-14" y="-30" width="28" height="18" rx="2" fill="#e85d75" /><rect x="-1" y="-30" width="2" height="18" fill="#c2405a" />`)}
       <path d="M${asleep(lit, night) ? 548 : 590} 150h126a8 8 0 0 1 8 8v24h-${asleep(lit, night) ? 142 : 100}c-6-10-6-24 8-32z" fill="#f2b84b" />
       <path d="M600 162h110M610 174h100" stroke="#e3a43a" stroke-width="3" stroke-linecap="round" />
       <rect x="738" y="148" width="50" height="48" rx="6" fill="#6a4a35" /><rect x="744" y="166" width="38" height="4" rx="2" fill="#57392a" />
@@ -150,7 +158,7 @@ const SCENES: Record<Kind, Scene> = {
       <path d="M576 104c-4-8 4-10 0-18M590 102c-4-8 4-10 0-18" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.7" />
       ${asleep(lit, night)
         ? svg``
-        : frog(668, 136, 1.06, "stand", svg`<path d="M24 -24l26 -4" stroke="#c9a06b" stroke-width="4" stroke-linecap="round" /><path d="M-14 -70h28v-12a14 12 0 0 0-28 0z" fill="#fff" /><rect x="-16" y="-72" width="32" height="6" rx="3" fill="#f0f0f0" />`, true)}
+        : cat(668, 136, 1.06, "stand", svg`<path d="M24 -24l26 -4" stroke="#c9a06b" stroke-width="4" stroke-linecap="round" /><path d="M-14 -70h28v-12a14 12 0 0 0-28 0z" fill="#fff" /><rect x="-16" y="-72" width="32" height="6" rx="3" fill="#f0f0f0" />`, true)}
       <rect x="470" y="134" width="320" height="10" rx="3" fill="#f6efe2" />
       <rect x="476" y="144" width="308" height="52" fill="#e8754f" />
       <path d="M548 144v52M628 144v52M708 144v52" stroke="#cf6340" stroke-width="3" />
@@ -169,7 +177,7 @@ const SCENES: Record<Kind, Scene> = {
       <rect x="696" y="130" width="72" height="14" rx="6" fill="#ffffff" /><rect x="726" y="144" width="12" height="52" fill="#ffffff" />
       <rect x="500" y="40" width="5" height="100" fill="#9aa5ad" /><path d="M500 42h28a6 6 0 0 1 6 6v6" stroke="#9aa5ad" stroke-width="5" fill="none" />
       <ellipse cx="534" cy="56" rx="12" ry="4" fill="#9aa5ad" />
-      ${asleep(lit, night) ? svg`` : frog(585, 166, 1.12, "bath")}
+      ${asleep(lit, night) ? svg`` : cat(585, 166, 1.12, "bath")}
       <circle cx="540" cy="140" r="13" fill="#fff" /><circle cx="560" cy="132" r="10" fill="#fff" /><circle cx="628" cy="136" r="12" fill="#fff" /><circle cx="648" cy="142" r="9" fill="#fff" />
       <circle class="bubble" cx="604" cy="98" r="6" fill="#fff" /><circle class="bubble late" cx="620" cy="84" r="4" fill="#fff" />
       <path d="M470 142h220v16a38 38 0 0 1-38 38H508a38 38 0 0 1-38-38z" fill="#ffffff" />
@@ -205,7 +213,7 @@ const SCENES: Record<Kind, Scene> = {
       <path d="M520 70v70" stroke="#e85d75" stroke-width="4" /><path d="M508 140h24l-12 14z" fill="#e85d75" />
       ${asleep(lit, night)
         ? svg``
-        : frog(700, 196, 1.06, "stand", svg`<path d="M22 -22l6 -38" stroke="#4a3428" stroke-width="3" stroke-linecap="round" /><path d="M-6 -58a34 20 0 0 1 68 0z" fill="#e85d75" />`, true)}
+        : cat(700, 196, 1.06, "stand", svg`<path d="M22 -22l6 -38" stroke="#4a3428" stroke-width="3" stroke-linecap="round" /><path d="M-6 -58a34 20 0 0 1 68 0z" fill="#e85d75" />`, true)}
       <rect x="744" y="54" width="22" height="12" rx="4" fill="#6a4a35" />
       ${lit ? glow(755, 76, 170) : svg``}
       ${lampShade("M742 66h26l-4 16h-18z", lit, "#f6efe2")}`,
@@ -216,7 +224,7 @@ const SCENES: Record<Kind, Scene> = {
       ${window_(372, 30, 86, 86, sky, night)}
       <rect x="560" y="70" width="96" height="58" rx="5" fill="#2b2f3a" /><rect x="566" y="76" width="84" height="46" rx="3" fill="#4fc3f7" opacity="0.85" />
       <path d="M574 88h40M574 98h56M574 108h30" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.7" /><rect x="604" y="128" width="8" height="6" fill="#2b2f3a" />
-      ${asleep(lit, night) ? svg`` : frog(608, 178, 1.0, "sit")}
+      ${asleep(lit, night) ? svg`` : cat(608, 178, 1.0, "sit")}
       <rect x="490" y="132" width="250" height="10" rx="3" fill="#8a5d3f" /><rect x="500" y="142" width="10" height="54" fill="#6a4a35" /><rect x="720" y="142" width="10" height="54" fill="#6a4a35" />
       <path d="M702 132l-8-30 16-14" stroke="#2b2f3a" stroke-width="4" fill="none" stroke-linecap="round" />
       ${lit ? glow(712, 92, 170) : svg``}
@@ -236,7 +244,7 @@ const SCENES: Record<Kind, Scene> = {
       <rect x="580" y="88" width="62" height="38" rx="4" fill="#1d2230" /><rect x="585" y="93" width="52" height="28" rx="2" fill="#4fc3f7" opacity="0.8" />
       ${asleep(lit, night)
         ? svg``
-        : frog(560, 180, 1.0, "sit", svg`<path d="M-24 -60a24 22 0 0 1 48 0" stroke="#e85d75" stroke-width="5" fill="none" /><rect x="-30" y="-64" width="9" height="16" rx="4" fill="#e85d75" /><rect x="21" y="-64" width="9" height="16" rx="4" fill="#e85d75" />`)}
+        : cat(560, 180, 1.0, "sit", svg`<path d="M-24 -60a24 22 0 0 1 48 0" stroke="#e85d75" stroke-width="5" fill="none" /><rect x="-30" y="-64" width="9" height="16" rx="4" fill="#e85d75" /><rect x="21" y="-64" width="9" height="16" rx="4" fill="#e85d75" />`)}
       <rect x="470" y="132" width="200" height="10" rx="3" fill="#8a5d3f" /><rect x="480" y="142" width="10" height="54" fill="#6a4a35" /><rect x="650" y="142" width="10" height="54" fill="#6a4a35" />
       ${lit ? glow(600, 10, 220) : svg``}
       <rect x="599" y="0" width="2" height="10" fill="#c8cfdb" />${lampShade("M584 10h32l-6 12h-20z", lit, "#c8cfdb")}`,
@@ -246,7 +254,7 @@ const SCENES: Record<Kind, Scene> = {
     draw: (lit, night, sky) => svg`
       ${window_(392, 30, 86, 86, sky, night)}
       <rect x="560" y="120" width="120" height="44" rx="16" fill="#e85d75" />
-      ${frog(620, 156, 1.06, asleep(lit, night) ? "sleep" : "sit", svg`<rect x="-14" y="-30" width="28" height="18" rx="2" fill="#4a90c8" />`)}
+      ${cat(620, 156, 1.06, asleep(lit, night) ? "nap" : "sit", svg`<rect x="-14" y="-30" width="28" height="18" rx="2" fill="#4a90c8" />`)}
       <rect x="548" y="150" width="144" height="34" rx="14" fill="#f07087" />
       <rect x="560" y="184" width="8" height="12" fill="#5b3b28" /><rect x="672" y="184" width="8" height="12" fill="#5b3b28" />
       <rect x="740" y="60" width="5" height="136" fill="#4a3428" />
@@ -282,7 +290,7 @@ export function roomScene(r: Pick<Room, "id" | "name" | "icon">, lit: boolean, n
 
 /**
  * The whole house, cut open like a doll's house: one cell per room in the
- * colours of its scene, lit when its lights are on; the frog in a lit room,
+ * colours of its scene, lit when its lights are on; the cat in a lit room,
  * asleep in a bedroom at night, or sitting in the garden.
  */
 export function houseScene(rooms: { room: Pick<Room, "id" | "name" | "icon">; lit: boolean }[], night: boolean, sky = "40, 130, 221") {
@@ -291,10 +299,10 @@ export function houseScene(rooms: { room: Pick<Room, "id" | "name" | "icon">; li
   const X0 = 470, X1 = 770, Y0 = 84, Y1 = 206, gap = 6;
   const cw = (X1 - X0 - gap * (cols + 1)) / cols, ch = (Y1 - Y0 - gap * (rows + 1)) / rows;
   const cell = (i: number) => ({ x: X0 + gap + (i % cols) * (cw + gap), y: Y0 + gap + Math.floor(i / cols) * (ch + gap) });
-  // Where the frog is: in a lit room, else asleep in a bedroom at night, else in the garden.
-  let frogAt = rooms.findIndex((r) => r.lit);
-  const sleeping = frogAt < 0 && night;
-  if (sleeping) frogAt = rooms.findIndex((r) => roomKind(r.room) === "bedroom");
+  // Where the cat is: in a lit room, else asleep in a bedroom at night, else in the garden.
+  let catAt = rooms.findIndex((r) => r.lit);
+  const sleeping = catAt < 0 && night;
+  if (sleeping) catAt = rooms.findIndex((r) => roomKind(r.room) === "bedroom");
   return svg`<svg class="room-scene ${night ? "night-sky" : "day-sky"}" viewBox="0 0 800 240" aria-hidden="true">
     <defs>
       <radialGradient id="kh-glow"><stop offset="0" stop-color="#ffd27a" stop-opacity="0.85" /><stop offset="0.5" stop-color="#ffc35a" stop-opacity="0.3" /><stop offset="1" stop-color="#ffb347" stop-opacity="0" /></radialGradient>
@@ -316,7 +324,9 @@ export function houseScene(rooms: { room: Pick<Room, "id" | "name" | "icon">; li
     <ellipse cx="640" cy="236" rx="320" ry="60" fill=${night ? "#24402f" : "#6cbf7a"} />
     <rect x="-3200" y="206" width="4000" height="60" fill=${night ? "#2f5a3a" : "#5aa469"} />
     <!-- house -->
-    <rect x="740" y="22" width="18" height="40" fill=${night ? "#5a3a3a" : "#a9524f"} />
+    <!-- chimney: drawn first, its foot hidden under the roof slope -->
+    <rect x="728" y="36" width="18" height="44" fill=${night ? "#5a3a3a" : "#a9524f"} />
+    <rect x="724" y="31" width="26" height="7" rx="2" fill=${night ? "#4a2f2f" : "#8f4441"} />
     <path d="M450 90L620 20L790 90z" fill=${night ? "#7a3f3d" : "#d35f5b"} />
     <path d="M462 90h316v8H462z" fill=${night ? "#5a2f2e" : "#b44f4b"} />
     <rect x=${X0} y=${Y0} width=${X1 - X0} height=${Y1 - Y0} fill=${night ? "#cfc3ad" : "#f2e6d0"} />
@@ -331,12 +341,12 @@ export function houseScene(rooms: { room: Pick<Room, "id" | "name" | "icon">; li
               <rect x=${c.x + cw / 2 - 0.75} y=${c.y} width="1.5" height="7" fill="#4a3428" />
               <path d="M${c.x + cw / 2 - 7} ${c.y + 14}h14l-3 -7h-8z" fill="#ffe08a" />`
           : svg`<rect x=${c.x} y=${c.y} width=${cw} height=${ch} fill="#141a40" opacity=${night ? 0.62 : 0.12} />`}
-        ${i === frogAt ? frog(c.x + cw / 2, c.y + ch - 6, Math.min(0.6, ch / 110), sleeping ? "sleep" : "sit") : svg``}
-        ${i === frogAt && sleeping ? svg`<text x=${c.x + cw / 2 + 14} y=${c.y + 18} class="zz small">z</text>` : svg``}
+        ${i === catAt ? cat(c.x + cw / 2, c.y + ch - 6, Math.min(0.6, ch / 110), sleeping ? "nap" : "sit") : svg``}
+        ${i === catAt && sleeping ? svg`<text x=${c.x + cw / 2 + 14} y=${c.y + 18} class="zz small">z</text>` : svg``}
       </g>`;
     })}
     <rect x=${X0 - 4} y=${Y1 - 2} width=${X1 - X0 + 8} height="6" fill=${night ? "#8a7d6a" : "#cdbf9f"} />
-    ${frogAt < 0 ? frog(424, 210, 0.75, "sit") : svg``}
+    ${catAt < 0 ? cat(424, 210, 0.75, "sit") : svg``}
     <path d="M392 206v-26M384 180h16v-10h-16z" fill="none" stroke=${night ? "#8a7d6a" : "#f6efe2"} stroke-width="4" stroke-linejoin="round" />
     <g transform="translate(796 206)"><path d="M-12 0c-4-14 2-24 10-28c8 4 12 14 6 28z" fill=${night ? "#2c4a3a" : "#4e9a5e"} /></g>
     <g transform="translate(452 206)"><path d="M-14 0c-4-16 2-28 12-32c10 4 14 16 8 32z" fill=${night ? "#2c4a3a" : "#4e9a5e"} /></g>
