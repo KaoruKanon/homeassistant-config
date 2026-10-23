@@ -38,7 +38,7 @@ export class KhV2Weather extends LitElement {
     v2,
     css`
       .hero .art.photo {
-        background-size: 100% 100%, auto 100%;
+        background-size: 100% 100%, cover;
         background-repeat: no-repeat;
       }
       .arrow {
@@ -142,7 +142,7 @@ export class KhV2Weather extends LitElement {
     const sky = frogSky();
     const place = st(f?.location);
     const shift = place === "field" ? "20%" : place === "hills" ? "40%" : "10%";
-    return html`<div class="art photo" style="background-color: rgb(${sky}); background-image: linear-gradient(180deg, rgb(${sky}) 0%, rgba(${sky}, 0) 60%), url('${image}'); background-position: top, ${shift} bottom"></div>`;
+    return html`<div class="art photo" style="background-color: rgb(${sky}); background-image: linear-gradient(100deg, rgba(${sky}, 0.7) 0%, rgba(${sky}, 0.25) 38%, rgba(${sky}, 0) 60%), url('${image}'); background-position: top, ${shift} 75%"></div>`;
   }
 
   private days() {

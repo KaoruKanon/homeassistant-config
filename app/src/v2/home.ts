@@ -73,9 +73,12 @@ export class KhHomeV2 extends LitElement {
         align-content: space-between;
         color: #fff;
         background-color: rgb(var(--frog));
-        background-image: linear-gradient(180deg, rgb(var(--frog)) 0%, rgba(var(--frog), 0) 55%), var(--scene);
-        background-size: 100% 100%, max(100%, 640px) auto;
-        background-position: top, var(--shift) bottom;
+        /* The frog picture fills the whole banner (cropped on the sides, kept
+           on the frog); a light veil of its sky colour on the top left keeps
+           the time readable without cutting the picture in two. */
+        background-image: linear-gradient(100deg, rgba(var(--frog), 0.7) 0%, rgba(var(--frog), 0.25) 38%, rgba(var(--frog), 0) 60%), var(--scene);
+        background-size: 100% 100%, cover;
+        background-position: top, var(--shift) 75%;
         background-repeat: no-repeat;
         text-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
         animation: kh-rise 420ms cubic-bezier(0.22, 1, 0.36, 1);
