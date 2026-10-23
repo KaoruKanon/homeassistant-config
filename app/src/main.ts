@@ -8,24 +8,20 @@ import { base, tokens } from "./styles.ts";
 import type { HomeAssistant, PanelRoute } from "./types.ts";
 import "./views/home-view.ts";
 import "./views/room-view.ts";
+import "./views/rooms-view.ts";
+import "./views/soon-view.ts";
 
-const TRANSLATED_DOMAINS = ["weather", "light", "switch", "fan", "media_player", "binary_sensor", "person"];
+const TRANSLATED_DOMAINS = ["weather", "light", "switch", "fan", "media_player", "binary_sensor", "person", "automation"];
 
-// Fonts must be declared on the document: @font-face does not work inside a shadow root.
-function loadFonts(): void {
-  if (document.getElementById("kaoru-home-fonts")) return;
-  const dir = import.meta.url.replace(/[^/]*$/, "") + "fonts/";
-  const face = (family: string, file: string, weight: number) =>
-    `@font-face{font-family:"${family}";src:url("${dir}${file}") format("woff2");font-weight:${weight};font-display:swap}`;
-  const style = document.createElement("style");
-  style.id = "kaoru-home-fonts";
-  style.textContent = [
-    face("Atkinson Hyperlegible", "atkinson-hyperlegible-400.woff2", 400),
-    face("Atkinson Hyperlegible", "atkinson-hyperlegible-700.woff2", 700),
-    face("Dela Gothic One", "dela-gothic-one-400.woff2", 400),
-  ].join("");
-  document.head.append(style);
-}
+/** Main navigation, by theme. Pages not rebuilt yet point to the old dashboard. */
+const NAV = [
+  { path: "", label: "Accueil", icon: "mdi:home" },
+  { path: "pieces", label: "Maison", icon: "mdi:floor-plan" },
+  { path: "medias", label: "Médias", icon: "mdi:play-box-multiple-outline" },
+  { path: "meteo", label: "Météo", icon: "mdi:weather-partly-cloudy" },
+  { path: "energie", label: "Énergie", icon: "mdi:lightning-bolt-outline" },
+  { path: "systeme", label: "Système", icon: "mdi:cog-outline" },
+];
 
 /**
  * The panel element Home Assistant creates for `panel_custom: name: kaoru-home`.
@@ -42,12 +38,10 @@ class KaoruHomePanel extends LitElement {
 
   private model?: HouseModel;
   private modelKey: unknown[] = [];
-  private shownRoom?: string;
 
   constructor() {
     super();
     new RegistryController(this);
-    loadFonts();
   }
 
   disconnectedCallback(): void {
@@ -74,112 +68,96 @@ class KaoruHomePanel extends LitElement {
         display: block;
         min-height: 100%;
         background: var(--kh-bg);
+        background-attachment: fixed;
         container: kh / inline-size;
       }
       .shell {
         min-height: 100vh;
         min-height: 100dvh;
-        display: grid;
-        grid-template-columns: 1fr;
-      }
-      nav.rail {
-        display: none;
-      }
-      .topbar {
-        padding-top: max(4px, env(safe-area-inset-top));
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 8px 8px 0;
-      }
-      .topbar button,
-      .back {
-        width: var(--kh-tap);
-        height: var(--kh-tap);
-        display: grid;
-        place-items: center;
-        border-radius: 50%;
-      }
-      .chips {
-        position: relative;
-        display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        scrollbar-width: none;
-        padding: 4px 0;
-      }
-      .chips a {
-        flex: none;
-        padding: 10px 16px;
-        border-radius: 999px;
-        background: var(--kh-surface);
-        border: 1px solid var(--kh-line);
-        color: var(--kh-text);
-        text-decoration: none;
-        font-weight: 700;
-        font-size: 0.875rem;
-      }
-      .chips a[aria-current="page"] {
-        background: var(--kh-accent);
-        border-color: var(--kh-accent);
-        color: var(--kh-on-accent);
-      }
-      .content {
-        min-width: 0;
       }
       main {
-        padding: 0 16px 32px;
-        min-width: 0;
-        max-width: 1400px;
+        box-sizing: border-box;
+        padding: max(12px, env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom));
+        max-width: 1600px;
+        margin: 0 auto;
       }
-      @container kh (min-width: 900px) {
+      /* Phone: floating bar at the bottom, as on the old dashboard. */
+      nav.bar {
+        position: fixed;
+        z-index: 2;
+        left: 12px;
+        right: 12px;
+        bottom: max(12px, env(safe-area-inset-bottom));
+        display: flex;
+        justify-content: space-around;
+        padding: 8px;
+        border-radius: 22px;
+        background: rgb(60 64 68 / 0.55);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
+      :host(:not([dark])) nav.bar {
+        background: rgb(255 255 255 / 0.7);
+        box-shadow: 0 2px 12px rgb(0 0 0 / 0.12);
+      }
+      nav a,
+      nav button {
+        width: 48px;
+        height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        color: var(--kh-text-2);
+        text-decoration: none;
+        background: var(--kh-card-2);
+      }
+      nav ha-icon {
+        --mdc-icon-size: 24px;
+      }
+      nav a[aria-current="page"] {
+        background: var(--kh-text);
+        color: var(--kh-bg);
+      }
+      :host([dark]) nav a[aria-current="page"] {
+        background: #f2f3f4;
+        color: #1f2326;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+      @container kh (min-width: 760px) {
         .shell {
-          grid-template-columns: 232px 1fr;
+          display: grid;
+          grid-template-columns: 92px 1fr;
         }
-        nav.rail {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
+        /* Tablet and PC: floating rail of icons on the left. */
+        nav.bar {
           position: sticky;
-          top: 0;
-          height: 100vh;
-          height: 100dvh;
-          box-sizing: border-box;
-          padding: 24px 12px;
-          border-right: 1px solid var(--kh-line);
-          overflow-y: auto;
+          top: 24px;
+          left: auto;
+          right: auto;
+          bottom: auto;
+          margin: 24px 0 0 16px;
+          align-self: start;
+          flex-direction: column;
+          gap: 10px;
+          padding: 10px;
+          width: 52px;
+          justify-content: flex-start;
         }
-        nav.rail .brand {
-          font-family: var(--kh-display);
-          font-size: 1.25rem;
-          padding: 0 12px 20px;
-        }
-        nav.rail a {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-height: var(--kh-tap);
-          padding: 0 12px;
-          border-radius: var(--kh-radius-sm);
-          color: var(--kh-text);
-          text-decoration: none;
-        }
-        nav.rail a ha-icon {
-          color: var(--kh-text-2);
-        }
-        nav.rail a[aria-current="page"] {
-          background: var(--kh-accent-soft);
-          font-weight: 700;
-        }
-        nav.rail a[aria-current="page"] ha-icon {
-          color: var(--kh-accent);
-        }
-        .chips,
-        .back {
-          display: none;
+        nav a,
+        nav button {
+          width: 52px;
+          height: 52px;
         }
         main {
-          padding: 24px 32px 48px;
+          padding: 24px 32px 48px 20px;
+          margin: 0;
+          width: 100%;
         }
       }
     `,
@@ -217,14 +195,6 @@ class KaoruHomePanel extends LitElement {
 
   protected updated(): void {
     this.toggleAttribute("dark", !!store.hass?.themes.darkMode);
-    // Bring the current room chip into view, only when the room changes, and
-    // only scroll the chip row: never the page the person is reading.
-    const roomId = (this.route?.path ?? "").replace(/^\//, "").split("/")[0];
-    if (roomId === this.shownRoom) return;
-    this.shownRoom = roomId;
-    const row = this.renderRoot.querySelector<HTMLElement>(".chips");
-    const chip = row?.querySelector<HTMLElement>('a[aria-current="page"]');
-    if (row && chip) row.scrollTo({ left: chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2 });
   }
 
   render() {
@@ -234,38 +204,29 @@ class KaoruHomePanel extends LitElement {
     const person = currentPerson(hass)?.replace("person.", "");
     const rooms = roomsFor(model, (person && config.people[person]?.favoriteRooms) || []);
     const prefix = this.route?.prefix ?? "/maison";
-    const roomId = (this.route?.path ?? "").replace(/^\//, "").split("/")[0];
-    const room = rooms.find((r) => r.id === roomId);
-    const link = (id: string | null, label: string, icon: string) => html`<a
-      href=${id ? `${prefix}/${id}` : prefix}
-      aria-current=${(id ?? "") === (room?.id ?? "") ? "page" : nothing}
-      ><ha-icon icon=${icon}></ha-icon>${label}</a
-    >`;
+    const [section = "", sub] = (this.route?.path ?? "").replace(/^\//, "").split("/");
+    const room = section === "pieces" && sub ? rooms.find((r) => r.id === sub) : undefined;
+
+    let page;
+    if (section === "") page = html`<kh-home-view prefix=${prefix}></kh-home-view>`;
+    else if (section === "pieces" && room)
+      page = html`<kh-room-view .room=${room} .model=${model} .rooms=${rooms} prefix=${prefix}></kh-room-view>`;
+    else if (section === "pieces") page = html`<kh-rooms-view .rooms=${rooms} prefix=${prefix}></kh-rooms-view>`;
+    else page = html`<kh-soon-view section=${section}></kh-soon-view>`;
 
     return html`
       <div class="shell" @click=${this.navigate}>
-        <nav class="rail" aria-label="Pièces">
-          <div class="brand">Maison</div>
-          ${link(null, "Accueil", "mdi:home-variant-outline")} ${rooms.map((r) => link(r.id, r.name, r.icon))}
-        </nav>
-        <div class="content">
+        <nav class="bar" aria-label="Navigation">
+          ${NAV.map(
+            (n) => html`<a href=${n.path ? `${prefix}/${n.path}` : prefix} aria-current=${n.path === section ? "page" : nothing} title=${n.label}>
+              <ha-icon icon=${n.icon}></ha-icon><span class="sr">${n.label}</span>
+            </a>`,
+          )}
           ${this.narrow
-            ? html`<div class="topbar">
-                <button aria-label="Menu Home Assistant" @click=${this.toggleMenu}><ha-icon icon="mdi:menu"></ha-icon></button>
-              </div>`
+            ? html`<button aria-label="Menu Home Assistant" @click=${this.toggleMenu}><ha-icon icon="mdi:menu"></ha-icon></button>`
             : nothing}
-          <main>
-            ${room
-              ? html`<nav class="chips" aria-label="Pièces">
-                    <a href=${prefix}>Accueil</a>
-                    ${rooms.map(
-                      (r) => html`<a href=${`${prefix}/${r.id}`} aria-current=${r.id === room.id ? "page" : nothing}>${r.name}</a>`,
-                    )}
-                  </nav>
-                  <kh-room-view .room=${room} .model=${model}></kh-room-view>`
-              : html`<kh-home-view .model=${model} .rooms=${rooms} prefix=${prefix}></kh-home-view>`}
-          </main>
-        </div>
+        </nav>
+        <main>${page}</main>
       </div>
     `;
   }

@@ -1,32 +1,30 @@
 import { LitElement, css, html, nothing } from "lit";
+import "../components/energy-card.ts";
 import "../components/hero.ts";
-import "../components/now-strip.ts";
-import "../components/room-card.ts";
-import "../components/tile.ts";
-import { config } from "../config.ts";
-import type { HouseModel, Room } from "../rooms.ts";
-import { currentPerson, entityName } from "../rooms.ts";
+import "../components/light-card.ts";
+import { isPlayerActive } from "../components/media-card.ts";
+import "../components/media-card.ts";
+import "../components/weather-card.ts";
+import "../components/widgets.ts";
+import { config, type Favorite } from "../config.ts";
+import { currentPerson } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 
+/**
+ * The home view of the old dashboard, rebuilt: Media and Favoris, Lumières
+ * and Énergie, Météo, News and Autres. Three columns on the wall tablet, two
+ * on a small tablet, one on a phone.
+ */
 export class KhHomeView extends LitElement {
-  static properties = {
-    model: { attribute: false },
-    rooms: { attribute: false },
-    prefix: {},
-  };
-  declare model: HouseModel;
-  declare rooms: Room[];
+  static properties = { prefix: {} };
   declare prefix: string;
 
   constructor() {
     super();
     new RegistryController(this);
-    new EntitiesController(this, () => {
-      const hass = store.hass;
-      const person = hass && currentPerson(hass)?.replace("person.", "");
-      return (person && config.people[person]?.shortcuts) || [];
-    });
+    // Only what decides which blocks show; each block watches its own data.
+    new EntitiesController(this, () => [config.home.spotify, ...config.home.tvs].filter((x): x is string => !!x));
   }
 
   static styles = [
@@ -35,87 +33,144 @@ export class KhHomeView extends LitElement {
       :host {
         display: block;
       }
+      .cols {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px 28px;
+        align-items: start;
+      }
+      .col {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+      }
       h2 {
-        font-size: 1rem;
+        margin: 16px 0 6px;
+        font-size: 1.5rem;
         font-weight: 700;
-        color: var(--kh-text-2);
-        margin: 8px 0 12px;
       }
-      .rooms {
+      h2 a {
+        color: inherit;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      h2 a ha-icon {
+        --mdc-icon-size: 24px;
+        color: var(--kh-text-2);
+      }
+      .stack {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
         gap: var(--kh-gap);
       }
-      .tiles {
+      .pair {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        grid-template-columns: 1fr 1fr;
         gap: var(--kh-gap);
       }
-      section + section {
-        margin-top: 28px;
-      }
-      .facade {
-        margin-bottom: 28px;
-      }
-      .hint {
-        color: var(--kh-text-2);
-        font-size: 0.875rem;
-        margin: -4px 0 12px;
-      }
-      @container kh (max-width: 599px) {
-        .rooms {
-          grid-template-columns: repeat(2, 1fr);
-          --kh-card-min: 104px;
-          --kh-card-pad: 12px;
+      @container kh (min-width: 760px) {
+        .cols {
+          grid-template-columns: 1fr 1fr;
         }
-        .tiles {
-          grid-template-columns: repeat(2, 1fr);
+        .col.c3 {
+          grid-column: 1 / -1;
+          grid-template-columns: 1fr 1fr;
+          column-gap: 28px;
+        }
+        .col.c3 > .weather {
+          grid-row: span 4;
+        }
+      }
+      @container kh (min-width: 1150px) {
+        .cols {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
+        .col.c3 {
+          grid-column: auto;
+          grid-template-columns: 1fr;
+        }
+        .col.c3 > .weather {
+          grid-row: auto;
         }
       }
     `,
   ];
 
-  /** Out of its room, a device name says which room it is in. */
-  private shortcutName(id: string): string {
-    const hass = store.hass!;
-    const room = this.model.rooms.find((r) => [...r.lights, ...r.switches, ...r.fans, ...r.media].includes(id));
-    const name = entityName(hass, id, config, room?.name);
-    return room && !name.toLowerCase().includes(room.name.toLowerCase()) ? `${name} (${room.name})` : name;
+  private heading(label: string, path?: string) {
+    return html`<h2>
+      ${path
+        ? html`<a href=${`${this.prefix}/${path}`}>${label}<ha-icon icon="mdi:chevron-right"></ha-icon></a>`
+        : label}
+    </h2>`;
+  }
+
+  private favorite(f: Favorite) {
+    switch (f.type) {
+      case "battery":
+        return html`<kh-battery .spec=${f}></kh-battery>`;
+      case "jellyfin":
+        return html`<kh-jellyfin></kh-jellyfin>`;
+      case "calendar":
+        return html`<kh-calendar .spec=${f}></kh-calendar>`;
+      case "thermometer":
+        return html`<kh-thermometer .spec=${f}></kh-thermometer>`;
+      case "automation":
+        return html`<kh-automation .spec=${f}></kh-automation>`;
+      case "computers":
+        return html`<div class="pair">
+          ${config.home.computers.map(
+            (c) => html`<kh-computer entity-id=${c.entity} name=${c.name} busy=${c.busy ?? nothing}></kh-computer>`,
+          )}
+        </div>`;
+    }
   }
 
   render() {
     const hass = store.hass;
-    if (!hass || !this.model) return nothing;
-    const loose = this.model.unassignedLights;
+    if (!hass) return nothing;
+    const h = config.home;
     const person = currentPerson(hass)?.replace("person.", "");
-    const shortcuts = ((person && config.people[person]?.shortcuts) || []).filter((id) => hass.states[id]);
+    const favorites = (person && config.people[person]?.favorites) || config.people.tablet?.favorites || [];
+    const spotifyOn = !!h.spotify && isPlayerActive(h.spotify);
+    const tvsOn = h.tvs.filter((id) => isPlayerActive(id));
+
     return html`
-      <kh-hero></kh-hero>
-      <section class="facade" aria-label="Pièces">
-        <div class="rooms">
-          ${this.rooms.map(
-            (r) => html`<kh-room-card .room=${r} href=${`${this.prefix}/${r.id}`}></kh-room-card>`,
-          )}
+      <kh-hero .mapHref=${`${this.prefix}/pieces`}></kh-hero>
+      <div class="cols">
+        <div class="col c1">
+          ${spotifyOn || tvsOn.length
+            ? html`${this.heading("Media", "medias")}
+                <div class="stack">
+                  ${spotifyOn ? html`<kh-media-card entity-id=${h.spotify!} kind="music"></kh-media-card>` : nothing}
+                  ${tvsOn.map((id) => html`<kh-media-card entity-id=${id} kind="tv"></kh-media-card>`)}
+                </div>`
+            : nothing}
+          ${favorites.length
+            ? html`${this.heading("Favoris")}
+                <div class="stack">${favorites.map((f) => this.favorite(f))}</div>`
+            : nothing}
         </div>
-      </section>
-      <kh-now-strip .model=${this.model}></kh-now-strip>
-      ${shortcuts.length
-        ? html`<section aria-labelledby="mine-title">
-            <h2 id="mine-title">Pour toi</h2>
-            <div class="tiles">
-              ${shortcuts.map((id) => html`<kh-tile entity-id=${id} name=${this.shortcutName(id)}></kh-tile>`)}
-            </div>
-          </section>`
-        : nothing}
-      ${loose.length
-        ? html`<section aria-labelledby="loose-title">
-            <h2 id="loose-title">Lumières sans pièce</h2>
-            <p class="hint">Attribue-leur une pièce dans Home Assistant pour les retrouver au bon endroit.</p>
-            <div class="tiles">
-              ${loose.map((id) => html`<kh-tile entity-id=${id} name=${entityName(hass, id, config)}></kh-tile>`)}
-            </div>
-          </section>`
-        : nothing}
+        <div class="col c2">
+          ${this.heading("Lumières", "pieces")}
+          <div class="pair">
+            ${h.lights
+              .filter((l) => hass.states[l.entity])
+              .map((l) => html`<kh-light-card entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-card>`)}
+          </div>
+          ${h.energy ? html`${this.heading("Énergie", "energie")}<kh-energy-card></kh-energy-card>` : nothing}
+        </div>
+        <div class="col c3">
+          <div class="weather">${this.heading("Météo", "meteo")}<kh-weather-card></kh-weather-card></div>
+          ${h.stocks.length
+            ? html`<div>
+                ${this.heading("News", "meteo")}
+                <div class="stack">${h.stocks.map((s) => html`<kh-stock entity-id=${s.entity} name=${s.name}></kh-stock>`)}</div>
+              </div>`
+            : nothing}
+          <div>${this.heading("Autres")}<kh-others></kh-others></div>
+        </div>
+      </div>
     `;
   }
 }

@@ -51,31 +51,31 @@ await page.route("http://harness.test/**", (route) =>
     ? route.fulfill({ contentType: "text/javascript", body: bundle })
     : route.fulfill({ contentType: "text/html", body: "<!doctype html><body style='margin:0'></body>" }),
 );
-await page.goto("http://harness.test/maison/bureau");
+await page.goto("http://harness.test/maison/pieces/bureau");
 await page.addScriptTag({ url: "http://harness.test/kaoru-home.js", type: "module" });
 await page.evaluate((src) => {
   const hass = eval(`(${src})`)();
   window.__hass = hass;
   const el = document.createElement("kaoru-home");
-  el.route = { prefix: "/maison", path: "/bureau" };
+  el.route = { prefix: "/maison", path: "/pieces/bureau" };
   el.hass = hass;
   document.body.append(el);
 }, fakeHass.toString());
-await page.waitForSelector("kh-tile");
+await page.waitForSelector("kh-light-card");
 
 const results = [];
 const check = (name, ok, extra = "") => { const line = `${ok ? "OK  " : "FAIL"} ${name}${extra ? ` (${extra})` : ""}`; results.push(line); console.error(line); };
 const calls = () => page.evaluate(() => window.__hass.calls.splice(0));
 
 // Slider -> light.turn_on brightness_pct
-await page.locator('kh-tile[entity-id="light.desk"] input.dim').evaluate((el) => {
+await page.locator('kh-light-card[entity-id="light.desk"] input[type="range"]').evaluate((el) => {
   el.value = "30";
   el.dispatchEvent(new Event("input", { bubbles: true }));
   el.dispatchEvent(new Event("change", { bubbles: true }));
 });
 let c = await calls();
 check("slider sends light.turn_on brightness_pct 30", c.length === 1 && c[0].service === "turn_on" && c[0].data.brightness_pct === 30, JSON.stringify(c));
-check("no slider on an on/off-only light", (await page.locator('kh-tile[entity-id="light.ceiling"] input.dim').count()) === 0);
+check("no slider on an on/off-only light", (await page.locator('kh-light-card[entity-id="light.ceiling"] input[type="range"]').count()) === 0);
 
 // Tuya plug: no shortcut to HA's unguarded detail dialog
 check("protected plug has no detail button", (await page.locator('kh-tile[entity-id="switch.smart_plug_homelab_switch"]').evaluate((el) => el.shadowRoot.querySelector(".more") === null)));
@@ -149,7 +149,7 @@ check(
 );
 
 // Open window is flagged
-check("open window flagged", (await page.locator("kh-room-view").evaluate((el) => el.shadowRoot.querySelector("li.alert")?.textContent ?? "")).includes("Fenêtre"));
+check("open window flagged", (await page.locator("kh-room-view").evaluate((el) => el.shadowRoot.querySelector(".status.alert")?.textContent ?? "")).includes("Fenêtre"));
 
 await browser.close();
 process.exit(results.some((r) => r.startsWith("FAIL")) ? 1 : 0);

@@ -13,8 +13,8 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/
 await login(browser);
 const context = await browser.newContext({ ...screens.tablet, locale: "fr-FR", storageState: join(out, ".auth.json") });
 const page = await context.newPage();
-await page.goto(`${url}/maison/labo`);
-await page.waitForSelector("kh-tile");
+await page.goto(`${url}/maison/pieces/labo`);
+await page.waitForSelector("kh-light-card");
 await page.waitForTimeout(1000);
 
 const state = (id) => page.evaluate((id) => document.querySelector("home-assistant").hass.states[id]?.state, id);
@@ -22,7 +22,8 @@ const waitState = (id, want) =>
   page.waitForFunction(([id, want]) => document.querySelector("home-assistant").hass.states[id]?.state === want, [id, want], { timeout: 5000 });
 async function tap(id) {
   if (!SIM.has(id)) throw new Error(`refused: ${id} is not a simulated entity`);
-  await page.locator(`kh-tile[entity-id="${id}"] button.tile`).click();
+  const card = id.startsWith("light.") ? `kh-light-card[entity-id="${id}"] button.head` : `kh-tile[entity-id="${id}"] button.tile`;
+  await page.locator(card).click();
 }
 const results = [];
 const check = (name, ok, extra = "") => results.push(`${ok ? "OK  " : "FAIL"} ${name}${extra ? ` (${extra})` : ""}`);

@@ -19,16 +19,17 @@ class KhConfirmDialog extends LitElement {
     base,
     css`
       dialog {
-        border: 1px solid var(--kh-line);
-        border-radius: var(--kh-radius);
-        background: var(--kh-surface);
+        border: 0;
+        border-radius: 20px;
+        background: var(--kh-dialog);
         color: var(--kh-text);
         padding: 24px;
         width: min(420px, calc(100vw - 32px));
         box-sizing: border-box;
       }
       dialog::backdrop {
-        background: rgb(14 10 21 / 0.55);
+        background: rgb(0 0 0 / 0.5);
+        backdrop-filter: blur(4px);
       }
       h2 {
         margin: 0 0 8px;
@@ -47,11 +48,11 @@ class KhConfirmDialog extends LitElement {
       .actions button {
         min-height: var(--kh-tap);
         padding: 0 20px;
-        border-radius: var(--kh-radius-sm);
+        border-radius: var(--kh-radius-icon);
         font-weight: 700;
       }
       .cancel {
-        background: var(--kh-surface-2);
+        background: var(--kh-card-2);
       }
       .confirm {
         background: var(--kh-accent);

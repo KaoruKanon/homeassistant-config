@@ -170,7 +170,9 @@ export function entityName(
   for (const [pattern, name] of Object.entries(cfg.names)) {
     if (matches(entityId, [pattern])) return name;
   }
-  const friendly = (hass.states[entityId]?.attributes.friendly_name as string | undefined) ?? entityId;
+  // Some integrations name entities after their id ("Fenetre_chambre_william").
+  const named = hass.states[entityId]?.attributes.friendly_name as string | undefined;
+  const friendly = named ? named.replaceAll("_", " ") : entityId;
   if (!roomName) return friendly;
   const stripped = friendly
     .replace(new RegExp(escapeRegExp(roomName), "i"), "")

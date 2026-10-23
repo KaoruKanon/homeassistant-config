@@ -53,6 +53,7 @@ export interface HomeAssistant {
   ): Promise<unknown>;
   formatEntityState?(stateObj: HassEntity, state?: string): string;
   localize?: unknown;
+  connection?: { sendMessagePromise<T>(message: Record<string, unknown>): Promise<T> };
   loadBackendTranslation?(category: string, integrations?: string | string[]): Promise<unknown>;
 }
 

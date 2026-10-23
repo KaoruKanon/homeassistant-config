@@ -12,7 +12,7 @@ const url = process.env.HASS_URL ?? "http://localhost:8124";
 const user = process.env.HASS_USER ?? "claude";
 const password = readFileSync(process.env.HASS_PASSWORD_FILE, "utf8").trim();
 const out = process.argv[2] ?? "screens";
-const paths = process.argv.slice(3).length ? process.argv.slice(3) : ["/maison", "/maison/labo"];
+const paths = process.argv.slice(3).length ? process.argv.slice(3) : ["/maison", "/maison/pieces/labo"];
 const chrome = process.env.CHROME ?? "/usr/bin/google-chrome";
 const statePath = join(out, ".auth.json");
 

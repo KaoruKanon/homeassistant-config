@@ -52,50 +52,60 @@ export class KhTile extends LitElement {
       }
       .tile {
         width: 100%;
-        min-height: 96px;
+        min-height: 66px;
         display: grid;
-        grid-template-rows: auto 1fr auto;
-        gap: 6px;
+        grid-template-columns: 42px 1fr;
+        grid-template-rows: auto auto;
+        column-gap: 12px;
+        align-items: center;
         text-align: left;
-        padding: 14px 14px 12px;
+        padding: 12px 52px 12px 12px;
         box-sizing: border-box;
-        border-radius: 10px;
-        background: var(--kh-surface);
-        border: 1px solid var(--kh-line);
-        transition: background-color 160ms ease, border-color 160ms ease;
+        border-radius: var(--kh-radius);
+        background: var(--kh-card);
+        box-shadow: var(--kh-shadow);
+        transition: background-color 200ms ease;
+        --rgb: var(--rgb-blue);
+      }
+      .tile.light {
+        --rgb: var(--rgb-orange);
+      }
+      .tile.media_player {
+        --rgb: var(--rgb-blue);
+      }
+      .tile.switch {
+        --rgb: var(--rgb-light-blue);
       }
       .icon {
+        grid-row: 1 / 4;
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: var(--kh-radius-icon);
+        background: var(--kh-card-2);
         color: var(--kh-text-2);
-        height: 24px;
       }
       .name {
         font-weight: 700;
-        line-height: 1.2;
-        align-self: end;
-        padding-right: 28px;
+        font-size: 0.9375rem;
+        line-height: 1.25;
         overflow-wrap: anywhere;
       }
       .state {
         color: var(--kh-text-2);
-        font-size: 0.875rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
       }
-      .tile.on.light {
-        background: var(--kh-warm-soft);
-        border-color: transparent;
+      .tile.on {
+        background: rgba(var(--rgb), 0.16);
       }
-      .tile.on.light .icon {
-        color: var(--kh-warm);
-      }
-      .tile.on:not(.light) {
-        background: var(--kh-accent-soft);
-        border-color: transparent;
-      }
-      .tile.on:not(.light) .icon {
-        color: var(--kh-accent);
+      .tile.on .icon {
+        background: rgba(var(--rgb), 0.25);
+        color: rgb(var(--rgb));
       }
       .tile.unavailable {
-        opacity: 0.55;
-        border-style: dashed;
+        opacity: 0.5;
         cursor: default;
       }
       .tile.pending {
@@ -105,27 +115,28 @@ export class KhTile extends LitElement {
         content: ", envoi…";
       }
       .guard {
+        grid-column: 2;
         color: var(--kh-alert);
         font-size: 0.75rem;
         font-weight: 700;
       }
       .tile.dimmable {
-        padding-bottom: 44px;
+        padding-bottom: 60px;
       }
       .dim {
         position: absolute;
-        left: 14px;
-        right: 14px;
-        bottom: 10px;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
         margin: 0;
-        height: 28px;
-        accent-color: var(--kh-warm);
+        height: 36px;
+        accent-color: rgb(var(--rgb-orange));
         cursor: pointer;
       }
       .more {
         position: absolute;
-        top: 4px;
-        right: 4px;
+        top: 12px;
+        right: 6px;
         width: 40px;
         height: 40px;
         display: grid;

@@ -1,5 +1,6 @@
 import { LitElement, css, html, nothing } from "lit";
 import { setLights } from "../actions.ts";
+import "../components/light-card.ts";
 import "../components/tile.ts";
 import { config } from "../config.ts";
 import { isActive, sensorValue, stateIcon, stateLabel } from "../format.ts";
@@ -8,15 +9,19 @@ import { entityName } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 
+/** One room: a row of rooms on top, then its lights, devices, media, sensors. */
 export class KhRoomView extends LitElement {
-  static properties = { room: { attribute: false }, model: { attribute: false } };
+  static properties = { room: { attribute: false }, model: { attribute: false }, rooms: { attribute: false }, prefix: {} };
   declare room: Room;
   declare model: HouseModel;
+  declare rooms: Room[];
+  declare prefix: string;
+  private shown?: string;
 
   constructor() {
     super();
     new RegistryController(this);
-    // Only what this view prints itself; tiles watch their own entity.
+    // Only what this view prints itself; cards and tiles watch their own entity.
     new EntitiesController(this, () => {
       const r = this.room;
       if (!r) return [];
@@ -30,126 +35,116 @@ export class KhRoomView extends LitElement {
       :host {
         display: block;
       }
+      .rooms {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 2px 0 8px;
+      }
+      .rooms a {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 40px;
+        padding: 0 14px;
+        border-radius: var(--kh-radius-icon);
+        background: var(--kh-card);
+        color: inherit;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.875rem;
+      }
+      .rooms a ha-icon {
+        --mdc-icon-size: 18px;
+        color: var(--kh-text-2);
+      }
+      .rooms a[aria-current="page"] {
+        background: rgba(var(--rgb-amber), 0.3);
+      }
       header {
         display: flex;
         flex-wrap: wrap;
-        align-items: end;
+        align-items: center;
         justify-content: space-between;
-        gap: 12px 24px;
-        margin: 8px 0 24px;
+        gap: 12px;
+        margin: 12px 0 4px;
       }
       h1 {
-        font-family: var(--kh-display);
-        font-weight: 400;
-        font-size: 2.25rem;
-        line-height: 1.1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 2rem;
         margin: 0;
       }
       .climate {
-        color: var(--kh-text-2);
-        font-variant-numeric: tabular-nums;
-        margin-top: 6px;
-      }
-      .climate strong {
-        color: var(--kh-text);
-      }
-      .climate .gap {
-        display: inline-block;
-        width: 12px;
+        margin-top: 4px;
       }
       .all {
-        min-height: var(--kh-tap);
-        padding: 0 18px;
-        border-radius: 999px;
-        background: var(--kh-surface);
-        border: 1px solid var(--kh-line);
-        font-weight: 700;
         display: inline-flex;
         align-items: center;
         gap: 8px;
-      }
-      h2 {
-        font-size: 1rem;
-        color: var(--kh-text-2);
-        margin: 0 0 12px;
-      }
-      section + section {
-        margin-top: 28px;
-      }
-      .tiles {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
-        gap: var(--kh-gap);
-      }
-      ul.status {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
-        gap: 8px var(--kh-gap);
-      }
-      ul.status li {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-height: var(--kh-tap);
-        padding: 0 14px;
-        border-radius: var(--kh-radius-sm);
-        background: var(--kh-surface);
-        border: 1px solid var(--kh-line);
-      }
-      ul.status li .label {
-        flex: 1;
-      }
-      ul.status li .value {
-        color: var(--kh-text-2);
-      }
-      ul.status li.alert {
-        border-color: var(--kh-alert);
-        background: var(--kh-alert-soft);
-      }
-      ul.status li.alert .value {
-        color: var(--kh-alert);
+        height: 44px;
+        padding: 0 16px;
+        border-radius: var(--kh-radius-icon);
+        background: rgba(var(--rgb-amber), 0.22);
         font-weight: 700;
       }
+      h2 {
+        font-size: 1.375rem;
+        margin: 20px 0 8px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: var(--kh-gap);
+      }
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+      }
+      .status > div {
+        flex: 1;
+        min-width: 0;
+      }
+      .status.alert {
+        background: rgba(var(--rgb-red), 0.16);
+      }
       @container kh (max-width: 599px) {
-        h1 {
-          font-size: 1.75rem;
-        }
-        .tiles {
-          grid-template-columns: repeat(2, 1fr);
+        .grid {
+          grid-template-columns: 1fr 1fr;
         }
       }
     `,
   ];
 
-  private tiles(ids: string[]) {
-    const hass = store.hass!;
-    return html`<div class="tiles">
-      ${ids.map(
-        (id) => html`<kh-tile
-          entity-id=${id}
-          name=${entityName(hass, id, config, this.room.name)}
-          power-id=${this.model.power[id] ?? nothing}
-        ></kh-tile>`,
-      )}
-    </div>`;
+  protected updated(): void {
+    if (this.room?.id === this.shown) return;
+    this.shown = this.room?.id;
+    // Bring the current room into view in the row, without scrolling the page.
+    const row = this.renderRoot.querySelector<HTMLElement>(".rooms");
+    const chip = row?.querySelector<HTMLElement>('a[aria-current="page"]');
+    if (row && chip) row.scrollTo({ left: chip.offsetLeft - row.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2 });
   }
 
-  private statusList(ids: string[], alertWhenActive: boolean) {
+  private status(ids: string[], alertWhenActive: boolean, rgb: string) {
     const hass = store.hass!;
-    return html`<ul class="status">
+    return html`<div class="grid">
       ${ids.map((id) => {
         const s = hass.states[id];
         const alert = alertWhenActive && isActive(s);
-        return html`<li class=${alert ? "alert" : ""}>
-          ${stateIcon(hass, s)}
-          <span class="label">${entityName(hass, id, config, this.room.name)}</span>
-          <span class="value">${stateLabel(hass, s)}</span>
-        </li>`;
+        return html`<div class="card status ${alert ? "alert" : ""}">
+          <span class="shape ${isActive(s) ? "" : "off"}" style="--rgb:${rgb}">${stateIcon(hass, s)}</span>
+          <div>
+            <div class="primary ellipsis">${entityName(hass, id, config, this.room.name)}</div>
+            <div class="secondary">${stateLabel(hass, s)}</div>
+          </div>
+        </div>`;
       })}
-    </ul>`;
+    </div>`;
   }
 
   render() {
@@ -159,19 +154,26 @@ export class KhRoomView extends LitElement {
     const anyOn = r.lights.some((id) => isActive(hass.states[id]));
     const temp = sensorValue(hass, r.temperature);
     const hum = sensorValue(hass, r.humidity, 0);
+    const climate = [temp ? `${temp} °C` : "", hum ? `${hum} % d'humidité` : ""].filter(Boolean).join(", ");
     const devices = [...r.switches, ...r.fans];
+    const tiles = (ids: string[]) => html`<div class="grid">
+      ${ids.map(
+        (id) => html`<kh-tile entity-id=${id} name=${entityName(hass, id, config, r.name)} power-id=${this.model.power[id] ?? nothing}></kh-tile>`,
+      )}
+    </div>`;
 
     return html`
+      <nav class="rooms" aria-label="Pièces">
+        ${(this.rooms ?? []).map(
+          (x) => html`<a href=${`${this.prefix}/pieces/${x.id}`} aria-current=${x.id === r.id ? "page" : nothing}>
+            <ha-icon icon=${x.icon}></ha-icon>${x.name}
+          </a>`,
+        )}
+      </nav>
       <header>
         <div>
-          <h1>${r.name}</h1>
-          ${temp || hum
-            ? html`<div class="climate">
-                ${temp ? html`<strong>${temp}°</strong>` : nothing}${temp && hum ? html`<span class="gap"></span>` : ""}${hum
-                  ? html`${hum} % d'humidité`
-                  : nothing}
-              </div>`
-            : nothing}
+          <h1><span class="shape" style="--rgb: var(--rgb-amber)"><ha-icon icon=${r.icon}></ha-icon></span>${r.name}</h1>
+          ${climate ? html`<div class="secondary climate">${climate}</div>` : nothing}
         </div>
         ${r.lights.length
           ? html`<button class="all" @click=${() => setLights(r.lights, !anyOn)}>
@@ -180,11 +182,16 @@ export class KhRoomView extends LitElement {
             </button>`
           : nothing}
       </header>
-      ${r.lights.length ? html`<section><h2>Lumières</h2>${this.tiles(r.lights)}</section>` : nothing}
-      ${devices.length ? html`<section><h2>Prises et appareils</h2>${this.tiles(devices)}</section>` : nothing}
-      ${r.media.length ? html`<section><h2>Médias</h2>${this.tiles(r.media)}</section>` : nothing}
-      ${r.openings.length ? html`<section><h2>Ouvertures</h2>${this.statusList(r.openings, true)}</section>` : nothing}
-      ${r.motion.length ? html`<section><h2>Présence</h2>${this.statusList(r.motion, false)}</section>` : nothing}
+      ${r.lights.length
+        ? html`<h2>Lumières</h2>
+            <div class="grid">
+              ${r.lights.map((id) => html`<kh-light-card entity-id=${id} name=${entityName(hass, id, config, r.name)}></kh-light-card>`)}
+            </div>`
+        : nothing}
+      ${devices.length ? html`<h2>Prises et appareils</h2>${tiles(devices)}` : nothing}
+      ${r.media.length ? html`<h2>Médias</h2>${tiles(r.media)}` : nothing}
+      ${r.openings.length ? html`<h2>Ouvertures</h2>${this.status(r.openings, true, "var(--rgb-red)")}` : nothing}
+      ${r.motion.length ? html`<h2>Présence</h2>${this.status(r.motion, false, "var(--rgb-indigo)")}` : nothing}
     `;
   }
 }

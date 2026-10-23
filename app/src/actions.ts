@@ -36,9 +36,7 @@ export async function toggle(entityId: string, label: string): Promise<boolean> 
     const ok = await confirmAction(
       {
         title: turnOn ? `Allumer ${label} ?` : `Éteindre ${label} ?`,
-        body: turnOn
-          ? "Cette prise alimente du matériel du homelab."
-          : "Cette prise alimente du matériel du homelab. L'éteindre coupe tout ce qui y est branché.",
+        body: confirmBody(entityId, turnOn),
         confirmLabel: turnOn ? "Allumer" : "Éteindre",
         danger: !turnOn,
       },
@@ -52,6 +50,60 @@ export async function toggle(entityId: string, label: string): Promise<boolean> 
   if (!hass || hass.states[entityId]?.state !== seen) return false;
   await hass.callService(entityId.split(".")[0], turnOn ? "turn_on" : "turn_off", {}, { entity_id: entityId });
   return true;
+}
+
+function confirmBody(entityId: string, turnOn: boolean): string {
+  if (entityId.startsWith("switch.smart_plug_")) {
+    return turnOn
+      ? "Cette prise alimente du matériel du homelab."
+      : "Cette prise alimente du matériel du homelab. L'éteindre coupe tout ce qui y est branché.";
+  }
+  if (entityId.startsWith("switch.computer_")) {
+    return turnOn ? "L'ordinateur va démarrer." : "L'ordinateur va s'éteindre : enregistre ton travail avant.";
+  }
+  return turnOn ? "L'appareil va s'allumer." : "L'appareil va s'éteindre.";
+}
+
+/** Media player commands; the protected guard does not apply to players. */
+export type MediaCommand =
+  | "media_play_pause"
+  | "media_next_track"
+  | "media_previous_track"
+  | "volume_up"
+  | "volume_down"
+  | "turn_on"
+  | "turn_off";
+
+export async function media(entityId: string, command: MediaCommand): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("media_player.")) return;
+  await hass.callService("media_player", command, {}, { entity_id: entityId });
+}
+
+export async function setVolume(entityId: string, level: number): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("media_player.")) return;
+  await hass.callService("media_player", "volume_set", { volume_level: Math.min(1, Math.max(0, level)) }, { entity_id: entityId });
+}
+
+export async function muteToggle(entityId: string): Promise<void> {
+  const hass = store.hass;
+  const s = hass?.states[entityId];
+  if (!hass || !s || !entityId.startsWith("media_player.")) return;
+  await hass.callService("media_player", "volume_mute", { is_volume_muted: !s.attributes.is_volume_muted }, { entity_id: entityId });
+}
+
+/** Runs a script (e.g. "Partir"); scripts never target protected plugs here. */
+export async function runScript(entityId: string): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("script.")) return;
+  await hass.callService("script", "turn_on", {}, { entity_id: entityId });
+}
+
+export async function setAutomation(entityId: string, on: boolean): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("automation.")) return;
+  await hass.callService("automation", on ? "turn_on" : "turn_off", {}, { entity_id: entityId });
 }
 
 /** Room-level action. Unprotected lights only: plugs and devices are never grouped. */
