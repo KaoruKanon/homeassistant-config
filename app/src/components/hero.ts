@@ -5,6 +5,7 @@ import { config } from "../config.ts";
 import { formatNumber, isActive } from "../format.ts";
 import { currentPerson } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
+import { alarmBadge, badgeClass, badgeStyle, badgeStyles, lightsBadge, temperatureBadge, timerBadge, windowsBadge } from "../badges.ts";
 import { base } from "../styles.ts";
 
 const timeFormat = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -51,6 +52,7 @@ export class KhHero extends LitElement {
 
   static styles = [
     base,
+    badgeStyles,
     css`
       :host {
         display: block;
@@ -186,32 +188,32 @@ export class KhHero extends LitElement {
         </div>
         <div class="chips">
           ${!isNaN(temp)
-            ? html`<button class="chip tint" style="--rgb:${temp < 18 ? "var(--rgb-orange)" : temp < 28 ? "var(--rgb-green)" : "var(--rgb-red)"}"
+            ? html`<button class="chip ${badgeClass(temperatureBadge(temp))}" style=${badgeStyle(temperatureBadge(temp))}
                 @click=${() => openMoreInfo(this, c.temperature!)} aria-label="Température moyenne de la maison">
-                <ha-icon icon="mdi:home-thermometer"></ha-icon>${formatNumber(temp)}°
+                <ha-icon icon="mdi:home"></ha-icon>${formatNumber(temp)}°
               </button>`
             : nothing}
           ${timer
-            ? html`<span class="chip ${timerOn ? "blink" : ""}" style="--rgb: var(--rgb-blue)">
-                <ha-icon icon="mdi:timer-outline"></ha-icon>${timer}
+            ? html`<span class="chip ${badgeClass(timerBadge(timerOn))}" style=${badgeStyle(timerBadge(timerOn))}>
+                <ha-icon icon="mdi:google-assistant"></ha-icon>${timer}
               </span>`
             : nothing}
           ${!isNaN(lights)
-            ? html`<a class="chip ${lights > 0 ? "tint" : ""}" style="--rgb: var(--rgb-amber)" href=${this.mapHref ?? "#"}
+            ? html`<a class="chip ${badgeClass(lightsBadge(lights))}" style=${badgeStyle(lightsBadge(lights))} href=${this.mapHref ?? "#"}
                 aria-label="${lights} lumières allumées">
-                <ha-icon icon=${lights > 0 ? "mdi:lightbulb-on" : "mdi:lightbulb-outline"}></ha-icon>${lights}
+                <ha-icon icon=${lights > 0 ? "mdi:lightbulb" : "mdi:lightbulb-off"}></ha-icon>${lights}
               </a>`
             : nothing}
           ${!isNaN(windows)
-            ? html`<button class="chip ${windows > 0 ? "tint" : ""}" style="--rgb: var(--rgb-${windows > 0 ? "red" : "green"})"
+            ? html`<button class="chip ${badgeClass(windowsBadge(windows))}" style=${badgeStyle(windowsBadge(windows))}
                 @click=${() => openOpenings(openingIds())} aria-label=${windows > 0 ? `${windows} fenêtres ouvertes` : "Fenêtres fermées"}>
                 <ha-icon icon=${windows > 0 ? "mdi:window-open-variant" : "mdi:window-closed-variant"}></ha-icon>${windows}
               </button>`
             : nothing}
           ${alarm
-            ? html`<button class="chip tint ${alarmLook(alarm.state).alert ? "blink" : ""}" style="--rgb: var(--rgb-${alarmLook(alarm.state).color})"
-                @click=${() => openAlarm(alarm.entity_id)} aria-label="Alarme : ${alarmLook(alarm.state).label}" title=${alarmLook(alarm.state).label}>
-                <ha-icon icon=${alarmLook(alarm.state).icon}></ha-icon>
+            ? html`<button class="chip ${badgeClass(alarmBadge(alarm.state))}" style=${badgeStyle(alarmBadge(alarm.state))}
+                @click=${() => openAlarm(alarm.entity_id)} aria-label="Alarme : ${alarmLook(alarm.state).label}">
+                <ha-icon icon=${alarmLook(alarm.state).icon}></ha-icon>${alarmLook(alarm.state).label}
               </button>`
             : nothing}
           ${residents()

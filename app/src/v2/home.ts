@@ -13,6 +13,7 @@ import { formatNumber, isActive, stateLabel } from "../format.ts";
 import { alarmLook, openAlarm, openOpenings, openPerson, openWifiQr } from "../popups/index.ts";
 import { currentPerson, type HouseModel } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
+import { alarmBadge, badgeClass, badgeStyle, badgeStyles, lightsBadge, temperatureBadge, timerBadge, windowsBadge } from "../badges.ts";
 import { base } from "../styles.ts";
 import { FROG_SKY, forecastDays } from "../weather-utils.ts";
 import { head, pagesOf, ring, v2 } from "./styles.ts";
@@ -59,7 +60,12 @@ export class KhHomeV2 extends LitElement {
   static styles = [
     base,
     v2,
+    badgeStyles,
     css`
+      /* On the picture, the Lovelace tints are deepened to stay visible. */
+      .scene .chip.b-tint {
+        background: rgba(var(--b-bg), calc(var(--b-a) + 0.3));
+      }
       /* Hero: the weather scene of the house, time and people on it. */
       .scene {
         position: relative;
@@ -343,6 +349,7 @@ export class KhHomeV2 extends LitElement {
     const timer = st(h.chips.timer)?.state;
     const indoor = Number(st(h.chips.temperature)?.state);
     const alarm = st(h.chips.alarm);
+    const timerOn = st(h.chips.timerActive)?.state === "active" || isActive(st(h.chips.timerActive));
     const bat = new Map(this.batteries().map((b) => [b.key, b]));
     const style = `--frog: ${FROG_SKY[frog] ?? "40, 130, 221"}; --scene: ${scene.startsWith("http") ? `url('${scene}')` : "none"}; --shift: ${place === "field" ? "20%" : place === "hills" ? "40%" : "10%"}`;
 
@@ -379,17 +386,24 @@ export class KhHomeV2 extends LitElement {
       </div>
       <div class="chips">
         ${rainAt ? html`<span class="chip"><ha-icon icon="mdi:umbrella"></ha-icon>Pluie à ${rainAt}</span>` : nothing}
-        ${!isNaN(lights) ? html`<a class="chip" href=${`${this.prefix}/pieces`}><ha-icon icon="mdi:lightbulb-on"></ha-icon>${lights} allumée${lights > 1 ? "s" : ""}</a>` : nothing}
-        ${!isNaN(indoor) ? html`<span class="chip"><ha-icon icon="mdi:home-thermometer"></ha-icon>${formatNumber(indoor)}° dedans</span>` : nothing}
+        ${!isNaN(indoor)
+          ? html`<span class="chip ${badgeClass(temperatureBadge(indoor))}" style=${badgeStyle(temperatureBadge(indoor))}><ha-icon icon="mdi:home"></ha-icon>${formatNumber(indoor)}°</span>`
+          : nothing}
+        ${timer && timer !== "Pas de timer"
+          ? html`<span class="chip ${badgeClass(timerBadge(timerOn))}" style=${badgeStyle(timerBadge(timerOn))}><ha-icon icon="mdi:google-assistant"></ha-icon>${timer}</span>`
+          : nothing}
+        ${!isNaN(lights)
+          ? html`<a class="chip ${badgeClass(lightsBadge(lights))}" style=${badgeStyle(lightsBadge(lights))} href=${`${this.prefix}/pieces`}>
+              <ha-icon icon=${lights > 0 ? "mdi:lightbulb" : "mdi:lightbulb-off"}></ha-icon>${lights} allumée${lights > 1 ? "s" : ""}</a>`
+          : nothing}
         ${!isNaN(windows)
-          ? html`<button class="chip ${windows > 0 ? "alert" : ""}" @click=${() => openOpenings(this.openings())}>
+          ? html`<button class="chip ${badgeClass(windowsBadge(windows))}" style=${badgeStyle(windowsBadge(windows))} @click=${() => openOpenings(this.openings())}>
               <ha-icon icon=${windows > 0 ? "mdi:window-open-variant" : "mdi:window-closed-variant"}></ha-icon>${windows > 0 ? `${windows} ouverte${windows > 1 ? "s" : ""}` : "Fermé"}</button>`
           : nothing}
         ${alarm
-          ? html`<button class="chip ${alarmLook(alarm.state).alert ? "alert blink" : ""}" @click=${() => openAlarm(alarm.entity_id)}>
+          ? html`<button class="chip ${badgeClass(alarmBadge(alarm.state))}" style=${badgeStyle(alarmBadge(alarm.state))} @click=${() => openAlarm(alarm.entity_id)}>
               <ha-icon icon=${alarmLook(alarm.state).icon}></ha-icon>${alarmLook(alarm.state).label}</button>`
           : nothing}
-        ${timer && timer !== "Pas de timer" ? html`<span class="chip"><ha-icon icon="mdi:timer-outline"></ha-icon>${timer}</span>` : nothing}
       </div>
     </section>`;
   }
