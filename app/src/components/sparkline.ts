@@ -7,8 +7,10 @@ interface Point {
   v: number;
 }
 
-/** Hourly (or `perHour`) averages: a trend, not every reading. */
-function smooth(points: Point[], t0: number, t1: number, perHour: number): Point[] {
+const hourFormat = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+/** Averages per step (`perHour` per hour): a trend, not every reading. */
+function smooth(points: Point[], t0: number, perHour: number): Point[] {
   const step = 3600_000 / perHour;
   const buckets = new Map<number, { sum: number; n: number }>();
   for (const p of points) {
@@ -26,7 +28,7 @@ function smooth(points: Point[], t0: number, t1: number, perHour: number): Point
     .sort((a, b) => a[0] - b[0])
     .forEach(([k, b]) => out.push({ t: t0 + (k + 0.5) * step, v: b.sum / b.n }));
   const last = points.at(-1);
-  if (last && last.t <= t1) out.push({ t: Math.max(last.t, out.at(-1)?.t ?? t0), v: last.v });
+  if (last && last.t >= t0) out.push({ t: Math.max(last.t, out.at(-1)?.t ?? t0), v: last.v });
   return out;
 }
 
@@ -65,24 +67,30 @@ function monotonePath(xy: [number, number][]): string {
 let uid = 0;
 
 /**
- * Trend of one or two numeric sensors over the last hours (e.g. temperature
- * and humidity), from the recorder: hourly averages drawn as a smooth curve,
- * as wide as its card.
+ * Trend of one or two numeric sensors (e.g. temperature and humidity) from
+ * the recorder: averaged, drawn as smooth filled curves across the whole
+ * width (the time axis spans the data), min/max of the first series, and a
+ * cursor to read any hour (hover or drag).
  */
 export class KhSparkline extends LitElement {
   static properties = {
     entities: { attribute: false },
     hours: { type: Number },
     compact: { type: Boolean },
+    height: { type: Number },
     series: { state: true },
     width: { state: true },
+    cursor: { state: true },
   };
   declare entities: { entity: string; label: string; color: string; unit: string }[];
   declare hours: number;
-  /** Small inline graph (cards): no legend, lower. */
+  /** Small inline graph (cards): no legend, axis or cursor. */
   declare compact: boolean;
+  declare height?: number;
   declare series: Point[][];
   declare width: number;
+  /** Time under the finger or pointer. */
+  declare cursor?: number;
   private gradient = `kh-spark-${++uid}`;
   private resize = new ResizeObserver(([e]) => (this.width = Math.max(80, Math.round(e.contentRect.width))));
 
@@ -100,18 +108,24 @@ export class KhSparkline extends LitElement {
     svg {
       display: block;
       width: 100%;
+      overflow: visible;
     }
     .legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 14px;
+      align-items: baseline;
+      gap: 4px 16px;
       font-size: 0.8125rem;
       font-weight: 600;
       color: var(--kh-text-2);
-      margin-bottom: 4px;
+      margin-bottom: 8px;
+      min-height: 20px;
     }
-    .legend span::before {
-      content: "";
+    .legend b {
+      color: var(--kh-text);
+      font-variant-numeric: tabular-nums;
+    }
+    .legend .dot {
       display: inline-block;
       width: 10px;
       height: 10px;
@@ -120,18 +134,55 @@ export class KhSparkline extends LitElement {
       background: rgb(var(--c));
       vertical-align: -1px;
     }
+    .legend .when {
+      margin-left: auto;
+    }
+    .plot {
+      touch-action: pan-y;
+      cursor: crosshair;
+    }
+    text {
+      font: 600 11px var(--kh-font, system-ui);
+      fill: var(--kh-text-2);
+      font-variant-numeric: tabular-nums;
+    }
     path.line {
-      stroke-dasharray: 2000;
-      stroke-dashoffset: 2000;
-      animation: draw 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      stroke-dasharray: 3000;
+      stroke-dashoffset: 3000;
+      animation: draw 1200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    path.area {
+      animation: fade 900ms ease-out;
+    }
+    .pulse {
+      animation: pulse 2.4s ease-out infinite;
+      transform-box: fill-box;
+      transform-origin: center;
     }
     @keyframes draw {
       to {
         stroke-dashoffset: 0;
       }
     }
+    @keyframes fade {
+      from {
+        opacity: 0;
+      }
+    }
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 0.55;
+      }
+      100% {
+        transform: scale(3.2);
+        opacity: 0;
+      }
+    }
     @media (prefers-reduced-motion: reduce) {
-      path.line {
+      path.line,
+      path.area,
+      .pulse {
         animation: none;
         stroke-dashoffset: 0;
       }
@@ -170,46 +221,105 @@ export class KhSparkline extends LitElement {
     }
   }
 
+  private pointer(e: PointerEvent, t0: number, t1: number, pad: number): void {
+    const r = (e.currentTarget as SVGElement).getBoundingClientRect();
+    const f = Math.min(1, Math.max(0, (e.clientX - r.left - pad) / (r.width - 2 * pad)));
+    this.cursor = t0 + f * (t1 - t0);
+  }
+
   render() {
     if (!this.series.some((s) => s.length > 0))
       return this.compact ? nothing : html`<div class="legend">Pas d'historique sur ${this.hours} h</div>`;
-    const W = this.width, H = this.compact ? 52 : 110, pad = this.compact ? 4 : 8;
-    const t1 = Date.now(), t0 = t1 - this.hours * 3600_000;
-    const x = (t: number) => pad + ((t - t0) / (t1 - t0)) * (W - 2 * pad);
+    const compact = this.compact;
+    const W = this.width, H = this.height ?? (compact ? 52 : 150);
+    // Compact graphs bleed to the edges of their card (left, right, bottom).
+    const padX = compact ? 0 : 4, top = compact ? 8 : 14, bottom = compact ? 0 : 22;
+    const now = Date.now(), from = now - this.hours * 3600_000;
     const perHour = this.hours <= 12 ? 2 : 1;
+    const smoothed = this.series.map((raw) => smooth(raw, from, perHour));
+    const all = smoothed.flat();
+    // The time axis spans the data, so the curves always fill the width.
+    const t0 = Math.min(...all.map((p) => p.t)), t1 = Math.max(t0 + 3600_000, ...all.map((p) => p.t));
+    const x = (t: number) => padX + ((t - t0) / (t1 - t0)) * (W - 2 * padX);
+    const stale = now - t1 > 2 * 3600_000;
+
+    const scales = smoothed.map((pts, i) => {
+      const vs = pts.map((p) => p.v);
+      const lo = Math.min(...vs), hi = Math.max(...vs);
+      const span = Math.max(hi - lo, i === 0 ? 1 : 4), mid = (lo + hi) / 2;
+      // Each series on its own scale, kept inside the plot.
+      const y = (v: number) => top + (H - top - bottom) / 2 - ((v - mid) / span) * (H - top - bottom - 4);
+      return { lo, hi, y };
+    });
+    const at = (pts: Point[], t: number) => pts.reduce((best, p) => (Math.abs(p.t - t) < Math.abs(best.t - t) ? p : best), pts[0]);
+    const cur = this.cursor !== undefined && !compact ? this.cursor : undefined;
+
+    const legend = compact
+      ? nothing
+      : html`<div class="legend">
+          ${this.entities.map((e, i) => {
+            const pts = smoothed[i];
+            if (!pts?.length) return nothing;
+            const v = cur !== undefined ? at(pts, cur).v : Number(store.hass?.states[e.entity]?.state);
+            const shown = isNaN(v) ? this.series[i].at(-1)?.v : v;
+            return html`<span style="--c:${e.color}"><span class="dot"></span>${e.label}
+              <b>${shown !== undefined ? `${formatNumber(shown)} ${e.unit}` : "—"}</b></span>`;
+          })}
+          <span class="when">${cur !== undefined ? hourFormat.format(new Date(cur)) : stale ? `relevé à ${hourFormat.format(new Date(t1))}` : ""}</span>
+        </div>`;
+
+    const first = this.entities[0];
+    const s0 = scales[0];
     return html`
-      ${this.compact
-        ? nothing
-        : html`<div class="legend">
-            ${this.entities.map((e, i) => {
-              const last = this.series[i]?.at(-1)?.v;
-              return html`<span style="--c:${e.color}">${e.label}${last !== undefined ? ` ${formatNumber(last)} ${e.unit}` : ""}</span>`;
-            })}
-          </div>`}
-      ${svg`<svg viewBox="0 0 ${W} ${H}" height=${H} role="img" aria-label="Tendance sur ${this.hours} heures">
+      ${legend}
+      ${svg`<svg class="plot" viewBox="0 0 ${W} ${H}" height=${H} role="img" aria-label="Tendance sur ${this.hours} heures"
+        @pointermove=${(e: PointerEvent) => !compact && this.pointer(e, t0, t1, padX)}
+        @pointerdown=${(e: PointerEvent) => !compact && this.pointer(e, t0, t1, padX)}
+        @pointerleave=${() => (this.cursor = undefined)}
+        @pointercancel=${() => (this.cursor = undefined)}>
         <defs>${this.entities.map(
           (e, i) => svg`<linearGradient id="${this.gradient}-${i}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="rgb(${e.color})" stop-opacity="0.35" />
-            <stop offset="1" stop-color="rgb(${e.color})" stop-opacity="0" />
+            <stop offset="0" stop-color="rgb(${e.color})" stop-opacity=${i === 0 ? 0.42 : 0.22} />
+            <stop offset="1" stop-color="rgb(${e.color})" stop-opacity=${compact ? 0.06 : 0} />
           </linearGradient>`,
         )}</defs>
-        ${this.series.map((raw, i) => {
-          const pts = smooth(raw, t0, t1, perHour);
-          if (pts.length < 2) return nothing;
-          const vs = pts.map((p) => p.v);
-          const lo = Math.min(...vs), hi = Math.max(...vs), span = Math.max(hi - lo, i === 0 ? 1 : 4);
-          const mid = (lo + hi) / 2;
-          // Each series on its own scale, kept away from the edges.
-          const y = (v: number) => H / 2 - ((v - mid) / span) * (H - 2 * pad - 6);
-          const xy = pts.map((p) => [x(p.t), y(p.v)] as [number, number]);
-          const d = monotonePath(xy);
-          const end = xy.at(-1)!;
-          return svg`
-            ${i === 0 ? svg`<path d="${d} L${end[0].toFixed(1)} ${H} L${xy[0][0].toFixed(1)} ${H} Z" fill="url(#${this.gradient}-${i})" />` : nothing}
-            <path class="line" d=${d} fill="none" stroke="rgb(${this.entities[i].color})" stroke-width=${i === 0 ? 2.5 : 1.75}
-              stroke-linecap="round" stroke-linejoin="round" opacity=${i === 0 ? 1 : 0.8} />
-            <circle cx=${end[0]} cy=${end[1]} r=${i === 0 ? 3.5 : 2.5} fill="rgb(${this.entities[i].color})" />`;
-        })}
+        ${!compact && s0 && smoothed[0]?.length > 1
+          ? svg`
+            <line x1="0" x2=${W} y1=${s0.y(s0.hi)} y2=${s0.y(s0.hi)} stroke="var(--kh-line)" stroke-dasharray="3 5" />
+            <line x1="0" x2=${W} y1=${s0.y(s0.lo)} y2=${s0.y(s0.lo)} stroke="var(--kh-line)" stroke-dasharray="3 5" />
+            <text x=${W - 2} y=${s0.y(s0.hi) - 4} text-anchor="end">max ${formatNumber(s0.hi)} ${first.unit}</text>
+            <text x=${W - 2} y=${s0.y(s0.lo) + 13} text-anchor="end">min ${formatNumber(s0.lo)} ${first.unit}</text>
+            <text x=${padX} y=${H - 4}>${hourFormat.format(new Date(t0))}</text>
+            <text x=${W / 2} y=${H - 4} text-anchor="middle">${hourFormat.format(new Date((t0 + t1) / 2))}</text>
+            <text x=${W - padX} y=${H - 4} text-anchor="end">${stale ? hourFormat.format(new Date(t1)) : "maintenant"}</text>`
+          : nothing}
+        ${smoothed
+          .map((pts, i) => ({ pts, i }))
+          .reverse() // first series drawn last, on top
+          .map(({ pts, i }) => {
+            if (pts.length < 2) return nothing;
+            const xy = pts.map((p) => [x(p.t), scales[i].y(p.v)] as [number, number]);
+            const d = monotonePath(xy);
+            const end = xy.at(-1)!;
+            const color = this.entities[i].color;
+            const base = H - bottom;
+            return svg`
+              <path class="area" d="${d} L${end[0].toFixed(1)} ${base} L${xy[0][0].toFixed(1)} ${base} Z" fill="url(#${this.gradient}-${i})" />
+              <path class="line" d=${d} fill="none" stroke="rgb(${color})" stroke-width=${i === 0 ? 2.75 : 2}
+                stroke-linecap="round" stroke-linejoin="round" opacity=${i === 0 ? 1 : 0.85} />
+              ${compact
+                ? nothing
+                : svg`${stale ? nothing : svg`<circle class="pulse" cx=${end[0]} cy=${end[1]} r="3.5" fill="rgb(${color})" />`}
+                  <circle cx=${end[0]} cy=${end[1]} r=${i === 0 ? 4 : 3} fill="rgb(${color})" stroke="var(--kh-dialog, #fff)" stroke-width="1.5" />`}`;
+          })}
+        ${cur !== undefined
+          ? svg`<line x1=${x(cur)} x2=${x(cur)} y1=${top - 6} y2=${H - bottom} stroke="var(--kh-text-2)" stroke-width="1" />
+            ${smoothed.map((pts, i) => {
+              if (pts.length < 2) return nothing;
+              const p = at(pts, cur);
+              return svg`<circle cx=${x(p.t)} cy=${scales[i].y(p.v)} r="5" fill="rgb(${this.entities[i].color})" stroke="#fff" stroke-width="2" />`;
+            })}`
+          : nothing}
       </svg>`}
     `;
   }

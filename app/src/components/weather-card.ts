@@ -1,3 +1,4 @@
+import { until } from "lit/directives/until.js";
 import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo } from "../actions.ts";
 import { config } from "../config.ts";
@@ -51,6 +52,42 @@ const dayFormat = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
 const timeFormat = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
 /** Current weather over the Google weather frog, then a 5-day strip. */
+const stills = new Map<string, Promise<string>>();
+const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+
+/**
+ * A still frame of an animated weather icon. The Meteocons animate in SMIL,
+ * which the browser repaints on every frame for each image: a forecast row
+ * of a dozen of them is enough to stall a tablet. Only the "now" icon moves;
+ * lists use a frame drawn once on a canvas (cached per icon).
+ */
+export function stillIcon(src: string): Promise<string> {
+  let p = stills.get(src);
+  if (!p) {
+    p = new Promise<string>((resolve) => {
+      const img = new Image();
+      img.onload = () =>
+        setTimeout(() => {
+          try {
+            const c = document.createElement("canvas");
+            c.width = c.height = 160;
+            c.getContext("2d")!.drawImage(img, 0, 0, 160, 160);
+            resolve(c.toDataURL("image/png"));
+          } catch {
+            resolve(src);
+          }
+        }, 400); // a frame where the drops and rays are drawn
+      img.onerror = () => resolve(src);
+      img.src = src;
+    });
+    stills.set(src, p);
+  }
+  return p;
+}
+
+/** For `<img src=${still(...)}>`: blank until the still frame is ready. */
+export const still = (src: string) => until(stillIcon(src), BLANK);
+
 export class KhWeatherCard extends LitElement {
   constructor() {
     super();
@@ -187,7 +224,7 @@ export class KhWeatherCard extends LitElement {
             ${days.map(
               (d) => html`<div class="day" role="listitem">
                 <span class="name">${dayFormat.format(new Date(d.datetime)).replace(".", "")}</span>
-                <img src=${weatherIcon(d.condition, false, d.precipitation ?? 0)} alt=${d.condition} />
+                <img src=${still(weatherIcon(d.condition, false, d.precipitation ?? 0))} alt=${d.condition} />
                 <span class="t">${formatNumber(d.temperature, 0)}°</span>
                 <span class="low">${d.templow !== undefined ? `${formatNumber(d.templow, 0)}°` : ""}</span>
                 <span class="low">${d.wind_speed !== undefined ? `${formatNumber(d.wind_speed, 0)} km/h` : ""}</span>

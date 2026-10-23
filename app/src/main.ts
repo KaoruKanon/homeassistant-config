@@ -1,11 +1,11 @@
 import { LitElement, css, html, nothing } from "lit";
 import { config } from "./config.ts";
-import { setProtectedEntities } from "./actions.ts";
 import { cancelConfirmation } from "./components/confirm-dialog.ts";
 import { installPressFeedback } from "./components/gestures.ts";
 import { closePopup, openPopup } from "./components/popup.ts";
 import { keyed } from "lit/directives/keyed.js";
-import { buildHouse, currentPerson, roomsFor, type HouseModel } from "./rooms.ts";
+import { house } from "./house.ts";
+import { currentPerson, roomsFor } from "./rooms.ts";
 import { RegistryController, store } from "./store.ts";
 import { base, tokens } from "./styles.ts";
 import type { HomeAssistant, PanelRoute } from "./types.ts";
@@ -17,7 +17,6 @@ const TRANSLATED_DOMAINS = ["weather", "light", "switch", "fan", "media_player",
 
 /** Theme pages, loaded on first visit so the home view stays light. */
 const PAGES: Record<string, { tag: string; load: () => Promise<unknown> }> = {
-  "home-v2": { tag: "kh-home-v2", load: () => import("./views/home-v2.ts") },
   medias: { tag: "kh-media-view", load: () => import("./views/media-view.ts") },
   meteo: { tag: "kh-weather-view", load: () => import("./views/weather-view.ts") },
   energie: { tag: "kh-energy-view", load: () => import("./views/energy-view.ts") },
@@ -27,7 +26,6 @@ const PAGES: Record<string, { tag: string; load: () => Promise<unknown> }> = {
 /** Main navigation, by theme. Pages not rebuilt yet point to the old dashboard. */
 const NAV = [
   { path: "", label: "Accueil", icon: "mdi:home" },
-  { path: "v2", label: "Maison V2", icon: "mdi:view-dashboard-variant" },
   { path: "pieces", label: "Maison", icon: "mdi:floor-plan" },
   { path: "medias", label: "Médias", icon: "mdi:play-box-multiple-outline" },
   { path: "meteo", label: "Météo", icon: "mdi:weather-partly-cloudy" },
@@ -48,19 +46,10 @@ class KaoruHomePanel extends LitElement {
   declare narrow: boolean;
   declare route?: PanelRoute;
 
-  private model?: HouseModel;
-  private modelKey: unknown[] = [];
-
   constructor() {
     super();
     new RegistryController(this);
-    // HA may set `hass` before the loader has defined this element: the value
-    // then sits on the instance and hides the setter. Re-apply it.
-    if (Object.prototype.hasOwnProperty.call(this, "hass")) {
-      const early = (this as unknown as { hass: HomeAssistant }).hass;
-      delete (this as unknown as { hass?: HomeAssistant }).hass;
-      this.hass = early;
-    }
+    adoptEarlyHass(this);
   }
 
   disconnectedCallback(): void {
@@ -69,10 +58,7 @@ class KaoruHomePanel extends LitElement {
   }
 
   set hass(hass: HomeAssistant) {
-    const first = !store.hass;
-    store.set(hass);
-    // State labels ("Pluie", "Allumé"…) come from translations HA loads on demand.
-    if (first) hass.loadBackendTranslation?.("entity_component", TRANSLATED_DOMAINS);
+    feed(hass);
   }
 
   get hass(): HomeAssistant | undefined {
@@ -217,18 +203,6 @@ class KaoruHomePanel extends LitElement {
     `,
   ];
 
-  /** Rebuilds the house model only when the registry changed. */
-  private house(hass: HomeAssistant): HouseModel {
-    // States count too: after an HA restart the registry arrives before all states.
-    const key = [hass.entities, hass.devices, hass.areas, Object.keys(hass.states).length];
-    if (!this.model || key.some((k, i) => k !== this.modelKey[i])) {
-      this.model = buildHouse(hass, config);
-      setProtectedEntities(this.model.protected);
-      this.modelKey = key;
-    }
-    return this.model;
-  }
-
   private navigate(e: MouseEvent): void {
     const a = (e.composedPath() as HTMLElement[]).find((el) => el instanceof HTMLAnchorElement) as
       | HTMLAnchorElement
@@ -288,7 +262,7 @@ class KaoruHomePanel extends LitElement {
   render() {
     const hass = store.hass;
     if (!hass) return nothing;
-    const model = this.house(hass);
+    const model = house(hass);
     const person = currentPerson(hass)?.replace("person.", "");
     const rooms = roomsFor(model, (person && config.people[person]?.favoriteRooms) || []);
     const prefix = this.route?.prefix ?? "/maison";
@@ -296,14 +270,7 @@ class KaoruHomePanel extends LitElement {
     const room = section === "pieces" && sub ? rooms.find((r) => r.id === sub) : undefined;
 
     let page;
-    if (section === "v2") {
-      const p = PAGES["home-v2"];
-      if (customElements.get(p.tag)) page = html`<kh-home-v2 prefix=${prefix} .model=${model}></kh-home-v2>`;
-      else {
-        p.load().then(() => this.requestUpdate());
-        page = html`<div class="loading" aria-busy="true"></div>`;
-      }
-    } else if (section === "") page = html`<kh-home-view prefix=${prefix}></kh-home-view>`;
+    if (section === "") page = html`<kh-home-view prefix=${prefix}></kh-home-view>`;
     else if (section === "pieces" && room)
       page = html`<kh-room-view .room=${room} .model=${model} .rooms=${rooms} prefix=${prefix}></kh-room-view>`;
     else if (section === "pieces") page = html`<kh-rooms-view .rooms=${rooms} prefix=${prefix}></kh-rooms-view>`;
@@ -346,6 +313,65 @@ class KaoruHomePanel extends LitElement {
   }
 }
 customElements.define("kaoru-home", KaoruHomePanel);
+
+/**
+ * The "Maison V2" panel (`panel_custom: name: kaoru-home-v2`): a separate app
+ * under src/v2, downloaded the first time it is opened so V1 never pays for it.
+ */
+class KaoruHomeV2Panel extends LitElement {
+  static properties = { narrow: { type: Boolean }, route: { attribute: false }, ready: { state: true } };
+  declare narrow: boolean;
+  declare route?: PanelRoute;
+  declare ready: boolean;
+
+  constructor() {
+    super();
+    this.ready = false;
+    adoptEarlyHass(this);
+    import("./v2/app.ts").then(() => (this.ready = true));
+  }
+
+  set hass(hass: HomeAssistant) {
+    const first = !store.hass;
+    feed(hass);
+    if (first) this.requestUpdate(); // the app itself watches the store
+  }
+
+  get hass(): HomeAssistant | undefined {
+    return store.hass;
+  }
+
+  static styles = css`
+    :host {
+      display: block;
+    }
+  `;
+
+  render() {
+    return this.ready && store.hass ? html`<kh-v2-app .narrow=${this.narrow} .route=${this.route}></kh-v2-app>` : nothing;
+  }
+}
+customElements.define("kaoru-home-v2", KaoruHomeV2Panel);
+
+/** Every new `hass` goes to the store; only the affected components re-render. */
+function feed(hass: HomeAssistant): void {
+  const first = !store.hass;
+  store.set(hass);
+  // State labels ("Pluie", "Allumé"…) come from translations HA loads on demand.
+  if (first) hass.loadBackendTranslation?.("entity_component", TRANSLATED_DOMAINS);
+}
+
+/**
+ * HA may set `hass` before the loader has defined the panel element: the
+ * value then sits on the instance and hides the setter. Re-apply it.
+ */
+function adoptEarlyHass(el: { hass?: HomeAssistant }): void {
+  if (Object.prototype.hasOwnProperty.call(el, "hass")) {
+    const early = el.hass!;
+    delete el.hass;
+    el.hass = early;
+  }
+}
 
 /** Navigates inside the panel (HA's router listens to location-changed). */
 function goTo(path: string): void {

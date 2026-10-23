@@ -152,6 +152,9 @@ export const config: KaoruHomeConfig = {
   hide: [
     "light.*_screen", // browser_mod screens
     "switch.*_child_lock*",
+    // Wall switches (Cuisine, Chambre Papa, Toilette, Salle de bain, Chambre William): not used.
+    "light.switch_wall_*",
+    "light.*_wall",
   ],
   // The Tuya plugs power the homelab: one wrong tap can switch it off.
   // The PCs: a tap on the wall tablet must not shut one down by accident.
@@ -164,7 +167,6 @@ export const config: KaoruHomeConfig = {
     "switch.wol_*",
   ],
   names: {
-    "light.switch_wall_*": "Lumière",
     "light.chambre": "Chambre",
     "media_player.spotify": "Spotify",
     "media_player.google_home_*": "Enceinte",
@@ -232,10 +234,6 @@ export const config: KaoruHomeConfig = {
       { entity: "light.plafond", name: "Plafond", icon: "mdi:ceiling-light" },
       { entity: "light.chambre", name: "Chambre", icon: "mdi:bed-king-outline" },
       { entity: "light.bureau", name: "Bureau", icon: "mdi:desk-lamp" },
-      { entity: "light.switch_wall_cuisine", name: "Cuisine", icon: "mdi:silverware-fork-knife" },
-      { entity: "light.switch_wall_chambre_papa", name: "Papa", icon: "mdi:bed-outline" },
-      { entity: "light.switch_wall_toilette", name: "Toilette", icon: "mdi:toilet" },
-      { entity: "light.switch_wall_salle_de_bain", name: "Salle de bain", icon: "mdi:shower" },
     ],
     computers: [
       {

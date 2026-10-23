@@ -6,6 +6,8 @@
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 import { login, screens } from "./screens.mjs";
+// Software WebGL: HA's native map (MapLibre) renders headless without stalling screenshots.
+const GL = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"];
 
 const url = process.env.HASS_URL ?? "http://localhost:8124";
 const out = process.argv[2] ?? "screens";
@@ -16,6 +18,7 @@ const only = process.env.ONLY;
 const allTargets = {
   lovelace: { path: "/lovelace/home", ready: ["MUSHROOM-TEMPLATE-CARD", "MUSHROOM-CHIPS-CARD", "HUI-ENTITIES-CARD"] },
   "kaoru-home": { path: "/maison", ready: ["KH-LIGHT-CARD"] },
+  "kaoru-home-v2": { path: "/maison-v2", ready: ["KH-LIGHT-PILL"] },
 };
 
 const targets = only ? { [only]: allTargets[only] } : allTargets;
@@ -41,7 +44,7 @@ function deepHas(tags) {
   return walk(document);
 }
 
-const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome" });
+const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome", args: GL });
 await login(browser);
 const rows = [];
 for (const [name, t] of Object.entries(targets)) {

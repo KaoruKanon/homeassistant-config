@@ -39,6 +39,13 @@ panel_custom:
     module_url: /local/kaoru-home/kaoru-home.js?v=0.2.0
     embed_iframe: false
     require_admin: false
+  - name: kaoru-home-v2
+    sidebar_title: Maison V2
+    sidebar_icon: mdi:view-dashboard-variant
+    url_path: maison-v2
+    module_url: /local/kaoru-home/kaoru-home.js?v=0.2.0
+    embed_iframe: false
+    require_admin: false
 
 lovelace:
   mode: yaml

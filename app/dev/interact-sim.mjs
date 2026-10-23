@@ -4,12 +4,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 import { login, screens } from "./screens.mjs";
+// Software WebGL: HA's native map (MapLibre) renders headless without stalling screenshots.
+const GL = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"];
 
 const SIM = new Set(["light.lampe_de_bureau", "light.plafonnier", "switch.prise_protegee"]);
 const url = process.env.HASS_URL ?? "http://localhost:8124";
 const out = process.argv[2] ?? "screens";
 
-const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome" });
+const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome", args: GL });
 await login(browser);
 const context = await browser.newContext({ ...screens.tablet, locale: "fr-FR", storageState: join(out, ".auth.json") });
 const page = await context.newPage();

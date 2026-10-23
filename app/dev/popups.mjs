@@ -3,10 +3,12 @@
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 import { login, screens } from "./screens.mjs";
+// Software WebGL: HA's native map (MapLibre) renders headless without stalling screenshots.
+const GL = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"];
 
 const url = process.env.HASS_URL ?? "http://localhost:8124";
 const out = process.argv[2] ?? "screens";
-const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome" });
+const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome", args: GL });
 await login(browser);
 
 for (const [name, device] of [["tablet", screens.tablet], ["mobile", screens.mobile]]) {

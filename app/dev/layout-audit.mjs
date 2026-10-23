@@ -5,12 +5,16 @@
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 import { login } from "./screens.mjs";
+// Software WebGL: HA's native map (MapLibre) renders headless without stalling screenshots.
+const GL = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"];
 
 const url = process.env.HASS_URL ?? "http://localhost:8124";
 const out = process.argv[2] ?? "screens";
 const SIZES = {
   "phone-portrait": { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
   "phone-landscape": { viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
+  "lenovo-m10": { viewport: { width: 960, height: 600 }, hasTouch: true },
+  "lenovo-m10-portrait": { viewport: { width: 600, height: 960 }, hasTouch: true },
   "ipad-portrait": { viewport: { width: 820, height: 1180 }, hasTouch: true },
   "ipad-landscape": { viewport: { width: 1180, height: 820 }, hasTouch: true },
   "wall-tablet": { viewport: { width: 1280, height: 800 }, hasTouch: true },
@@ -18,11 +22,13 @@ const SIZES = {
   "macbook-16": { viewport: { width: 1728, height: 1117 } },
   "full-hd": { viewport: { width: 1920, height: 1080 } },
 };
-const PAGES = ["", "/v2", "/pieces", "/pieces/chambre_william", "/medias", "/meteo", "/energie", "/systeme"];
+// V1 under /maison, V2 (separate panel) under /maison-v2.
+const SUBPAGES = ["", "/pieces", "/pieces/chambre_william", "/medias", "/meteo", "/energie", "/systeme"];
+const PAGES = (process.env.PANELS ?? "/maison,/maison-v2").split(",").flatMap((panel) => SUBPAGES.map((p) => panel + p));
 // Minimum widths (px) below which a component is unusable.
-const MIN = { "KH-LIGHT-CARD": 165, "KH-MEDIA-CARD": 260, "KH-WEATHER-CARD": 300, "KH-BOX-REMOTE": 280, "KH-ENERGY-CARD": 280, "KH-TILE": 160, "KH-COMPUTER": 150 };
+const MIN = { "KH-LIGHT-CARD": 165, "KH-MEDIA-CARD": 260, "KH-WEATHER-CARD": 300, "KH-BOX-REMOTE": 280, "KH-ENERGY-CARD": 280, "KH-TILE": 160, "KH-COMPUTER": 150, "KH-LIGHT-PILL": 150 };
 
-const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome" });
+const browser = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome", args: GL });
 await login(browser);
 const problems = [];
 // HA sidebar: expanded, collapsed to icons, hidden.
@@ -32,9 +38,9 @@ for (const [size, device] of Object.entries(SIZES)) for (const sidebar of SIDEBA
   await ctx.addInitScript((m) => localStorage.setItem("dockedSidebar", JSON.stringify(m)), sidebar);
   const page = await ctx.newPage();
   for (const p of PAGES) {
-    await page.goto(`${url}/maison${p}?as=kaoru`);
-    await page.waitForSelector("kaoru-home");
-    await page.waitForTimeout(p === "" ? 1600 : 1100);
+    await page.goto(`${url}${p}?as=kaoru`);
+    await page.waitForSelector("kaoru-home, kaoru-home-v2");
+    await page.waitForTimeout(p.split("/").length === 2 ? 1800 : 1200);
     const report = await page.evaluate((MIN) => {
       const issues = [];
       const root = document.querySelector("home-assistant");
@@ -59,7 +65,7 @@ for (const [size, device] of Object.entries(SIZES)) for (const sidebar of SIDEBA
       walk(root.shadowRoot ?? root);
       // Cards sticking out of their column or overlapping a neighbour.
       const cards = [];
-      const collect = (n) => { for (const el of n.querySelectorAll("*")) { if (el.tagName.startsWith("KH-") && !el.tagName.endsWith("-VIEW") && el.tagName !== "KH-HERO") cards.push(el); if (el.shadowRoot) collect(el.shadowRoot); } };
+      const collect = (n) => { for (const el of n.querySelectorAll("*")) { if (el.tagName.startsWith("KH-") && !el.tagName.endsWith("-VIEW") && !/^KH-(HERO|V2-|HOME-V2)/.test(el.tagName)) cards.push(el); if (el.shadowRoot) collect(el.shadowRoot); } };
       collect(document);
       // Visible part only: clip by every scrolling/clipping ancestor (e.g. carousel pages off screen).
       const parentOf = (el) => el.assignedSlot ?? el.parentElement ?? el.getRootNode().host ?? null;
@@ -84,13 +90,15 @@ for (const [size, device] of Object.entries(SIZES)) for (const sidebar of SIDEBA
         const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
         if (ox > 2 && oy > 2) { issues.push(`${boxes[i].el.tagName.toLowerCase()} overlaps ${boxes[j].el.tagName.toLowerCase()}`); }
       }
-      const kh = (function find(n) { for (const el of n.querySelectorAll("*")) { if (el.tagName === "KAORU-HOME") return el; if (el.shadowRoot) { const f = find(el.shadowRoot); if (f) return f; } } })(document);
+      const kh = (function find(n) { for (const el of n.querySelectorAll("*")) { if (el.tagName === "KAORU-HOME" || el.tagName === "KH-V2-APP") return el; if (el.shadowRoot) { const f = find(el.shadowRoot); if (f) return f; } } })(document);
       const main = kh?.shadowRoot?.querySelector("main");
       if (main && main.scrollWidth > main.clientWidth + 1) issues.push(`panel content overflows (${main.scrollWidth} > ${main.clientWidth})`);
       return [...new Set(issues)].slice(0, 6);
     }, MIN);
-    if (report.length) problems.push(`${size} sidebar=${sidebar} ${p || "/"}: ${report.join("; ")}`);
-    if (p === "") await page.screenshot({ path: join(out, `audit-${size}-${sidebar}.png`) });
+    if (report.length) problems.push(`${size} sidebar=${sidebar} ${p}: ${report.join("; ")}`);
+    // A screenshot that times out (software WebGL under load) is not a layout problem.
+    if (p.split("/").length === 2)
+      await page.screenshot({ path: join(out, `audit-${size}-${sidebar}${p.replaceAll("/", "_")}.png`), timeout: 60000, animations: "disabled" }).catch((e) => console.error(`screenshot ${size} ${p}: ${e.message.split("\n")[0]}`));
   }
   await ctx.close();
 }

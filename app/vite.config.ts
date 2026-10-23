@@ -5,7 +5,7 @@ import { defineConfig, type Plugin } from "vite";
 // kaoru-home.js (the panel_custom module_url) is a tiny loader that reads
 // manifest.json, fetched fresh on every load, then imports the current build.
 
-const PAGE_ONLY = /\/src\/(views\/((media|weather|energy|system)-view|home-v2|page)|components\/(box-remote|posters|energy-devices|light-pill))\.ts$/;
+const PAGE_ONLY = /\/src\/(v2\/[^/]+|weather-utils|views\/((media|weather|energy|system)-view|page)|components\/(box-remote|posters|energy-devices|light-pill|gauge))\.ts$/;
 
 const LOADER = `// Kaoru Home loader: never changes; picks the current build from manifest.json.
 const base = new URL(".", import.meta.url);

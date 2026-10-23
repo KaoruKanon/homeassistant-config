@@ -34,6 +34,16 @@ function row(icon: string, color: string, label: string, value: string, sub?: st
   return onClick ? html`<button class="row" @click=${onClick}>${content}</button>` : html`<div class="row">${content}</div>`;
 }
 
+/** One figure: icon, label, value (greyed when unavailable). */
+function stat(icon: string, color: string, label: string, s?: HassEntity) {
+  const off = isUnavailable(s);
+  return html`<div class="stat" style=${off ? "opacity:.6" : ""}>
+    <span class="shape" style="--rgb: var(--rgb-${color})"><ha-icon icon=${icon}></ha-icon></span>
+    <span class="secondary">${label}</span>
+    <b>${off ? "Indisponible" : stateLabel(store.hass!, s)}</b>
+  </div>`;
+}
+
 function bar(label: string, entity: string) {
   const v = Number(st(entity)?.state);
   const color = isNaN(v) ? "grey" : v > 85 ? "red" : v > 65 ? "orange" : "green";
@@ -129,10 +139,10 @@ function coords(...states: (HassEntity | undefined)[]) {
   return undefined;
 }
 
-function where(main?: HassEntity, fallback?: HassEntity, icon?: string) {
-  const c = coords(main, fallback);
-  if (!c || !main) return nothing;
-  return html`<kh-mini-map .markers=${[{ ...c, label: capitalize(String(main.attributes.friendly_name ?? "")), picture: main.attributes.entity_picture, icon }]}></kh-mini-map>`;
+function where(main?: HassEntity, fallback?: HassEntity) {
+  // The entity that has a position (the person, else its phone's GPS tracker).
+  const located = [main, fallback].find((s) => coords(s));
+  return located ? html`<kh-mini-map .entities=${[located.entity_id]}></kh-mini-map>` : nothing;
 }
 
 function directions(main?: HassEntity, fallback?: HassEntity) {
@@ -159,7 +169,7 @@ export function openTracker(id: string, icon = "mdi:map-marker"): void {
       return html`
         ${row(home ? "mdi:home-map-marker" : "mdi:map-marker-radius", home ? "green" : "orange", home ? "À la maison" : s.state === "not_home" ? "Ailleurs" : stateLabel(store.hass!, s), "",
           `vu ${ago((s.attributes.last_seen as string | undefined) ?? s.last_updated)}${isFinite(acc) ? `, précision ${formatNumber(acc, 0)} m` : ""}`)}
-        ${where(s, undefined, t?.icon ?? icon)}
+        ${where(s)}
         ${s.attributes.is_lost ? row("mdi:alert", "red", "Signalé perdu", "") : nothing}
         <div class="grid2">${directions(s)}</div>
       `;
@@ -175,9 +185,11 @@ export function openThermometer(spec: Extract<Favorite, { type: "thermometer" }>
     color: "green",
     watch: [spec.temperature, spec.humidity, spec.battery].filter((x): x is string => !!x),
     body: () => html`
-      ${row("mdi:thermometer", "orange", "Température", stateLabel(store.hass!, st(spec.temperature)))}
-      ${spec.humidity ? row("mdi:water-percent", "light-blue", "Humidité", stateLabel(store.hass!, st(spec.humidity))) : nothing}
-      ${spec.battery ? row("mdi:battery", "green", "Pile", stateLabel(store.hass!, st(spec.battery))) : nothing}
+      <div class="stats">
+        ${stat("mdi:thermometer", "orange", "Température", st(spec.temperature))}
+        ${spec.humidity ? stat("mdi:water-percent", "light-blue", "Humidité", st(spec.humidity)) : nothing}
+        ${spec.battery ? stat("mdi:battery", "green", "Pile", st(spec.battery)) : nothing}
+      </div>
       <kh-sparkline
         .entities=${[
           { entity: spec.temperature, label: "Température", color: "var(--rgb-orange)", unit: "°C" },

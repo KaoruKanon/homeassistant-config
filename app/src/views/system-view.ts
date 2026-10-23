@@ -1,5 +1,6 @@
-import { LitElement, css, html, nothing, svg } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo, restartHomeAssistant, setAutomation, triggerAutomation } from "../actions.ts";
+import { gauge, gaugeStyles } from "../components/gauge.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive, stateLabel } from "../format.ts";
 import { ago, openPerson, openTablet } from "../popups/index.ts";
@@ -7,23 +8,6 @@ import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import type { HassEntity } from "../types.ts";
 import { pageHead, pageStyles } from "./page.ts";
-
-/** Semi-circle gauge, filled to value/max. */
-function gauge(label: string, value: number, max: number, unit: string, color: string, invert = false) {
-  const pct = isNaN(value) ? 0 : Math.min(1, value / max);
-  const r = 44, c = Math.PI * r;
-  const good = invert ? 1 - pct : pct;
-  const tone = isNaN(value) ? "grey" : good > 0.5 ? color : good > 0.2 ? "orange" : "red";
-  return html`<div class="gauge" style="--rgb: var(--rgb-${tone})">
-    ${svg`<svg viewBox="0 0 110 64" aria-hidden="true">
-      <path d="M11 58 A44 44 0 0 1 99 58" fill="none" stroke="var(--kh-card-2)" stroke-width="10" stroke-linecap="round" />
-      <path d="M11 58 A44 44 0 0 1 99 58" fill="none" stroke="rgb(var(--rgb))" stroke-width="10" stroke-linecap="round"
-        stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct)}" style="transition: stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1)" />
-    </svg>`}
-    <div class="g-value">${isNaN(value) ? "—" : formatNumber(value, 0)}<small> ${unit}</small></div>
-    <div class="secondary">${label}</div>
-  </div>`;
-}
 
 function levelColor(v: number): string {
   return isNaN(v) ? "grey" : v > 60 ? "green" : v > 20 ? "orange" : "red";
@@ -60,31 +44,13 @@ export class KhSystemView extends LitElement {
   static styles = [
     base,
     pageStyles,
+    gaugeStyles,
     css`
       .gauges {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 8px;
         padding: 14px 10px;
-      }
-      .gauge {
-        display: grid;
-        justify-items: center;
-        text-align: center;
-      }
-      .gauge svg {
-        width: 100%;
-        max-width: 130px;
-      }
-      .g-value {
-        margin-top: -22px;
-        font-weight: 800;
-        font-size: 1.125rem;
-        font-variant-numeric: tabular-nums;
-      }
-      .g-value small {
-        font-size: 0.75rem;
-        color: var(--kh-text-2);
       }
       .bars {
         display: grid;

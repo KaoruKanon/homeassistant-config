@@ -1,49 +1,21 @@
-import { LitElement, css, html, nothing, svg } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import "../components/sparkline.ts";
 import "../components/swipe.ts";
 import "../components/weather-card.ts";
-import { weatherIcon } from "../components/weather-card.ts";
+import { still, weatherIcon } from "../components/weather-card.ts";
 import "../components/widgets.ts";
 import { config } from "../config.ts";
 import { formatNumber, stateLabel } from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import { pageHead, pageStyles } from "./page.ts";
-
-const hourFormat = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
-const COMPASS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
-
-/** Beaufort force from km/h. */
-function beaufort(kmh: number): number {
-  const limits = [1, 6, 12, 20, 29, 39, 50, 62, 75, 89, 103, 118];
-  const i = limits.findIndex((l) => kmh < l);
-  return i === -1 ? 12 : i;
-}
-
-/** Moon phase 0..1 (0 = new moon), from the date. */
-function moonPhase(d = new Date()): number {
-  const synodic = 29.530588853;
-  const known = Date.UTC(2000, 0, 6, 18, 14); // a new moon
-  return (((d.getTime() - known) / 86400000 / synodic) % 1 + 1) % 1;
-}
-
-const MOON: [number, string, string][] = [
-  [0.03, "Nouvelle lune", "mdi:moon-new"],
-  [0.22, "Premier croissant", "mdi:moon-waxing-crescent"],
-  [0.28, "Premier quartier", "mdi:moon-first-quarter"],
-  [0.47, "Gibbeuse croissante", "mdi:moon-waxing-gibbous"],
-  [0.53, "Pleine lune", "mdi:moon-full"],
-  [0.72, "Gibbeuse décroissante", "mdi:moon-waning-gibbous"],
-  [0.78, "Dernier quartier", "mdi:moon-last-quarter"],
-  [0.97, "Dernier croissant", "mdi:moon-waning-crescent"],
-  [1.01, "Nouvelle lune", "mdi:moon-new"],
-];
+import { COMPASS, beaufort, hourFormat, moon as moonNow, subscribeHourly, sunArc, sunTimes, windyUrl } from "../weather-utils.ts";
 
 /** Météo: now, condensed details, next hours, next days, radar, stocks. */
 export class KhWeatherView extends LitElement {
   static properties = { hourly: { state: true } };
   declare hourly: any[];
-  private unsub?: Promise<() => Promise<void>>;
+  private unsub?: () => void;
 
   constructor() {
     super();
@@ -164,36 +136,12 @@ export class KhWeatherView extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    const id = config.weatherPage.hourly;
-    const conn = store.hass?.connection;
-    if (id && conn?.subscribeMessage) {
-      this.unsub = conn.subscribeMessage<{ forecast: any[] }>((m) => (this.hourly = (m.forecast ?? []).slice(0, 16)), {
-        type: "weather/subscribe_forecast",
-        entity_id: id,
-        forecast_type: "hourly",
-      });
-      this.unsub.catch(() => (this.hourly = []));
-    }
+    this.unsub = subscribeHourly((h) => (this.hourly = h));
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.unsub?.then((u) => u()).catch(() => {});
-  }
-
-  /** Sun course today: dawn to dusk arc, the sun where it is now. */
-  private sunArc(rise: number, set: number) {
-    const now = Date.now();
-    const W = 300, H = 110;
-    const f = Math.min(1, Math.max(0, (now - rise) / (set - rise)));
-    const up = now > rise && now < set;
-    const x = 20 + f * (W - 40);
-    const y = H - 18 - Math.sin(f * Math.PI) * (H - 36);
-    return svg`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Course du soleil">
-      <line x1="10" x2=${W - 10} y1=${H - 18} y2=${H - 18} stroke="var(--kh-line)" stroke-width="2" />
-      <path d="M20 ${H - 18} Q ${W / 2} ${-H + 54} ${W - 20} ${H - 18}" fill="none" stroke="rgba(var(--rgb-amber), 0.35)" stroke-width="3" stroke-dasharray="4 6" />
-      ${up ? svg`<circle cx=${x} cy=${y} r="11" fill="rgb(var(--rgb-amber))"><animate attributeName="r" values="10;12;10" dur="3s" repeatCount="indefinite" /></circle>` : nothing}
-    </svg>`;
+    this.unsub?.();
   }
 
   render() {
@@ -202,8 +150,6 @@ export class KhWeatherView extends LitElement {
     const w = config.weatherPage;
     const num = (id?: string) => (id ? Number(hass.states[id]?.state) : NaN);
     const weather = config.weather.map((id) => hass.states[id]).find((s) => s && s.state !== "unavailable");
-    const sun = hass.states["sun.sun"];
-    const day = sun?.state === "above_horizon";
     const temp = num(config.home.outdoorTemperature);
     const feels = num(w.feelsLike);
     const hum = num(w.humidity);
@@ -212,15 +158,9 @@ export class KhWeatherView extends LitElement {
     const rain = num(w.rainChance);
     const clouds = num(w.cloudCover);
     const uv = num(w.uv);
-    const moon = MOON.find(([max]) => moonPhase() < max)!;
-
-    const nextRise = Date.parse(sun?.attributes.next_rising ?? "");
-    const nextSet = Date.parse(sun?.attributes.next_setting ?? "");
-    // Today's sunrise/sunset from the next ones (yesterday's rise if the sun is up).
-    const rise = day ? nextRise - 86400000 : nextRise;
-    const set = nextSet;
-    const isNight = (t: number) =>
-      isNaN(nextRise) || isNaN(nextSet) ? false : nextSet < nextRise ? t >= nextSet && t < nextRise : t < nextRise || t >= nextSet;
+    const [moonLabel, moonIcon] = moonNow();
+    const moon = [0, moonLabel, moonIcon] as const;
+    const { day, rise, set, isNight } = sunTimes();
 
     const graph = [
       ...(config.home.outdoorTemperature ? [{ entity: config.home.outdoorTemperature, label: "Température", color: "var(--rgb-orange)", unit: "°C" }] : []),
@@ -261,7 +201,7 @@ export class KhWeatherView extends LitElement {
             </div>
             <div class="card sun">
               <div class="primary">Soleil</div>
-              ${!isNaN(rise) && !isNaN(set) ? this.sunArc(rise, set) : nothing}
+              ${!isNaN(rise) && !isNaN(set) ? sunArc(rise, set) : nothing}
               <div class="times">
                 <span><ha-icon icon="mdi:weather-sunset-up"></ha-icon> ${isNaN(rise) ? "" : hourFormat.format(new Date(rise))}</span>
                 <span class="secondary">${!isNaN(rise) && !isNaN(set) ? `${Math.floor((set - rise) / 3600000)} h ${Math.round(((set - rise) % 3600000) / 60000)} de jour` : ""}</span>
@@ -278,7 +218,7 @@ export class KhWeatherView extends LitElement {
               ${this.hourly.map(
                 (f) => html`<div class="hour" role="listitem">
                   <small>${hourFormat.format(new Date(f.datetime))}</small>
-                  <img src=${weatherIcon(f.condition, f.is_daytime === undefined ? isNight(Date.parse(f.datetime)) : !f.is_daytime, f.precipitation ?? 0)} alt=${f.condition} />
+                  <img src=${still(weatherIcon(f.condition, f.is_daytime === undefined ? isNight(Date.parse(f.datetime)) : !f.is_daytime, f.precipitation ?? 0))} alt=${f.condition} />
                   <span class="t">${formatNumber(f.temperature, 0)}°</span>
                   <small>${f.precipitation_probability !== undefined ? `${f.precipitation_probability} %` : ""}</small>
                 </div>`,
@@ -291,7 +231,7 @@ export class KhWeatherView extends LitElement {
           ${w.windy
             ? html`<iframe
                 title="Radar Windy"
-                src="https://embed.windy.com/embed2.html?lat=${w.windy.lat}&lon=${w.windy.lon}&zoom=8&level=surface&overlay=rain&product=ecmwf&menu=&message=true&marker=&calendar=now&type=map&location=coordinates&metricWind=km%2Fh&metricTemp=%C2%B0C"
+                src=${windyUrl(w.windy.lat, w.windy.lon)}
               ></iframe>`
             : nothing}
         </div>

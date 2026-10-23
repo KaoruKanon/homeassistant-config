@@ -105,9 +105,66 @@ class KhPopup extends LitElement {
       .body {
         padding: 8px 16px 20px;
         overflow-y: auto;
-        max-height: calc(88dvh - 80px);
+        max-height: calc(100dvh - 48px - 76px);
         display: grid;
         gap: 12px;
+      }
+      @media (max-width: 599px) {
+        .body {
+          max-height: calc(88dvh - 80px);
+        }
+      }
+      /* Landscape tablets (wall tablet, ~1000×600): wider and denser, so a
+         popup fits the screen without scrolling. */
+      @media (min-width: 600px) and (max-height: 820px) {
+        dialog {
+          width: min(720px, calc(100vw - 32px));
+          max-height: calc(100dvh - 24px);
+        }
+        header {
+          padding: 12px 16px 4px;
+        }
+        .body {
+          gap: 8px;
+          padding: 6px 16px 14px;
+          max-height: calc(100dvh - 24px - 64px);
+        }
+        .row {
+          padding: 7px 10px;
+        }
+        .fat {
+          height: 44px;
+        }
+        .hero-value {
+          font-size: 2.25rem;
+        }
+      }
+      /* A line of figures (temperature, humidity, battery…). */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
+        gap: 8px;
+      }
+      .stat {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 2px 10px;
+        padding: 10px 12px;
+        border-radius: var(--kh-radius);
+        background: var(--kh-card-2);
+      }
+      .stat .shape {
+        grid-row: span 2;
+        width: 36px;
+        height: 36px;
+      }
+      .stat b {
+        font-size: 1.25rem;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       /* Building blocks used by popups/*.ts */
       .row {
@@ -383,7 +440,9 @@ export function openPopup(spec: PopupSpec): void {
   if (!replacing) history.pushState({ khPopup: true }, "", location.href);
   el.pushed = true;
   current = el;
-  document.body.append(el);
+  // Inside <home-assistant>: HA's own elements in a popup (the native map)
+  // read their data from the app's context. The dialog is in the top layer anyway.
+  (document.querySelector("home-assistant")?.shadowRoot ?? document.body).append(el);
 }
 
 export function closePopup(): void {

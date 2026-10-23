@@ -224,12 +224,13 @@ export class KhThermometer extends Widget {
       .thermo {
         display: block;
         width: 100%;
-        padding: 0 0 6px;
+        padding: 0;
         text-align: left;
         overflow: hidden;
       }
+      /* The graph runs to the edges of the card, as in Mushroom. */
       .thermo kh-sparkline {
-        margin-top: -6px;
+        margin-top: -4px;
       }
     `,
   ];

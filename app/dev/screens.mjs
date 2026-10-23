@@ -7,6 +7,8 @@
 import { mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
+// Software WebGL: HA's native map (MapLibre) renders headless without stalling screenshots.
+const GL = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"];
 
 const url = process.env.HASS_URL ?? "http://localhost:8124";
 const user = process.env.HASS_USER ?? "claude";
@@ -40,7 +42,7 @@ export async function login(browser) {
 
 async function main() {
   mkdirSync(out, { recursive: true });
-  const browser = await chromium.launch({ executablePath: chrome });
+  const browser = await chromium.launch({ executablePath: chrome, args: GL });
   await login(browser);
   for (const [name, device] of Object.entries(screens)) {
     for (const scheme of ["light", "dark"]) {
@@ -51,7 +53,7 @@ async function main() {
       page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
       for (const p of paths) {
         await page.goto(`${url}${p}`);
-        await page.waitForSelector("kaoru-home", { timeout: 30000 });
+        await page.waitForSelector("kaoru-home, kaoru-home-v2", { timeout: 30000 });
         await page.waitForTimeout(1500);
         const file = join(out, `${name}-${scheme}${p.replaceAll("/", "_")}.png`);
         await page.screenshot({ path: file, fullPage: false });
