@@ -8,6 +8,7 @@ import { house } from "../house.ts";
 import { currentPerson, roomsFor } from "../rooms.ts";
 import { RegistryController, store } from "../store.ts";
 import { base, tokens } from "../styles.ts";
+import { WALL } from "./styles.ts";
 import type { PanelRoute } from "../types.ts";
 import "./home.ts";
 
@@ -38,16 +39,21 @@ const PHONE = ["", "pieces", "medias", "meteo"];
  * with V1.
  */
 export class KhV2App extends LitElement {
-  static properties = { narrow: { type: Boolean }, route: { attribute: false }, phone: { state: true } };
+  static properties = { narrow: { type: Boolean }, route: { attribute: false }, phone: { state: true }, wall: { state: true } };
   declare narrow: boolean;
   declare route?: PanelRoute;
   declare phone: boolean;
+  /** Wall tablet: the menu becomes a rail on the left, out of the tiles' way. */
+  declare wall: boolean;
+  private wallQuery = window.matchMedia(WALL);
+  private onWall = () => (this.wall = this.wallQuery.matches);
   private loaded = new Set<string>();
   private resize = new ResizeObserver(([e]) => (this.phone = e.contentRect.width < 680));
 
   constructor() {
     super();
     this.phone = false;
+    this.wall = this.wallQuery.matches;
     new RegistryController(this);
   }
 
@@ -127,6 +133,28 @@ export class KhV2App extends LitElement {
         color: rgb(var(--c));
       }
       /* Phones: the dock spans the width, labels under the icons. */
+      /* Wall tablet: a rail of icons on the left, as on the old tablet view. */
+      :host([wall]) main {
+        max-width: none;
+        padding: max(16px, env(safe-area-inset-top)) 24px 16px 104px;
+      }
+      nav.rail {
+        left: 18px;
+        top: 50%;
+        bottom: auto;
+        transform: translateY(-50%);
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px;
+      }
+      nav.rail a,
+      nav.rail button {
+        width: 52px;
+        height: 52px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 16px;
+      }
       nav.phone {
         left: 10px;
         right: 10px;
@@ -149,11 +177,13 @@ export class KhV2App extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.wallQuery.addEventListener("change", this.onWall);
     this.resize.observe(this);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.wallQuery.removeEventListener("change", this.onWall);
     this.resize.disconnect();
     cancelConfirmation(); // a question left open must not be answered later
   }
@@ -164,6 +194,7 @@ export class KhV2App extends LitElement {
 
   protected updated(): void {
     this.toggleAttribute("dark", !!store.hass?.themes.darkMode);
+    this.toggleAttribute("wall", this.wall && !this.phone);
   }
 
   private navigate(e: MouseEvent): void {
@@ -246,11 +277,11 @@ export class KhV2App extends LitElement {
     return html`
       <div @click=${this.navigate}>
         <main>${keyed(`${section}/${sub ?? ""}`, html`<div class="page">${this.page(section, sub, prefix)}</div>`)}</main>
-        <nav class=${this.phone ? "phone" : ""} aria-label="Navigation">
+        <nav class=${this.phone ? "phone" : this.wall ? "rail" : ""} aria-label="Navigation">
           ${items.map(
             (n) => html`<a href=${n.path ? `${prefix}/${n.path}` : prefix} style="--c: var(--rgb-${n.color})"
               aria-current=${n.path === section ? "page" : nothing}>
-              <ha-icon icon=${n.icon}></ha-icon>${this.phone || n.path === section ? n.label : html`<span class="sr">${n.label}</span>`}
+              <ha-icon icon=${n.icon}></ha-icon>${this.phone || (n.path === section && !this.wall) ? n.label : html`<span class="sr">${n.label}</span>`}
             </a>`,
           )}
           ${this.phone

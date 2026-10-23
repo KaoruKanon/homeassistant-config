@@ -71,7 +71,7 @@ export class KhEnergyCard extends LitElement {
       }
       .kpis {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(var(--kh-kpi-min, 118px), 1fr));
         gap: 10px;
       }
       .kpi {

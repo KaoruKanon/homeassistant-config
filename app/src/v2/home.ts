@@ -1,5 +1,6 @@
 import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo, runScript } from "../actions.ts";
+import "../components/energy-card.ts";
 import "../components/light-pill.ts";
 import { isPlayerActive } from "../components/media-card.ts";
 import "../components/media-card.ts";
@@ -15,13 +16,16 @@ import { EntitiesController, RegistryController, store } from "../store.ts";
 import { alarmBadge, badgeClass, badgeStyle, badgeStyles, lightsBadge, temperatureBadge, timerBadge, windowsBadge } from "../badges.ts";
 import { base } from "../styles.ts";
 import { FROG_SKY, forecastDays } from "../weather-utils.ts";
-import { head, pagesOf, ring, v2 } from "./styles.ts";
+import { WALL, head, pagesOf, ring, v2 } from "./styles.ts";
 
 const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const date = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
-/** Landscape tablets: the home is laid out to fit one screen. */
-const WALL = "(min-width: 1000px) and (max-height: 1100px) and (orientation: landscape)";
+/** Wall tablet: tiles by importance, and their expected heights before measuring. */
+const WALL_ORDER = ["media", "jellyfin", "lights", "energy", "climate", "days", "favorites", "computers", "stocks", "shortcuts"];
+const WALL_ESTIMATE: Record<string, number> = {
+  media: 240, jellyfin: 220, lights: 210, energy: 380, climate: 200, days: 170, favorites: 250, computers: 130, stocks: 100, shortcuts: 200,
+};
 
 /** One colour per thermometer in the Climat tile. */
 const CLIMATE_COLORS = ["orange", "green", "purple", "teal", "amber", "indigo", "red", "blue"];
@@ -269,6 +273,22 @@ export class KhHomeV2 extends LitElement {
         gap: 12px;
         align-items: start;
       }
+      .wslot {
+        display: grid;
+      }
+      :host([wall]) .scene {
+        min-height: 0;
+        padding: 14px 20px;
+      }
+      :host([wall]) .scene time {
+        font-size: 2.5rem;
+      }
+      :host([wall]) .scene .chips {
+        margin-top: 6px;
+      }
+      .wall kh-energy-card {
+        --kh-kpi-min: 84px;
+      }
       .wcol {
         min-width: 0;
         display: flex;
@@ -385,6 +405,7 @@ export class KhHomeV2 extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.wallQuery.removeEventListener("change", this.onWall);
+    this.slotSizes.disconnect();
     window.clearTimeout(this.timer);
   }
 
@@ -483,6 +504,45 @@ export class KhHomeV2 extends LitElement {
       .map((s) => s.entity_id);
   }
 
+  /** Measured height of each wall tile (estimates until the first render). */
+  private heights = new Map<string, number>();
+
+  /**
+   * Balance: the tallest tiles are placed first, each into the shortest of
+   * three columns; inside a column the tiles keep their order of importance.
+   */
+  private columns(keys: string[]): string[][] {
+    const size = (k: string) => (this.heights.get(k) ?? WALL_ESTIMATE[k] ?? 200) + 12;
+    const cols: string[][] = [[], [], []];
+    const h = [0, 0, 0];
+    for (const k of [...keys].sort((a, b) => size(b) - size(a))) {
+      const i = h.indexOf(Math.min(...h));
+      cols[i].push(k);
+      h[i] += size(k);
+    }
+    return cols.map((c) => c.sort((a, b) => keys.indexOf(a) - keys.indexOf(b)));
+  }
+
+  /** Tiles load their content later (Jellyfin, the energy graph): follow their size. */
+  private slotSizes = new ResizeObserver((entries) => {
+    let changed = false;
+    for (const e of entries) {
+      const k = (e.target as HTMLElement).dataset.k!, hNow = Math.round(e.borderBoxSize?.[0]?.blockSize ?? (e.target as HTMLElement).offsetHeight);
+      const before = this.heights.get(k);
+      if (before === undefined || Math.abs(before - hNow) > 8) {
+        this.heights.set(k, hNow);
+        changed = true;
+      }
+    }
+    if (changed) this.requestUpdate(); // heights do not depend on the column, so this settles
+  });
+
+  protected updated(): void {
+    this.toggleAttribute("wall", this.wall);
+    this.slotSizes.disconnect();
+    if (this.wall) this.renderRoot.querySelectorAll<HTMLElement>(".wslot").forEach((el) => this.slotSizes.observe(el));
+  }
+
   /** Today's consumption and the power drawn now, nothing more. */
   private energy() {
     const hass = store.hass!;
@@ -539,17 +599,18 @@ export class KhHomeV2 extends LitElement {
             )}
           </kh-swipe>
         </section>`,
-      media: html`<section class="tile ${playing ? "" : "flush"}" style="--tint: var(--rgb-purple); --w: 5; --w6: 6; --w2: 2; --wt: 4">
+      media: this.wall && !playing ? nothing : html`<section class="tile ${playing ? "" : "flush"}" style="--tint: var(--rgb-purple); --w: 5; --w6: 6; --w2: 2; --wt: 4">
           ${playing
             ? html`${head("mdi:play-circle", "En lecture", { href: `${p}/medias`, label: "Médias" })}
                 <kh-media-card entity-id=${playing} kind=${playing === h.spotify ? "music" : "tv"} name=${playing === h.spotify ? "Spotify" : nothing}></kh-media-card>`
             : html`<kh-jellyfin></kh-jellyfin>`}
         </section>`,
+      jellyfin: this.wall && h.jellyfin ? html`<section class="tile flush"><kh-jellyfin></kh-jellyfin></section>` : nothing,
       climate: html`<section class="tile" style="--tint: var(--rgb-green); --w: 6; --w6: 6; --w2: 2; --wt: 4">
           ${head("mdi:home-thermometer", "Climat", { href: `${p}/meteo`, label: "Météo" })}
           ${this.rooms().length
             ? html`<kh-swipe label="Climat">
-              ${pagesOf(this.rooms().map((r, i) => ({ r, i })), this.wall && window.innerHeight < 950 ? 2 : 4).map(
+              ${pagesOf(this.rooms().map((r, i) => ({ r, i })), this.wall ? 2 : 4).map(
                 (pg) => html`<div class="climate">${pg.map(({ r, i }) => {
                   const t = Number(hass.states[r.temperature!]?.state);
                   const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
@@ -571,14 +632,14 @@ export class KhHomeV2 extends LitElement {
       energy: h.energy
           ? html`<section class="tile" style="--tint: var(--rgb-orange); --w: 3; --w6: 3; --w2: 2; --wt: 2">
               ${head("mdi:lightning-bolt", "Énergie", { href: `${p}/energie`, label: "Détail" })}
-              ${this.energy()}
+              ${this.wall ? html`<kh-energy-card></kh-energy-card>` : this.energy()}
             </section>`
           : nothing,
       favorites: favorites.length
           ? html`<section class="tile first-on-phone" style="--tint: var(--rgb-yellow); --w: 6; --w6: 6; --w2: 2; --wt: 3">
               ${head("mdi:star", "Favoris")}
               <kh-swipe label="Favoris">
-                ${pagesOf(favorites, this.wall && window.innerHeight < 950 ? 1 : 2).map((pg) => html`<div class="favs">${pg.map((f) => this.favorite(f))}</div>`)}
+                ${pagesOf(favorites, this.wall ? 1 : 2).map((pg) => html`<div class="favs">${pg.map((f) => this.favorite(f))}</div>`)}
               </kh-swipe>
             </section>`
           : nothing,
@@ -636,18 +697,21 @@ export class KhHomeV2 extends LitElement {
         </section>`,
     };
 
-    // Wall tablet: the three columns of the old Lovelace tablet view, each
-    // tile at its own height (Media, Favoris, PCs | Lumières, Énergie,
-    // Climat | Météo, Bourse, Raccourcis).
-    if (this.wall)
+    // Wall tablet: three columns balanced by the height of each tile (each
+    // goes to the shortest column, in order of importance), so the whole
+    // home fits the screen without stretching anything.
+    if (this.wall) {
+      const tiles = T as Record<string, unknown>;
+      const keys = WALL_ORDER.filter((k) => tiles[k] !== nothing && tiles[k] !== undefined);
       return html`
         ${this.hero()}
         <div class="wall">
-          <div class="wcol">${T.media}${T.favorites}${T.computers}</div>
-          <div class="wcol">${T.lights}${T.energy}${T.climate}</div>
-          <div class="wcol">${T.days}${T.stocks}${T.shortcuts}</div>
+          ${this.columns(keys).map(
+            (col) => html`<div class="wcol">${col.map((k) => html`<div class="wslot" data-k=${k}>${tiles[k]}</div>`)}</div>`,
+          )}
         </div>
       `;
+    }
 
     return html`
       ${this.hero()}

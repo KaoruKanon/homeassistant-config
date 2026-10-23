@@ -322,3 +322,6 @@ export function pagesOf<T>(items: T[], n: number): T[][] {
   for (let i = 0; i < items.length; i += n) out.push(items.slice(i, i + n));
   return out;
 }
+
+/** Landscape tablets (the wall tablet): the home fits one screen, the menu is a rail on the left. */
+export const WALL = "(min-width: 1000px) and (max-height: 1100px) and (orientation: landscape)";
