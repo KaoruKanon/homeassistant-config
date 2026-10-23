@@ -72,6 +72,27 @@ export const v2 = css`
   .hero .chip.alert {
     background: rgba(var(--rgb-red), 0.75);
   }
+  /* Heroes with a scene (rooms, house, media, energy, system) or the
+     weather-frog picture behind the text. */
+  .hero.scened {
+    min-height: 200px;
+    background: #2b3363;
+  }
+  .hero > :not(.art) {
+    position: relative;
+    z-index: 1;
+  }
+  .hero .art {
+    position: absolute;
+    inset: 0;
+    container-type: size;
+  }
+  .hero .art::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgb(0 0 0 / 0.34), rgb(0 0 0 / 0) 58%);
+  }
 
   .bento {
     margin-top: 18px;
@@ -88,6 +109,8 @@ export const v2 = css`
     box-sizing: border-box;
     background: linear-gradient(160deg, rgba(var(--tint, var(--rgb-grey)), 0.16), rgba(var(--tint, var(--rgb-grey)), 0.03) 60%), var(--kh-card);
     display: grid;
+    /* One column that never grows past the tile (a long row of posters). */
+    grid-template-columns: minmax(0, 1fr);
     align-content: start;
     gap: 12px;
   }
@@ -235,6 +258,12 @@ export const v2 = css`
       padding: 20px;
       min-height: 190px;
     }
+    .hero .art {
+      --scene-max: 46cqw;
+    }
+    .hero .art .window {
+      display: none;
+    }
     .bento {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
@@ -266,7 +295,7 @@ export function head(icon: string, title: string, link?: { href: string; label: 
 
 /** Page hero: coloured banner with an icon, a big title, a line and chips. */
 export function hero(color: string, icon: string, eyebrow: string, title: unknown, sub?: unknown, chips?: unknown, extra?: unknown) {
-  return html`<section class="hero" style="--hero: var(--rgb-${color})">
+  return html`<section class="hero ${extra ? "scened" : ""}" style="--hero: var(--rgb-${color})">
     <div>
       <div class="eyebrow"><ha-icon icon=${icon}></ha-icon>${eyebrow}</div>
       <h1>${title}</h1>
@@ -285,4 +314,11 @@ export function ring(f: number, size: number, stroke: number, color: string) {
     <circle cx=${size / 2} cy=${size / 2} r=${r} fill="none" stroke=${color} stroke-width=${stroke} stroke-linecap="round"
       stroke-dasharray=${c} stroke-dashoffset=${c * (1 - Math.min(1, Math.max(0, f)))} style="transition: stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1)" />
   </svg>`;
+}
+
+/** Splits a list into pages of `n` for a kh-swipe (the old swipe-card). */
+export function pagesOf<T>(items: T[], n: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += n) out.push(items.slice(i, i + n));
+  return out;
 }

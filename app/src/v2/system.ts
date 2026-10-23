@@ -9,6 +9,8 @@ import { ago, openPerson, openTablet, openTracker } from "../popups/index.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import type { HassEntity } from "../types.ts";
+import { roomSceneStyles } from "./room-art.ts";
+import { sceneStyles, systemScene } from "./scenes.ts";
 import { head, hero, v2 } from "./styles.ts";
 
 const cap = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
@@ -56,6 +58,8 @@ export class KhV2System extends LitElement {
     base,
     v2,
     gaugeStyles,
+    roomSceneStyles,
+    sceneStyles,
     css`
       .gauges {
         display: grid;
@@ -268,6 +272,7 @@ export class KhV2System extends LitElement {
           ${s.speedtest && st(s.speedtest.download)
             ? html`<span class="chip"><ha-icon icon="mdi:download-network"></ha-icon>${formatNumber(num(s.speedtest.download), 0)} Mb/s</span>`
             : nothing}`,
+        html`<div class="art">${systemScene(issues === 0, hass.states["sun.sun"]?.state === "below_horizon")}</div>`,
       )}
       <div class="bento">
         <section class="tile" style="--tint: var(--rgb-green); --w: 7; --w6: 6; --w2: 2">

@@ -10,12 +10,12 @@ import { still, weatherIcon } from "../components/weather-card.ts";
 import "../components/widgets.ts";
 import { config, type Favorite } from "../config.ts";
 import { formatNumber, isActive, stateLabel } from "../format.ts";
-import { openOpenings, openPerson, openWifiQr } from "../popups/index.ts";
-import { currentPerson, type HouseModel } from "../rooms.ts";
+import { alarmLook, openAlarm, openOpenings, openPerson, openWifiQr } from "../popups/index.ts";
+import { currentPerson, entityName, type HouseModel } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import { FROG_SKY, forecastDays } from "../weather-utils.ts";
-import { head, ring, v2 } from "./styles.ts";
+import { head, pagesOf, ring, v2 } from "./styles.ts";
 
 const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const date = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
@@ -52,6 +52,7 @@ export class KhHomeV2 extends LitElement {
         ...Object.values(h.chips), ...config.weather, h.energy?.today, h.energy?.power,
         ...Object.keys(config.people).map((p) => `person.${p}`),
         ...this.batteries().map((b) => b.entity), ...this.rooms().flatMap((r) => [r.temperature, r.humidity]),
+        ...Object.values(this.model?.power ?? {}),
       ].filter((x): x is string => !!x);
     });
   }
@@ -64,9 +65,9 @@ export class KhHomeV2 extends LitElement {
       .scene {
         position: relative;
         overflow: hidden;
-        min-height: 230px;
+        min-height: 176px;
         border-radius: 28px;
-        padding: 22px 24px;
+        padding: 18px 22px;
         display: grid;
         grid-template-columns: 1fr auto;
         align-content: space-between;
@@ -81,7 +82,7 @@ export class KhHomeV2 extends LitElement {
       }
       .scene time {
         display: block;
-        font-size: clamp(3rem, 7vw, 4.5rem);
+        font-size: clamp(2.4rem, 5vw, 3.4rem);
         font-weight: 800;
         line-height: 1;
         letter-spacing: -0.03em;
@@ -93,9 +94,9 @@ export class KhHomeV2 extends LitElement {
         text-transform: capitalize;
       }
       .scene .hello {
-        font-size: 1.125rem;
+        font-size: 1rem;
         font-weight: 700;
-        margin-top: 6px;
+        margin-top: 2px;
       }
       .scene .side {
         display: grid;
@@ -106,13 +107,13 @@ export class KhHomeV2 extends LitElement {
       .scene .now {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         font-weight: 800;
-        font-size: 1.5rem;
+        font-size: 1.3rem;
       }
       .scene .now img {
-        width: 52px;
-        height: 52px;
+        width: 42px;
+        height: 42px;
       }
       /* A still frame of the icon, floating: animated SVG icons repaint the
          whole frog picture on every frame, a transform costs nothing. */
@@ -142,18 +143,16 @@ export class KhHomeV2 extends LitElement {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 18px;
+        margin-top: 10px;
       }
       .chip {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        height: 38px;
-        padding: 0 14px;
-        border-radius: 19px;
-        background: rgb(0 0 0 / 0.28);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        height: 34px;
+        padding: 0 12px;
+        border-radius: 17px;
+        background: rgb(0 0 0 / 0.34);
         color: #fff;
         font-weight: 700;
         font-size: 0.875rem;
@@ -165,21 +164,24 @@ export class KhHomeV2 extends LitElement {
       .chip.alert {
         background: rgba(var(--rgb-red), 0.75);
       }
+      .chip.blink {
+        animation: kh-blink 1.2s ease-in-out infinite;
+      }
       .people {
         display: flex;
         gap: 10px;
       }
       .person {
         position: relative;
-        width: 56px;
-        height: 56px;
+        width: 46px;
+        height: 46px;
         display: grid;
         place-items: center;
       }
       .person img,
       .person .initial {
-        width: 44px;
-        height: 44px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         object-fit: cover;
         background: rgb(0 0 0 / 0.3);
@@ -246,10 +248,56 @@ export class KhHomeV2 extends LitElement {
         align-items: center;
         gap: 16px;
       }
+      .energy-facts .watts {
+        font-size: 1.75rem;
+        font-weight: 800;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .energy-facts .watts small {
+        font-size: 0.9rem;
+        font-weight: 700;
+        opacity: 0.8;
+      }
+      .energy-facts .primary {
+        margin-top: 6px;
+      }
+      .consumers {
+        display: grid;
+        gap: 8px;
+      }
+      .consumer {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 4px 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+      .consumer b {
+        font-variant-numeric: tabular-nums;
+      }
+      .consumer .bar {
+        grid-column: 1 / -1;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--kh-card-2);
+        overflow: hidden;
+      }
+      .consumer .bar span {
+        display: block;
+        height: 100%;
+        border-radius: 3px;
+        background: rgb(var(--rgb-orange));
+        transition: width 600ms ease;
+      }
+      /* The day's power curve along the bottom of the tile, edge to edge. */
+      kh-sparkline.power {
+        margin: 0 -16px -16px;
+      }
       .gauge {
         position: relative;
-        width: 108px;
-        height: 108px;
+        width: 96px;
+        height: 96px;
         display: grid;
         place-items: center;
         flex: none;
@@ -290,21 +338,20 @@ export class KhHomeV2 extends LitElement {
       }
       @media (max-height: 820px) and (min-width: 600px) {
         .scene {
-          min-height: 190px;
-          padding: 16px 22px;
+          min-height: 150px;
+          padding: 14px 20px;
         }
         .scene time {
-          font-size: 3.25rem;
+          font-size: 2.6rem;
         }
       }
       @container v2 (max-width: 679px) {
         .scene {
-          grid-template-columns: 1fr;
-          min-height: 260px;
+          min-height: 168px;
+          padding: 16px 18px;
         }
         .scene .side {
-          justify-items: start;
-          grid-row: 2;
+          gap: 6px;
         }
       }
     `,
@@ -352,6 +399,8 @@ export class KhHomeV2 extends LitElement {
     const lights = Number(st(h.chips.lightsOn)?.state);
     const windows = Number(st(h.chips.windowsOpen)?.state);
     const timer = st(h.chips.timer)?.state;
+    const indoor = Number(st(h.chips.temperature)?.state);
+    const alarm = st(h.chips.alarm);
     const bat = new Map(this.batteries().map((b) => [b.key, b]));
     const style = `--frog: ${FROG_SKY[frog] ?? "40, 130, 221"}; --scene: ${scene.startsWith("http") ? `url('${scene}')` : "none"}; --shift: ${place === "field" ? "20%" : place === "hills" ? "40%" : "10%"}`;
 
@@ -379,7 +428,7 @@ export class KhHomeV2 extends LitElement {
               const level = b ? Number(st(b.entity)?.state) / 100 : NaN;
               return html`<button class="person ${home ? "" : "away"}" aria-label="${s.attributes.friendly_name} : ${home ? "à la maison" : "absent"}"
                 @click=${() => openPerson(p)}>
-                ${!isNaN(level) ? ring(level, 56, 4, level > 0.2 ? "#ffffff" : "rgb(244, 67, 54)") : nothing}
+                ${!isNaN(level) ? ring(level, 46, 3.5, level > 0.2 ? "#ffffff" : "rgb(244, 67, 54)") : nothing}
                 ${s.attributes.entity_picture ? html`<img src=${s.attributes.entity_picture} alt="" />` : html`<span class="initial">${String(s.attributes.friendly_name ?? p).charAt(0)}</span>`}
                 <span class="dot"></span>
               </button>`;
@@ -389,7 +438,15 @@ export class KhHomeV2 extends LitElement {
       <div class="chips">
         ${rainAt ? html`<span class="chip"><ha-icon icon="mdi:umbrella"></ha-icon>Pluie à ${rainAt}</span>` : nothing}
         ${!isNaN(lights) ? html`<a class="chip" href=${`${this.prefix}/pieces`}><ha-icon icon="mdi:lightbulb-on"></ha-icon>${lights} allumée${lights > 1 ? "s" : ""}</a>` : nothing}
-        ${windows > 0 ? html`<button class="chip alert" @click=${() => openOpenings(this.openings())}><ha-icon icon="mdi:window-open-variant"></ha-icon>${windows} ouverte${windows > 1 ? "s" : ""}</button>` : nothing}
+        ${!isNaN(indoor) ? html`<span class="chip"><ha-icon icon="mdi:home-thermometer"></ha-icon>${formatNumber(indoor)}° dedans</span>` : nothing}
+        ${!isNaN(windows)
+          ? html`<button class="chip ${windows > 0 ? "alert" : ""}" @click=${() => openOpenings(this.openings())}>
+              <ha-icon icon=${windows > 0 ? "mdi:window-open-variant" : "mdi:window-closed-variant"}></ha-icon>${windows > 0 ? `${windows} ouverte${windows > 1 ? "s" : ""}` : "Fermé"}</button>`
+          : nothing}
+        ${alarm
+          ? html`<button class="chip ${alarmLook(alarm.state).alert ? "alert blink" : ""}" @click=${() => openAlarm(alarm.entity_id)}>
+              <ha-icon icon=${alarmLook(alarm.state).icon}></ha-icon>${alarmLook(alarm.state).label}</button>`
+          : nothing}
         ${timer && timer !== "Pas de timer" ? html`<span class="chip"><ha-icon icon="mdi:timer-outline"></ha-icon>${timer}</span>` : nothing}
       </div>
     </section>`;
@@ -410,17 +467,36 @@ export class KhHomeV2 extends LitElement {
     const last = Number(today?.attributes.last_period);
     const f = !isNaN(kwh) && last > 0 ? kwh / last : 0;
     const watts = Number(hass.states[e.power]?.state);
+    // What draws the most right now: the plugs with a power sensor.
+    const top = Object.entries(this.model?.power ?? {})
+      .map(([sw, sensor]) => ({ name: entityName(hass, sw, config), w: Number(hass.states[sensor]?.state) }))
+      .filter((x) => x.w > 1)
+      .sort((a, b) => b.w - a.w)
+      .slice(0, 3);
+    const max = Math.max(1, watts || 0, ...top.map((x) => x.w));
     return html`<div class="energy-big">
-      <div class="gauge">
-        ${ring(f, 108, 10, "rgb(var(--rgb-orange))")}
-        <div style="text-align:center"><b>${isNaN(kwh) ? "—" : formatNumber(kwh, 1)}</b><div class="secondary">kWh</div></div>
+        <div class="gauge">
+          ${ring(f, 96, 9, "rgb(var(--rgb-orange))")}
+          <div style="text-align:center"><b>${isNaN(kwh) ? "—" : formatNumber(kwh, 1)}</b><div class="secondary">kWh</div></div>
+        </div>
+        <div class="energy-facts">
+          <div class="watts">${isNaN(watts) ? "—" : formatNumber(watts, 0)}<small> W</small></div>
+          <div class="secondary">en ce moment</div>
+          <div class="primary">${isNaN(kwh) ? "" : `${formatNumber(kwh * e.pricePerKwh, 2)} € aujourd'hui`}</div>
+          <div class="secondary">${last > 0 ? `Hier ${formatNumber(last, 1)} kWh, ${formatNumber(last * e.pricePerKwh, 2)} €` : ""}${last > 0 && !isNaN(kwh) ? html`<br />${formatNumber(f * 100, 0)} % de la journée d'hier` : ""}</div>
+        </div>
       </div>
-      <div>
-        <div class="primary">${isNaN(kwh) ? "" : `${formatNumber(kwh * e.pricePerKwh, 2)} € aujourd'hui`}</div>
-        <div class="secondary">${last > 0 ? `Hier : ${formatNumber(last, 1)} kWh` : ""}</div>
-        <div class="secondary">${isNaN(watts) ? "" : `${formatNumber(watts, 0)} W en ce moment`}</div>
-      </div>
-    </div>`;
+      ${top.length
+        ? html`<div class="consumers" aria-label="Ce qui consomme le plus">
+            ${top.map(
+              (x) => html`<div class="consumer">
+                <span class="ellipsis">${x.name}</span><b>${formatNumber(x.w, 0)} W</b>
+                <span class="bar"><span style="width:${Math.round((x.w / max) * 100)}%"></span></span>
+              </div>`,
+            )}
+          </div>`
+        : nothing}
+      <kh-sparkline class="power" compact height="46" .entities=${[{ entity: e.power, label: "Puissance", color: "var(--rgb-orange)", unit: "W" }]}></kh-sparkline>`;
   }
 
   private favorite(f: Favorite) {
@@ -456,7 +532,11 @@ export class KhHomeV2 extends LitElement {
       <div class="bento">
         <section class="tile" style="--tint: var(--rgb-amber); --w: 7; --w6: 6; --w2: 2">
           ${head("mdi:lightbulb-group", "Lumières", { href: `${p}/pieces`, label: "Pièces" })}
-          <div class="pills">${lights.map((l) => html`<kh-light-pill entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-pill>`)}</div>
+          <kh-swipe label="Lumières">
+            ${pagesOf(lights, 6).map(
+              (pg) => html`<div class="pills">${pg.map((l) => html`<kh-light-pill entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-pill>`)}</div>`,
+            )}
+          </kh-swipe>
         </section>
 
         <section class="tile ${playing ? "" : "flush"}" style="--tint: var(--rgb-purple); --w: 5; --w6: 6; --w2: 2">
@@ -468,9 +548,10 @@ export class KhHomeV2 extends LitElement {
 
         <section class="tile" style="--tint: var(--rgb-green); --w: 8; --w6: 6; --w2: 2">
           ${head("mdi:home-thermometer", "Climat", { href: `${p}/meteo`, label: "Météo" })}
-          <div class="climate">
-            ${this.rooms().length
-              ? this.rooms().map((r, i) => {
+          ${this.rooms().length
+            ? html`<kh-swipe label="Climat">
+              ${pagesOf(this.rooms().map((r, i) => ({ r, i })), 4).map(
+                (pg) => html`<div class="climate">${pg.map(({ r, i }) => {
                   const t = Number(hass.states[r.temperature!]?.state);
                   const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
                   const c = CLIMATE_COLORS[i % CLIMATE_COLORS.length];
@@ -483,9 +564,10 @@ export class KhHomeV2 extends LitElement {
                       ...(r.humidity ? [{ entity: r.humidity, label: "Humidité", color: "var(--rgb-light-blue)", unit: "%" }] : []),
                     ]}></kh-sparkline>
                   </button>`;
-                })
-              : html`<div class="secondary">Aucun thermomètre joignable</div>`}
-          </div>
+                })}</div>`,
+              )}
+            </kh-swipe>`
+            : html`<div class="secondary">Aucun thermomètre joignable</div>`}
         </section>
 
         <div class="col" style="--w: 4; --w6: 6; --w2: 2">
@@ -515,7 +597,9 @@ export class KhHomeV2 extends LitElement {
         ${favorites.length
           ? html`<section class="tile first-on-phone" style="--tint: var(--rgb-yellow); --w: 4; --w6: 6; --w2: 2">
               ${head("mdi:star", "Favoris")}
-              <div class="favs">${favorites.map((f) => this.favorite(f))}</div>
+              <kh-swipe label="Favoris">
+                ${pagesOf(favorites, 2).map((pg) => html`<div class="favs">${pg.map((f) => this.favorite(f))}</div>`)}
+              </kh-swipe>
             </section>`
           : nothing}
         <section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 3; --w2: 2">

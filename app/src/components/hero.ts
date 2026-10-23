@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo } from "../actions.ts";
-import { openOpenings, openPerson } from "../popups/index.ts";
+import { alarmLook, openAlarm, openOpenings, openPerson } from "../popups/index.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive } from "../format.ts";
 import { currentPerson } from "../rooms.ts";
@@ -202,15 +202,16 @@ export class KhHero extends LitElement {
                 <ha-icon icon=${lights > 0 ? "mdi:lightbulb-on" : "mdi:lightbulb-outline"}></ha-icon>${lights}
               </a>`
             : nothing}
-          ${windows > 0
-            ? html`<button class="chip tint" style="--rgb: var(--rgb-red)" @click=${() => openOpenings(openingIds())} aria-label="${windows} fenêtres ouvertes">
-                <ha-icon icon="mdi:window-open-variant"></ha-icon>${windows}
+          ${!isNaN(windows)
+            ? html`<button class="chip ${windows > 0 ? "tint" : ""}" style="--rgb: var(--rgb-${windows > 0 ? "red" : "green"})"
+                @click=${() => openOpenings(openingIds())} aria-label=${windows > 0 ? `${windows} fenêtres ouvertes` : "Fenêtres fermées"}>
+                <ha-icon icon=${windows > 0 ? "mdi:window-open-variant" : "mdi:window-closed-variant"}></ha-icon>${windows}
               </button>`
             : nothing}
-          ${alarm && alarm.state !== "disarmed" && alarm.state !== "unavailable"
-            ? html`<button class="chip tint ${alarm.state === "triggered" || alarm.state === "pending" ? "blink" : ""}"
-                style="--rgb: var(--rgb-red)" @click=${() => openMoreInfo(this, alarm.entity_id)} aria-label="Alarme">
-                <ha-icon icon="mdi:shield-home"></ha-icon>
+          ${alarm
+            ? html`<button class="chip tint ${alarmLook(alarm.state).alert ? "blink" : ""}" style="--rgb: var(--rgb-${alarmLook(alarm.state).color})"
+                @click=${() => openAlarm(alarm.entity_id)} aria-label="Alarme : ${alarmLook(alarm.state).label}" title=${alarmLook(alarm.state).label}>
+                <ha-icon icon=${alarmLook(alarm.state).icon}></ha-icon>
               </button>`
             : nothing}
           ${residents()

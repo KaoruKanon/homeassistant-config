@@ -123,6 +123,15 @@ export async function triggerAutomation(entityId: string): Promise<void> {
   await hass.callService("automation", "trigger", { skip_condition: true }, { entity_id: entityId });
 }
 
+export type AlarmMode = "arm_away" | "arm_home" | "arm_night" | "arm_vacation" | "disarm";
+
+/** Arms or disarms the alarm, with the code when it asks for one. */
+export async function setAlarm(entityId: string, mode: AlarmMode, code?: string): Promise<void> {
+  const hass = store.hass;
+  if (!hass || !entityId.startsWith("alarm_control_panel.")) return;
+  await hass.callService("alarm_control_panel", `alarm_${mode}`, code ? { code } : {}, { entity_id: entityId });
+}
+
 /** Makes a phone ring loudly, even in silent mode ("Trouver mon téléphone"). */
 export async function ringPhone(notifyService: string): Promise<void> {
   const hass = store.hass;

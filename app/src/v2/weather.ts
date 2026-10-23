@@ -1,5 +1,4 @@
 import { LitElement, css, html, nothing } from "lit";
-import { openMoreInfo } from "../actions.ts";
 import "../components/sparkline.ts";
 import { still, weatherIcon } from "../components/weather-card.ts";
 import "../components/widgets.ts";
@@ -7,7 +6,7 @@ import { config } from "../config.ts";
 import { formatNumber, stateLabel } from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
-import { COMPASS, beaufort, forecastDays, hourFormat, moon, subscribeHourly, sunArc, sunTimes, windyUrl } from "../weather-utils.ts";
+import { COMPASS, beaufort, forecastDays, frogSky, hourFormat, moon, subscribeHourly, sunArc, sunTimes, windyUrl } from "../weather-utils.ts";
 import { head, hero, v2 } from "./styles.ts";
 
 /** Météo: now in the hero, then hours, days, sun, radar and the markets. */
@@ -27,6 +26,9 @@ export class KhV2Weather extends LitElement {
       config.home.outdoorTemperature ?? "",
       config.home.forecast?.sensor ?? "",
       config.home.nextRain ?? "",
+      config.home.frog?.image ?? "",
+      config.home.frog?.status ?? "",
+      config.home.frog?.location ?? "",
       "sun.sun",
     ]);
   }
@@ -35,27 +37,9 @@ export class KhV2Weather extends LitElement {
     base,
     v2,
     css`
-      .hero .now {
-        position: absolute;
-        right: 18px;
-        top: 12px;
-        width: clamp(96px, 18vw, 150px);
-        height: auto;
-        filter: drop-shadow(0 6px 16px rgb(0 0 0 / 0.25));
-        animation: kh-float 5s ease-in-out infinite alternate;
-      }
-      @keyframes kh-float {
-        from {
-          transform: translateY(3px);
-        }
-        to {
-          transform: translateY(-4px);
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .hero .now {
-          animation: none;
-        }
+      .hero .art.photo {
+        background-size: 100% 100%, auto 100%;
+        background-repeat: no-repeat;
       }
       .arrow {
         display: inline-block;
@@ -149,6 +133,18 @@ export class KhV2Weather extends LitElement {
     this.unsub?.();
   }
 
+  /** The weather frog's picture of the moment behind the hero, as on the home view. */
+  private frogPicture() {
+    const f = config.home.frog;
+    const st = (id?: string) => (id ? store.hass?.states[id]?.state : undefined);
+    const image = st(f?.image) ?? "";
+    if (!image.startsWith("http")) return nothing;
+    const sky = frogSky();
+    const place = st(f?.location);
+    const shift = place === "field" ? "20%" : place === "hills" ? "40%" : "10%";
+    return html`<div class="art photo" style="background-color: rgb(${sky}); background-image: linear-gradient(180deg, rgb(${sky}) 0%, rgba(${sky}, 0) 60%), url('${image}'); background-position: top, ${shift} bottom"></div>`;
+  }
+
   private days() {
     const days = forecastDays(7);
     if (!days.length) return nothing;
@@ -205,7 +201,7 @@ export class KhV2Weather extends LitElement {
           ${day && !isNaN(uv)
             ? html`<span class="chip"><ha-icon icon="mdi:sun-wireless-outline"></ha-icon>UV ${formatNumber(uv, 1)}</span>`
             : html`<span class="chip"><ha-icon icon=${moonIcon}></ha-icon>${moonLabel}</span>`}`,
-        weather ? html`<img class="now" src=${still(weatherIcon(weather.state, !day))} alt="" @click=${() => openMoreInfo(this, weather.entity_id)} />` : nothing,
+        this.frogPicture(),
       )}
       <div class="bento">
         ${this.hourly.length

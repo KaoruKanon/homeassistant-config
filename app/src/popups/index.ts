@@ -1,8 +1,8 @@
 import { html, nothing } from "lit";
-import { openMoreInfo, pressButton, refresh, ringPhone, setNumber, toggle, triggerAutomation } from "../actions.ts";
+import { openMoreInfo, pressButton, refresh, ringPhone, setAlarm, setNumber, toggle, triggerAutomation, type AlarmMode } from "../actions.ts";
 import "../components/mini-map.ts";
 import "../components/sparkline.ts";
-import { openPopup } from "../components/popup.ts";
+import { openPopup, refreshPopup } from "../components/popup.ts";
 import { config, type Computer, type Favorite } from "../config.ts";
 import { formatNumber, isActive, isUnavailable, stateLabel } from "../format.ts";
 import { store } from "../store.ts";
@@ -285,6 +285,93 @@ export function openTablet(): void {
           ${t.reload ? html`<button class="action" style="--rgb: var(--rgb-blue)" @click=${() => pressButton(t.reload!)}><ha-icon icon="mdi:refresh"></ha-icon>Recharger</button>` : nothing}
           ${t.restartBrowser ? html`<button class="action" style="--rgb: var(--rgb-orange)" @click=${() => pressButton(t.restartBrowser!)}><ha-icon icon="mdi:restart"></ha-icon>Redémarrer le navigateur</button>` : nothing}
         </div>
+      `;
+    },
+  });
+}
+
+/** Icon, colour and French label of an alarm state. */
+export function alarmLook(state?: string): { icon: string; color: string; label: string; alert: boolean } {
+  switch (state) {
+    case "disarmed":
+      return { icon: "mdi:shield-off-outline", color: "grey", label: "Désarmée", alert: false };
+    case "armed_home":
+      return { icon: "mdi:shield-home", color: "green", label: "Armée, maison", alert: false };
+    case "armed_away":
+      return { icon: "mdi:shield-lock", color: "green", label: "Armée, absence", alert: false };
+    case "armed_night":
+      return { icon: "mdi:shield-moon", color: "indigo", label: "Armée, nuit", alert: false };
+    case "armed_vacation":
+      return { icon: "mdi:shield-airplane", color: "green", label: "Armée, vacances", alert: false };
+    case "armed_custom_bypass":
+      return { icon: "mdi:shield-half-full", color: "green", label: "Armée, personnalisée", alert: false };
+    case "arming":
+      return { icon: "mdi:shield-sync", color: "orange", label: "Armement…", alert: true };
+    case "disarming":
+      return { icon: "mdi:shield-sync", color: "orange", label: "Désarmement…", alert: true };
+    case "pending":
+      return { icon: "mdi:shield-alert", color: "orange", label: "Délai d'entrée", alert: true };
+    case "triggered":
+      return { icon: "mdi:bell-ring", color: "red", label: "Déclenchée !", alert: true };
+    default:
+      return { icon: "mdi:shield-outline", color: "grey", label: "Indisponible", alert: false };
+  }
+}
+
+const ALARM_MODES: { mode: AlarmMode; bit: number; label: string; icon: string }[] = [
+  { mode: "arm_away", bit: 2, label: "Absence", icon: "mdi:shield-lock" },
+  { mode: "arm_home", bit: 1, label: "Maison", icon: "mdi:shield-home" },
+  { mode: "arm_night", bit: 4, label: "Nuit", icon: "mdi:shield-moon" },
+  { mode: "arm_vacation", bit: 32, label: "Vacances", icon: "mdi:shield-airplane" },
+];
+
+/** Alarm: its state, the arming modes it supports, disarm, and a keypad when it needs a code. */
+export function openAlarm(id: string): void {
+  let code = "";
+  openPopup({
+    title: capitalize(String(st(id)?.attributes.friendly_name ?? "Alarme")),
+    icon: "mdi:shield-home",
+    color: "red",
+    watch: [id],
+    body: () => {
+      const s = st(id);
+      if (!s) return nothing;
+      const look = alarmLook(s.state);
+      const features = Number(s.attributes.supported_features ?? 0);
+      const format = s.attributes.code_format as string | null | undefined;
+      const armed = s.state !== "disarmed";
+      const needsCode = !!format && (armed || s.attributes.code_arm_required !== false);
+      const send = async (mode: AlarmMode) => {
+        await setAlarm(id, mode, needsCode ? code : undefined);
+        code = "";
+        refreshPopup();
+      };
+      const key = (k: string) => {
+        code = k === "⌫" ? code.slice(0, -1) : (code + k).slice(0, 12);
+        refreshPopup();
+      };
+      return html`
+        ${row(look.icon, look.color, look.label, "", `depuis ${ago(s.last_changed).replace("il y a ", "")}`)}
+        ${needsCode
+          ? html`<div class="code" aria-live="polite">${code ? "•".repeat(code.length) : html`<span class="muted">Code</span>`}</div>
+              ${format === "number"
+                ? html`<div class="keypad">
+                    ${["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0"].map(
+                      (k) => html`<button class="action" style="--rgb: var(--rgb-grey)" aria-label=${k === "⌫" ? "Effacer" : k} @click=${() => key(k)}>${k}</button>`,
+                    )}
+                  </div>`
+                : html`<input class="code-input" type="password" autocomplete="off" placeholder="Code" .value=${code}
+                    @input=${(e: Event) => (code = (e.target as HTMLInputElement).value)} />`}`
+          : nothing}
+        ${armed
+          ? html`<button class="action" style="--rgb: var(--rgb-orange)" @click=${() => send("disarm")}>
+              <ha-icon icon="mdi:shield-off-outline"></ha-icon>Désarmer</button>`
+          : html`<div class="grid2">
+              ${ALARM_MODES.filter((m) => features & m.bit).map(
+                (m) => html`<button class="action" style="--rgb: var(--rgb-green)" @click=${() => send(m.mode)}>
+                  <ha-icon icon=${m.icon}></ha-icon>${m.label}</button>`,
+              )}
+            </div>`}
       `;
     },
   });

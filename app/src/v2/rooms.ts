@@ -3,7 +3,7 @@ import { setLights } from "../actions.ts";
 import "../components/light-pill.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive, isUnavailable } from "../format.ts";
-import { openOpenings } from "../popups/index.ts";
+import { alarmLook, openAlarm, openOpenings } from "../popups/index.ts";
 import { entityName, type HouseModel, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
@@ -22,7 +22,7 @@ export class KhV2Rooms extends LitElement {
     super();
     new RegistryController(this);
     new EntitiesController(this, () =>
-      (this.rooms ?? []).flatMap((r) => [...r.lights, ...r.openings, ...r.motion, ...[r.temperature, r.humidity].filter((x): x is string => !!x)]).concat("sun.sun"),
+      (this.rooms ?? []).flatMap((r) => [...r.lights, ...r.openings, ...r.motion, ...[r.temperature, r.humidity].filter((x): x is string => !!x)]).concat("sun.sun", config.home.chips.alarm ?? "sun.sun"),
     );
   }
 
@@ -240,6 +240,7 @@ export class KhV2Rooms extends LitElement {
     const open = openings.filter((id) => isActive(hass.states[id]));
     const temps = rooms.map((r) => (r.temperature ? Number(hass.states[r.temperature]?.state) : NaN)).filter((v) => !isNaN(v));
     const avg = temps.length ? temps.reduce((a, b) => a + b, 0) / temps.length : NaN;
+    const alarm = config.home.chips.alarm ? hass.states[config.home.chips.alarm] : undefined;
     const loose = (this.model?.unassignedLights ?? []).filter((id) => hass.states[id]);
 
     return html`
@@ -253,6 +254,10 @@ export class KhV2Rooms extends LitElement {
           ${open.length
             ? html`<button class="chip alert" @click=${() => openOpenings(openings)}><ha-icon icon="mdi:window-open-variant"></ha-icon>${open.length} ouverte${open.length > 1 ? "s" : ""}</button>`
             : html`<span class="chip"><ha-icon icon="mdi:window-closed-variant"></ha-icon>Tout est fermé</span>`}
+          ${alarm
+            ? html`<button class="chip ${alarmLook(alarm.state).alert ? "alert" : ""}" @click=${() => openAlarm(alarm.entity_id)}>
+                <ha-icon icon=${alarmLook(alarm.state).icon}></ha-icon>${alarmLook(alarm.state).label}</button>`
+            : nothing}
           ${on.length
             ? html`<button class="chip" @click=${() => setLights(on, false)}><ha-icon icon="mdi:lightbulb-off-outline"></ha-icon>Tout éteindre</button>`
             : nothing}`,

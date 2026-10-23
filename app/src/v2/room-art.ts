@@ -36,7 +36,7 @@ const G = "#4cbb6c", GS = "#379c55", BELLY = "#c4e8a4", INK = "#22302b", CHEEK =
 type Pose = "sit" | "sleep" | "bath" | "stand";
 
 /** The frog; (x, y) = bottom centre, `hand` = what it holds, drawn in front. */
-function frog(x: number, y: number, s: number, pose: Pose, hand?: SVGTemplateResult, flip = false) {
+export function frog(x: number, y: number, s: number, pose: Pose, hand?: SVGTemplateResult, flip = false) {
   const eyes =
     pose === "sleep"
       ? svg`<path d="M-17 -57q5 4 10 0M7 -57q5 4 10 0" stroke=${INK} stroke-width="2.2" fill="none" stroke-linecap="round" />`
@@ -62,7 +62,7 @@ function frog(x: number, y: number, s: number, pose: Pose, hand?: SVGTemplateRes
 }
 
 /** Window on the outside: the weather frog's sky colour, sun or moon. */
-function window_(x: number, y: number, w: number, h: number, sky: string, night: boolean, frame = "#f6efe2") {
+export function window_(x: number, y: number, w: number, h: number, sky: string, night: boolean, frame = "#f6efe2") {
   return svg`<g class="window">
     <rect x=${x - 7} y=${y - 7} width=${w + 14} height=${h + 14} rx="8" fill=${frame} />
     <rect x=${x} y=${y} width=${w} height=${h} rx="4" fill="rgb(${sky})" />
@@ -79,9 +79,9 @@ function window_(x: number, y: number, w: number, h: number, sky: string, night:
 }
 
 /** A lamp's light: a soft warm halo. */
-const glow = (x: number, y: number, r: number) => svg`<circle class="glow" cx=${x} cy=${y} r=${r} fill="url(#kh-glow)" />`;
+export const glow = (x: number, y: number, r: number) => svg`<circle class="glow" cx=${x} cy=${y} r=${r} fill="url(#kh-glow)" />`;
 
-const plant = (x: number, y: number, s = 1) => svg`<g transform="translate(${x} ${y}) scale(${s})">
+export const plant = (x: number, y: number, s = 1) => svg`<g transform="translate(${x} ${y}) scale(${s})">
   <path d="M-12 0h24l-3-20h-18z" fill="#e07a5f" />
   <path d="M0 -20c-4-18-16-24-24-22c6 6 12 14 24 22z" fill="#5aa469" />
   <path d="M0 -20c2-22 14-30 22-30c-4 10-10 22-22 30z" fill="#6cbf7a" />

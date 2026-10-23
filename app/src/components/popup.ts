@@ -231,6 +231,37 @@ class KhPopup extends LitElement {
         min-height: 120px;
         object-fit: cover;
       }
+      /* Alarm keypad */
+      .code {
+        min-height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: var(--kh-radius);
+        background: var(--kh-card-2);
+        font-size: 1.5rem;
+        letter-spacing: 0.3em;
+      }
+      .code .muted {
+        letter-spacing: normal;
+        font-size: 1rem;
+      }
+      .code-input {
+        height: 48px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: var(--kh-radius);
+        background: var(--kh-card-2);
+        color: inherit;
+        font: inherit;
+      }
+      .keypad {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .keypad .action {
+        font-size: 1.25rem;
+      }
       .muted {
         color: var(--kh-text-2);
         font-size: 0.875rem;
@@ -443,6 +474,11 @@ export function openPopup(spec: PopupSpec): void {
   // Inside <home-assistant>: HA's own elements in a popup (the native map)
   // read their data from the app's context. The dialog is in the top layer anyway.
   (document.querySelector("home-assistant")?.shadowRoot ?? document.body).append(el);
+}
+
+/** Re-renders the open popup (state kept by its body, e.g. a code being typed). */
+export function refreshPopup(): void {
+  current?.requestUpdate();
 }
 
 export function closePopup(): void {

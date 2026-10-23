@@ -8,7 +8,10 @@ import { formatNumber, isActive } from "../format.ts";
 import { entityName } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
-import { head, hero, ring, v2 } from "./styles.ts";
+import { frogSky } from "../weather-utils.ts";
+import { roomSceneStyles } from "./room-art.ts";
+import { energyScene, sceneStyles } from "./scenes.ts";
+import { head, hero, v2 } from "./styles.ts";
 
 /** Énergie: the power now in the hero, Linky graph, PCs, plugs (protected), fan. */
 export class KhV2Energy extends LitElement {
@@ -21,35 +24,19 @@ export class KhV2Energy extends LitElement {
     new RegistryController(this);
     new EntitiesController(this, () => {
       const e = config.home.energy;
-      return [e?.power, e?.today, ...config.energyPage.plugs].filter((x): x is string => !!x);
+      return [e?.power, e?.today, ...config.energyPage.plugs, "sun.sun"].filter((x): x is string => !!x);
     });
   }
 
   static styles = [
     base,
     v2,
+    roomSceneStyles,
+    sceneStyles,
     css`
-      .meter {
-        position: absolute;
-        right: 22px;
-        top: 22px;
-        width: 120px;
-        height: 120px;
-        display: grid;
-        place-items: center;
-        text-align: center;
-      }
-      .meter b {
-        font-size: 1.5rem;
-      }
       .stack {
         display: grid;
         gap: 10px;
-      }
-      @container v2 (max-width: 679px) {
-        .meter {
-          display: none;
-        }
       }
     `,
   ];
@@ -73,13 +60,9 @@ export class KhV2Energy extends LitElement {
         isNaN(watts) ? "—" : html`${formatNumber(watts, 0)}<small style="font-size:1.25rem"> W</small>`,
         !isNaN(kwh) && e ? `${formatNumber(kwh, 1)} kWh aujourd'hui, ${formatNumber(kwh * e.pricePerKwh, 2)} €` : "",
         html`${last > 0 ? html`<span class="chip"><ha-icon icon="mdi:history"></ha-icon>Hier ${formatNumber(last, 1)} kWh</span>` : nothing}
+          ${last > 0 && !isNaN(kwh) ? html`<span class="chip"><ha-icon icon="mdi:percent-circle-outline"></ha-icon>${formatNumber((kwh / last) * 100, 0)} % d'hier</span>` : nothing}
           <span class="chip"><ha-icon icon="mdi:power-plug"></ha-icon>${plugsOn} prise${plugsOn > 1 ? "s" : ""} sur ${p.plugs.length}</span>`,
-        last > 0 && !isNaN(kwh)
-          ? html`<div class="meter" aria-label="Aujourd'hui par rapport à hier">
-              ${ring(kwh / last, 120, 10, "#ffffff")}
-              <div><b>${formatNumber((kwh / last) * 100, 0)} %</b><div style="font-size:.75rem; font-weight:700">d'hier</div></div>
-            </div>`
-          : nothing,
+        html`<div class="art">${energyScene(watts, hass.states["sun.sun"]?.state === "below_horizon", frogSky())}</div>`,
       )}
       <div class="bento">
         ${e
