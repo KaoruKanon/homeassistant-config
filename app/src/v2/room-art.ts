@@ -31,7 +31,7 @@ export function roomKind(r: Pick<Room, "id" | "name" | "icon">): Kind {
 }
 
 // Tomo, the black cat of the user's Tomo app (apps/tomo/frontend/public/mascot),
-// drawn from its own shapes: white sticker outline, yellow eyes, pink nose.
+// drawn from its own shapes (without the sticker outline): yellow eyes, pink nose.
 const INK = "#1E1C29", EAR = "#4A4363", EYE = "#F5C542", NOSE = "#E88AA6", LID = "#8C86A6";
 
 /**
@@ -55,25 +55,19 @@ export function cat(x: number, y: number, s: number, pose: Pose, hand?: SVGTempl
     : svg`<g class="tomo-eyes"><path d="M72 86 Q 90 63 108 86 Q 90 107 72 86 Z M112 86 Q 130 63 148 86 Q 130 107 112 86 Z" fill=${EYE} />
         <ellipse cx="90" cy="86" rx="4" ry="13" fill=${INK} /><ellipse cx="130" cy="86" rx="4" ry="13" fill=${INK} />
         <circle cx="94" cy="80" r="2.4" fill="#FFF8DD" /><circle cx="134" cy="80" r="2.4" fill="#FFF8DD" /></g>`;
-  const head = (outline: boolean) =>
-    outline
-      ? svg`<g transform="rotate(-7 110 90)">${TOMO_EARS.map((d) => svg`<path d=${d} />`)}<path d=${TOMO_HEAD} /></g>`
-      : svg`<g transform="rotate(-7 110 90)">
+  const head = () =>
+    svg`<g transform="rotate(-7 110 90)">
           ${TOMO_EARS.map((d) => svg`<path d=${d} fill=${INK} />`)}${TOMO_INNER.map((d) => svg`<path d=${d} fill=${EAR} />`)}
           <path d=${TOMO_HEAD} fill=${INK} />${eyes}
           <path d="M106 104 L 114 104 L 110 109 Z" fill=${NOSE} stroke=${NOSE} stroke-width="2" stroke-linejoin="round" />
         </g>`;
   const tomo = svg`
-    <g fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
-      ${body ? svg`<path d=${TOMO_BODY} /><path class="tomo-tail" d=${TOMO_TAIL} fill="none" stroke-width="21" />` : svg``}
-      ${head(true)}
-    </g>
     ${body
       ? svg`<path class="tomo-tail" d=${TOMO_TAIL} fill="none" stroke=${INK} stroke-width="13" stroke-linecap="round" />
           <path d=${TOMO_BODY} fill=${INK} />
           <ellipse cx="96" cy="203" rx="12" ry="7" fill=${INK} /><ellipse cx="124" cy="203" rx="12" ry="7" fill=${INK} />`
       : svg``}
-    ${head(false)}`;
+    ${head()}`;
   // Tomo's own frame is 220 × 205 (ears to paws); 0.42 brings it to ~75 units.
   const shift = body ? 205 : 130;
   return svg`<g transform="translate(${x} ${y}) scale(${flip ? -s : s} ${s})">

@@ -21,7 +21,7 @@ const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digi
 const date = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
 /** Landscape tablets: the home is laid out to fit one screen. */
-const WALL = "(min-width: 1000px) and (max-height: 900px) and (orientation: landscape)";
+const WALL = "(min-width: 1000px) and (max-height: 1100px) and (orientation: landscape)";
 
 /** One colour per thermometer in the Climat tile. */
 const CLIMATE_COLORS = ["orange", "green", "purple", "teal", "amber", "indigo", "red", "blue"];
@@ -264,15 +264,23 @@ export class KhHomeV2 extends LitElement {
       /* Wall tablet: two rows that fill the screen under the hero; each tile
          keeps to its cell (content swipes or scrolls inside). Partir and
          Wi-Fi move to the hero; the other shortcuts are in the dock. */
-      @media (min-width: 1000px) and (max-height: 900px) and (orientation: landscape) {
+      @media (min-width: 1000px) and (max-height: 1100px) and (orientation: landscape) {
         .scene {
           min-height: 0;
-          height: 150px;
+          height: 176px;
           box-sizing: border-box;
+          padding: 14px 20px;
+          align-content: space-between;
+        }
+        .scene time {
+          font-size: 2.6rem;
+        }
+        .scene .chips {
+          margin-top: 0;
         }
         .bento {
           grid-template-columns: repeat(12, minmax(0, 1fr));
-          grid-auto-rows: calc((100dvh - 312px) / 2);
+          grid-auto-rows: calc((100dvh - 338px) / 2);
           gap: 12px;
           margin-top: 12px;
         }
@@ -556,7 +564,7 @@ export class KhHomeV2 extends LitElement {
           ${head("mdi:home-thermometer", "Climat", { href: `${p}/meteo`, label: "Météo" })}
           ${this.rooms().length
             ? html`<kh-swipe label="Climat">
-              ${pagesOf(this.rooms().map((r, i) => ({ r, i })), this.wall ? 2 : 4).map(
+              ${pagesOf(this.rooms().map((r, i) => ({ r, i })), this.wall && window.innerHeight < 950 ? 2 : 4).map(
                 (pg) => html`<div class="climate">${pg.map(({ r, i }) => {
                   const t = Number(hass.states[r.temperature!]?.state);
                   const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
@@ -587,7 +595,7 @@ export class KhHomeV2 extends LitElement {
           ? html`<section class="tile first-on-phone" style="--tint: var(--rgb-yellow); --w: 6; --w6: 6; --w2: 2; --wt: 3">
               ${head("mdi:star", "Favoris")}
               <kh-swipe label="Favoris">
-                ${pagesOf(favorites, this.wall ? 1 : 2).map((pg) => html`<div class="favs">${pg.map((f) => this.favorite(f))}</div>`)}
+                ${pagesOf(favorites, this.wall && window.innerHeight < 950 ? 1 : 2).map((pg) => html`<div class="favs">${pg.map((f) => this.favorite(f))}</div>`)}
               </kh-swipe>
             </section>`
           : nothing}
