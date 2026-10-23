@@ -1,6 +1,5 @@
 import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo, runScript } from "../actions.ts";
-import "../components/energy-card.ts";
 import "../components/light-pill.ts";
 import { isPlayerActive } from "../components/media-card.ts";
 import "../components/media-card.ts";
@@ -21,6 +20,9 @@ import { head, pagesOf, ring, v2 } from "./styles.ts";
 const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const date = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
+/** Landscape tablets: the home is laid out to fit one screen. */
+const WALL = "(min-width: 1000px) and (max-height: 900px) and (orientation: landscape)";
+
 /** One colour per thermometer in the Climat tile. */
 const CLIMATE_COLORS = ["orange", "green", "purple", "teal", "amber", "indigo", "red", "blue"];
 
@@ -36,15 +38,20 @@ function greeting(h: number): string {
  * size follows importance, each family of tiles tinted with its colour.
  */
 export class KhHomeV2 extends LitElement {
-  static properties = { prefix: {}, model: { attribute: false }, now: { state: true } };
+  static properties = { prefix: {}, model: { attribute: false }, now: { state: true }, wall: { state: true } };
   declare prefix: string;
   declare model?: HouseModel;
   declare now: Date;
+  /** Landscape tablet (the wall tablet): the whole home fits one screen. */
+  declare wall: boolean;
   private timer?: number;
+  private wallQuery = window.matchMedia(WALL);
+  private onWall = () => (this.wall = this.wallQuery.matches);
 
   constructor() {
     super();
     this.now = new Date();
+    this.wall = this.wallQuery.matches;
     new RegistryController(this);
     new EntitiesController(this, () => {
       const h = config.home;
@@ -254,6 +261,63 @@ export class KhHomeV2 extends LitElement {
         grid-area: graph;
         margin: 6px -12px 0;
       }
+      /* Wall tablet: two rows that fill the screen under the hero; each tile
+         keeps to its cell (content swipes or scrolls inside). Partir and
+         Wi-Fi move to the hero; the other shortcuts are in the dock. */
+      @media (min-width: 1000px) and (max-height: 900px) and (orientation: landscape) {
+        .scene {
+          min-height: 0;
+          height: 150px;
+          box-sizing: border-box;
+        }
+        .bento {
+          grid-template-columns: repeat(12, minmax(0, 1fr));
+          grid-auto-rows: calc((100dvh - 312px) / 2);
+          gap: 12px;
+          margin-top: 12px;
+        }
+        .tile,
+        .col > .tile {
+          grid-column: span var(--wt, var(--w));
+          overflow: auto;
+          scrollbar-width: none;
+          gap: 8px;
+          padding: 12px 14px;
+        }
+        .col {
+          display: contents;
+        }
+        .shortcuts-tile {
+          display: none;
+        }
+        .pills {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .row2 {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .kpis {
+        display: grid;
+        gap: 8px;
+      }
+      .kpi {
+        display: grid;
+        gap: 2px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: var(--kh-card-2);
+        text-align: left;
+      }
+      .kpi b {
+        font-size: 1.6rem;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+      }
+      .kpi small {
+        font-size: 0.85rem;
+        opacity: 0.75;
+      }
       .days {
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -307,6 +371,7 @@ export class KhHomeV2 extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.wallQuery.addEventListener("change", this.onWall);
     const tick = () => {
       this.now = new Date();
       this.timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50);
@@ -316,6 +381,7 @@ export class KhHomeV2 extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.wallQuery.removeEventListener("change", this.onWall);
     window.clearTimeout(this.timer);
   }
 
@@ -400,6 +466,12 @@ export class KhHomeV2 extends LitElement {
           ? html`<button class="chip ${badgeClass(windowsBadge(windows))}" style=${badgeStyle(windowsBadge(windows))} @click=${() => openOpenings(this.openings())}>
               <ha-icon icon=${windows > 0 ? "mdi:window-open-variant" : "mdi:window-closed-variant"}></ha-icon>${windows > 0 ? `${windows} ouverte${windows > 1 ? "s" : ""}` : "Fermé"}</button>`
           : nothing}
+        ${this.wall && h.leave
+          ? html`<button class="chip" @click=${() => runScript(h.leave!)}><ha-icon icon="mdi:hand-wave"></ha-icon>Partir</button>`
+          : nothing}
+        ${this.wall && h.wifiQr
+          ? html`<button class="chip" @click=${() => openWifiQr()}><ha-icon icon="mdi:qrcode"></ha-icon>Wi-Fi</button>`
+          : nothing}
         ${alarm
           ? html`<button class="chip ${badgeClass(alarmBadge(alarm.state))}" style=${badgeStyle(alarmBadge(alarm.state))} @click=${() => openAlarm(alarm.entity_id)}>
               <ha-icon icon=${alarmLook(alarm.state).icon}></ha-icon>${alarmLook(alarm.state).label}</button>`
@@ -412,6 +484,25 @@ export class KhHomeV2 extends LitElement {
     return Object.values(store.hass?.states ?? {})
       .filter((s) => s.entity_id.startsWith("binary_sensor.") && ["window", "door", "opening"].includes(s.attributes.device_class))
       .map((s) => s.entity_id);
+  }
+
+  /** Today's consumption and the power drawn now, nothing more. */
+  private energy() {
+    const hass = store.hass!;
+    const e = config.home.energy!;
+    const kwh = Number(hass.states[e.today]?.state);
+    const watts = Number(hass.states[e.power]?.state);
+    return html`<div class="kpis">
+      <button class="kpi" @click=${() => openMoreInfo(this, e.today)}>
+        <span class="secondary">Aujourd'hui</span>
+        <b>${isNaN(kwh) ? "—" : formatNumber(kwh, 1)}<small> kWh</small></b>
+        <span class="secondary">${isNaN(kwh) ? "" : `${formatNumber(kwh * e.pricePerKwh, 2)} €`}</span>
+      </button>
+      <button class="kpi" @click=${() => openMoreInfo(this, e.power)}>
+        <span class="secondary">En ce moment</span>
+        <b>${isNaN(watts) ? "—" : formatNumber(watts, 0)}<small> W</small></b>
+      </button>
+    </div>`;
   }
 
   private favorite(f: Favorite) {
@@ -445,7 +536,7 @@ export class KhHomeV2 extends LitElement {
     return html`
       ${this.hero()}
       <div class="bento">
-        <section class="tile" style="--tint: var(--rgb-amber); --w: 7; --w6: 6; --w2: 2">
+        <section class="tile" style="--tint: var(--rgb-amber); --w: 7; --w6: 6; --w2: 2; --wt: 4">
           ${head("mdi:lightbulb-group", "Lumières", { href: `${p}/pieces`, label: "Pièces" })}
           <kh-swipe label="Lumières">
             ${pagesOf(lights, 6).map(
@@ -454,18 +545,18 @@ export class KhHomeV2 extends LitElement {
           </kh-swipe>
         </section>
 
-        <section class="tile ${playing ? "" : "flush"}" style="--tint: var(--rgb-purple); --w: 5; --w6: 6; --w2: 2">
+        <section class="tile ${playing ? "" : "flush"}" style="--tint: var(--rgb-purple); --w: 5; --w6: 6; --w2: 2; --wt: 4">
           ${playing
             ? html`${head("mdi:play-circle", "En lecture", { href: `${p}/medias`, label: "Médias" })}
                 <kh-media-card entity-id=${playing} kind=${playing === h.spotify ? "music" : "tv"} name=${playing === h.spotify ? "Spotify" : nothing}></kh-media-card>`
             : html`<kh-jellyfin></kh-jellyfin>`}
         </section>
 
-        <section class="tile" style="--tint: var(--rgb-green); --w: 6; --w6: 6; --w2: 2">
+        <section class="tile" style="--tint: var(--rgb-green); --w: 6; --w6: 6; --w2: 2; --wt: 4">
           ${head("mdi:home-thermometer", "Climat", { href: `${p}/meteo`, label: "Météo" })}
           ${this.rooms().length
             ? html`<kh-swipe label="Climat">
-              ${pagesOf(this.rooms().map((r, i) => ({ r, i })), 4).map(
+              ${pagesOf(this.rooms().map((r, i) => ({ r, i })), this.wall ? 2 : 4).map(
                 (pg) => html`<div class="climate">${pg.map(({ r, i }) => {
                   const t = Number(hass.states[r.temperature!]?.state);
                   const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
@@ -486,22 +577,22 @@ export class KhHomeV2 extends LitElement {
         </section>
 
         ${h.energy
-          ? html`<section class="tile" style="--tint: var(--rgb-orange); --w: 6; --w6: 6; --w2: 2">
+          ? html`<section class="tile" style="--tint: var(--rgb-orange); --w: 3; --w6: 3; --w2: 2; --wt: 2">
               ${head("mdi:lightning-bolt", "Énergie", { href: `${p}/energie`, label: "Détail" })}
-              <kh-energy-card></kh-energy-card>
+              ${this.energy()}
             </section>`
           : nothing}
 
         ${favorites.length
-          ? html`<section class="tile first-on-phone" style="--tint: var(--rgb-yellow); --w: 4; --w6: 6; --w2: 2">
+          ? html`<section class="tile first-on-phone" style="--tint: var(--rgb-yellow); --w: 6; --w6: 6; --w2: 2; --wt: 3">
               ${head("mdi:star", "Favoris")}
               <kh-swipe label="Favoris">
-                ${pagesOf(favorites, 2).map((pg) => html`<div class="favs">${pg.map((f) => this.favorite(f))}</div>`)}
+                ${pagesOf(favorites, this.wall ? 1 : 2).map((pg) => html`<div class="favs">${pg.map((f) => this.favorite(f))}</div>`)}
               </kh-swipe>
             </section>`
           : nothing}
         ${days.length
-          ? html`<section class="tile" style="--tint: var(--rgb-light-blue); --w: 4; --w6: 3; --w2: 2">
+          ? html`<section class="tile" style="--tint: var(--rgb-light-blue); --w: 6; --w6: 3; --w2: 2; --wt: ${favorites.length ? 3 : 6}">
               ${head("mdi:calendar-week", "Cinq jours", { href: `${p}/meteo`, label: "Météo" })}
               <div class="days" role="list">
                 ${days.map(
@@ -516,14 +607,14 @@ export class KhHomeV2 extends LitElement {
             </section>`
           : nothing}
 
-        <div class="col" style="--w: 4; --w6: 6; --w2: 2">
-          <section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 3; --w2: 2">
+        <div class="col" style="--w: 3; --w6: 6; --w2: 2">
+          <section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 3; --w2: 2; --wt: 2">
             ${head("mdi:desktop-tower-monitor", "Ordinateurs", { href: `${p}/energie`, label: "Énergie" })}
             <div class="row2">
               ${h.computers.map((c) => html`<kh-computer entity-id=${c.entity} name=${c.name} busy=${c.busy ?? nothing}></kh-computer>`)}
             </div>
           </section>
-          <section class="tile" style="--tint: var(--rgb-teal); --w: 4; --w6: 3; --w2: 2">
+          <section class="tile" style="--tint: var(--rgb-teal); --w: 4; --w6: 3; --w2: 2; --wt: 2">
             ${head("mdi:chart-line", "Bourse", { href: `${p}/meteo`, label: "Tout" })}
             <div class="list">
               ${(stocks.length ? stocks : h.stocks.slice(0, 3)).map((s) => {
@@ -540,7 +631,7 @@ export class KhHomeV2 extends LitElement {
           </section>
         </div>
 
-        <section class="tile" style="--tint: var(--rgb-indigo); --w: 12; --w6: 6; --w2: 2">
+        <section class="tile shortcuts-tile" style="--tint: var(--rgb-indigo); --w: 12; --w6: 6; --w2: 2">
           ${head("mdi:gesture-tap-button", "Raccourcis")}
           <div class="shortcuts">
             ${h.leave

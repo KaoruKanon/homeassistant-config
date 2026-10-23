@@ -38,45 +38,57 @@ export class KhBoxRemote extends LitElement {
     css`
       :host {
         display: block;
+        container-type: inline-size;
       }
+      /* Condensed: name and keys on the left, the D-pad on the right, the
+         apps as a row of round icons underneath. */
       .card {
-        padding: 14px;
+        padding: 12px;
         display: grid;
-        gap: 16px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "head pad" "keys pad" "apps apps";
+        gap: 10px 14px;
+        align-items: start;
       }
       .head {
+        grid-area: head;
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
+        min-width: 0;
       }
       .head > div {
         flex: 1;
         min-width: 0;
       }
-      .row {
-        display: flex;
-        gap: 8px;
+      .keys {
+        grid-area: keys;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
       }
       .btn {
-        flex: 1;
-        height: 48px;
+        height: 40px;
         display: grid;
         place-items: center;
-        border-radius: var(--kh-radius-icon);
+        border-radius: 12px;
         background: var(--kh-card-2);
       }
+      .btn.power.on {
+        color: rgb(var(--rgb-red));
+      }
       .pad {
-        justify-self: center;
+        grid-area: pad;
         display: grid;
-        grid-template-columns: repeat(3, 64px);
-        grid-template-rows: repeat(3, 64px);
-        gap: 8px;
+        grid-template-columns: repeat(3, 44px);
+        grid-template-rows: repeat(3, 44px);
+        gap: 4px;
         touch-action: manipulation;
       }
       .pad button {
         display: grid;
         place-items: center;
-        border-radius: 18px;
+        border-radius: 14px;
         background: var(--kh-card-2);
       }
       .pad .ok {
@@ -84,33 +96,37 @@ export class KhBoxRemote extends LitElement {
         background: rgba(var(--rgb-blue), 0.25);
         color: rgb(var(--rgb-blue));
         font-weight: 800;
-      }
-      .pad .corner {
-        background: transparent;
-        color: var(--kh-text-2);
+        font-size: 0.8125rem;
       }
       .apps {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-area: apps;
+        display: flex;
+        flex-wrap: wrap;
         gap: 8px;
       }
       .app {
+        width: 40px;
+        height: 40px;
         display: grid;
-        justify-items: center;
-        gap: 4px;
-        padding: 10px 4px;
-        border-radius: var(--kh-radius-icon);
-        background: var(--kh-card-2);
-        font-size: 0.75rem;
-        font-weight: 700;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(var(--rgb), 0.16);
       }
       .app ha-icon {
-        --mdc-icon-size: 28px;
+        --mdc-icon-size: 22px;
         color: rgb(var(--rgb));
       }
       .app.current {
-        background: rgba(var(--rgb), 0.22);
-        box-shadow: inset 0 0 0 2px rgba(var(--rgb), 0.6);
+        box-shadow: 0 0 0 2px rgb(var(--rgb));
+      }
+      @container (max-width: 330px) {
+        .card {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-areas: "head" "pad" "keys" "apps";
+        }
+        .pad {
+          justify-self: center;
+        }
       }
     `,
   ];
@@ -160,17 +176,19 @@ export class KhBoxRemote extends LitElement {
           <div class="secondary">${current ? `Sur ${current.name}` : activity ? `Sur ${appName(activity)}` : player ? stateLabel(hass, player) : ""}</div>
         </div>
       </div>
-      <div class="row">
-        <button class="btn" aria-label="Allumer ou éteindre" @click=${() => media(b.player, on ? "turn_off" : "turn_on")}><ha-icon icon="mdi:power"></ha-icon></button>
+      <div class="keys">
+        <button class="btn power ${on ? "on" : ""}" aria-label="Allumer ou éteindre" @click=${() => media(b.player, on ? "turn_off" : "turn_on")}><ha-icon icon="mdi:power"></ha-icon></button>
         <button class="btn" aria-label="Baisser le volume" @click=${() => media(b.player, "volume_down")}><ha-icon icon="mdi:volume-minus"></ha-icon></button>
         <button class="btn" aria-label="Couper le son" @click=${() => muteToggle(b.player)}><ha-icon icon="mdi:volume-mute"></ha-icon></button>
         <button class="btn" aria-label="Monter le volume" @click=${() => media(b.player, "volume_up")}><ha-icon icon="mdi:volume-plus"></ha-icon></button>
         <button class="btn" aria-label="Lecture ou pause" @click=${() => media(b.player, "media_play_pause")}><ha-icon icon="mdi:play-pause"></ha-icon></button>
+        ${this.key("BACK", "mdi:arrow-u-left-top", "Retour", "btn")}
+        ${this.key("HOME", "mdi:home-outline", "Accueil de la box", "btn")}
       </div>
       <div class="pad" role="group" aria-label="Croix directionnelle">
-        ${this.key("BACK", "mdi:arrow-u-left-top", "Retour", "corner")}
+        <span></span>
         ${this.key("DPAD_UP", "mdi:chevron-up", "Haut")}
-        ${this.key("HOME", "mdi:home-outline", "Accueil de la box", "corner")}
+        <span></span>
         ${this.key("DPAD_LEFT", "mdi:chevron-left", "Gauche")}
         ${this.key("DPAD_CENTER", "OK", "Valider", "ok")}
         ${this.key("DPAD_RIGHT", "mdi:chevron-right", "Droite")}
@@ -180,8 +198,9 @@ export class KhBoxRemote extends LitElement {
       </div>
       <div class="apps">
         ${b.apps.map(
-          (a) => html`<button class="app ${a === current ? "current" : ""}" style="--rgb: var(--rgb-${a.color})" @click=${() => remoteApp(b.remote, a.activity)}>
-            <ha-icon icon=${a.icon}></ha-icon>${a.name}
+          (a) => html`<button class="app ${a === current ? "current" : ""}" style="--rgb: var(--rgb-${a.color})" title=${a.name} aria-label="Ouvrir ${a.name}"
+            @click=${() => remoteApp(b.remote, a.activity)}>
+            <ha-icon icon=${a.icon}></ha-icon>
           </button>`,
         )}
       </div>

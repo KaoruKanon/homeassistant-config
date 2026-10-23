@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing } from "lit";
-import { media, muteToggle, openMoreInfo, setVolume, type MediaCommand } from "../actions.ts";
+import { media, muteToggle, openMoreInfo, type MediaCommand } from "../actions.ts";
 import { stateLabel } from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
@@ -49,24 +49,26 @@ export class KhMediaCard extends LitElement {
         gap: 12px;
         isolation: isolate;
       }
-      .cover {
+      /* Music: the album art on the right of the card, fading in from the left
+         (the old Lovelace Spotify card), the text and controls on the left. */
+      .art {
         position: absolute;
-        inset: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(260px, 60%);
         z-index: -1;
         background-size: cover;
         background-position: center;
+        -webkit-mask-image: linear-gradient(to right, transparent, black 70%);
+        mask-image: linear-gradient(to right, transparent, black 70%);
       }
-      .cover::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(90deg, rgb(20 22 24 / 0.92) 0%, rgb(20 22 24 / 0.7) 55%, rgb(20 22 24 / 0.35) 100%);
+      .card.music {
+        background: var(--kh-card);
       }
-      .card.has-cover {
-        color: #fff;
-        --kh-text-2: rgb(255 255 255 / 0.75);
-        min-height: 150px;
-        align-content: space-between;
+      .card.music .head .primary,
+      .card.music .head .secondary {
+        text-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
       }
       .head {
         display: flex;
@@ -96,23 +98,53 @@ export class KhMediaCard extends LitElement {
         border-radius: var(--kh-radius-icon);
         background: var(--kh-card-2);
       }
-      .has-cover .btn {
-        background: rgb(255 255 255 / 0.14);
-        backdrop-filter: blur(6px);
+      .music .btn {
+        flex: 0 0 52px;
+        background: rgb(74 74 74 / 0.7);
+        color: #fff;
+      }
+      .music .controls {
+        display: flex;
+        gap: 8px;
+      }
+      .music .shape {
+        background: var(--kh-card-2);
+        color: rgb(30, 215, 96);
       }
       .btn.narrow {
         flex: 0 0 52px;
       }
+      /* The thick progress bar of the old mini-media-player. */
       .progress {
-        height: 4px;
-        border-radius: 2px;
-        background: rgb(255 255 255 / 0.25);
+        position: relative;
+        height: 42px;
+        border-radius: var(--kh-radius-icon);
+        background: rgba(30, 215, 96, 0.2);
         overflow: hidden;
       }
-      .progress span {
+      .progress.paused {
+        background: rgb(74 74 74 / 0.7);
+      }
+      .progress .fill {
         display: block;
         height: 100%;
-        background: rgb(var(--rgb-spotify));
+        background: rgb(30, 215, 96);
+        transition: width 1s linear;
+      }
+      .progress.paused .fill {
+        background: rgb(255 255 255 / 0.55);
+      }
+      .progress .time {
+        position: absolute;
+        inset: 0 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: #fff;
+        text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
       }
       input[type="range"] {
         flex: 1;
@@ -152,8 +184,11 @@ export class KhMediaCard extends LitElement {
     const updated = Date.parse(a.media_position_updated_at ?? "") || this.now;
     const live = store.get(this.entityId)?.state === "playing" ? (this.now - updated) / 1000 : 0;
     const pct = Math.min(100, ((position + live) / duration) * 100);
-    return html`<div class="progress" role="progressbar" aria-valuenow=${Math.round(pct)} aria-valuemin="0" aria-valuemax="100">
-      <span style="width:${pct}%"></span>
+    const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+    const paused = store.get(this.entityId)?.state !== "playing";
+    return html`<div class="progress ${paused ? "paused" : ""}" role="progressbar" aria-valuenow=${Math.round(pct)} aria-valuemin="0" aria-valuemax="100">
+      <span class="fill" style="width:${pct}%"></span>
+      <span class="time"><span>${fmt(Math.min(duration, position + live))}</span><span>${fmt(duration)}</span></span>
     </div>`;
   }
 
@@ -194,9 +229,10 @@ export class KhMediaCard extends LitElement {
     const title = a.media_title ?? name;
     // Idle: the player's name; playing: the track (name stays in the icon tooltip).
     const artist = [a.media_artist, a.media_album_name].filter(Boolean).join(", ");
+    const vol = typeof a.volume_level === "number" ? Math.round(a.volume_level * 100) : undefined;
     return html`
-      <div class="card ${cover ? "has-cover" : ""}" style="--rgb: var(--rgb-${this.icon ? "blue" : "spotify"})">
-        ${cover ? html`<div class="cover" style="background-image:url('${cover}')"></div>` : nothing}
+      <div class="card music" style="--rgb: var(--rgb-${this.icon ? "blue" : "spotify"})">
+        ${cover ? html`<div class="art" style="background-image:url('${cover}')"></div>` : nothing}
         <button class="head" @click=${() => openMoreInfo(this, this.entityId)}>
           <span class="shape ${playing ? "playing" : isPlayerActive(this.entityId) ? "" : "off"}"><ha-icon icon=${this.icon ?? "mdi:spotify"}></ha-icon></span>
           <div>
@@ -204,25 +240,16 @@ export class KhMediaCard extends LitElement {
             <div class="secondary ellipsis">${artist || stateLabel(hass, s)}</div>
           </div>
         </button>
-        ${this.progress()}
-        <div class="row">
-          ${this.btn("mdi:skip-previous", "Piste précédente", "media_previous_track")}
+        <div class="controls">
           ${this.btn(playing ? "mdi:pause" : "mdi:play", playing ? "Pause" : "Lecture", "media_play_pause")}
+          ${this.btn("mdi:skip-previous", "Piste précédente", "media_previous_track")}
           ${this.btn("mdi:skip-next", "Piste suivante", "media_next_track")}
+          ${vol !== undefined
+            ? html`${this.btn("mdi:volume-minus", "Baisser le volume", "volume_down")}
+                ${this.btn("mdi:volume-plus", "Monter le volume", "volume_up")}`
+            : nothing}
         </div>
-        ${typeof a.volume_level === "number"
-          ? html`<div class="row">
-              <ha-icon icon="mdi:volume-high" aria-hidden="true"></ha-icon>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                .value=${String(Math.round(a.volume_level * 100))}
-                aria-label="Volume"
-                @change=${(e: Event) => setVolume(this.entityId, Number((e.target as HTMLInputElement).value) / 100)}
-              />
-            </div>`
-          : nothing}
+        ${this.progress()}
       </div>
     `;
   }

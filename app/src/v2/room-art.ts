@@ -3,7 +3,7 @@ import type { Room } from "../rooms.ts";
 
 /**
  * Room scenes in the style of the Google weather frog: flat shapes without
- * outlines, soft colours, and the cat living in each room (asleep at night
+ * outlines, soft colours, and Tomo (the black cat of the Tomo app) living in each room (asleep at night
  * once the lights are off). The window shows the sky in the colour of the
  * weather frog of the moment; the room's lamp glows while it is lit.
  *
@@ -30,8 +30,9 @@ export function roomKind(r: Pick<Room, "id" | "name" | "icon">): Kind {
   return RULES.find(([re]) => re.test(key))?.[1] ?? "generic";
 }
 
-// The cat's colours: a round ginger cat, cream muzzle and belly.
-const FUR = "#f2a65a", FUR2 = "#de8a3e", CREAM = "#fde8cc", INK = "#3a2a22", PINK = "#f28b9a";
+// Tomo, the black cat of the user's Tomo app (apps/tomo/frontend/public/mascot),
+// drawn from its own shapes: white sticker outline, yellow eyes, pink nose.
+const INK = "#1E1C29", EAR = "#4A4363", EYE = "#F5C542", NOSE = "#E88AA6", LID = "#8C86A6";
 
 /**
  * sit: sitting; nap: sitting, eyes closed (sofa at night); sleep: only the
@@ -39,34 +40,45 @@ const FUR = "#f2a65a", FUR2 = "#de8a3e", CREAM = "#fde8cc", INK = "#3a2a22", PIN
  */
 type Pose = "sit" | "nap" | "sleep" | "bath" | "stand";
 
-/** The cat, an original kawaii ginger cat; (x, y) = bottom centre, `hand` = what it holds, drawn in front. */
+const TOMO_BODY = "M80 118 C 66 138, 60 166, 62 190 C 63 200, 70 205, 80 205 L 140 205 C 150 205, 157 200, 158 190 C 160 166, 154 138, 140 118 Z";
+const TOMO_TAIL = "M152 196 C 180 200, 192 178, 186 156 C 182 141, 168 138, 165 148";
+const TOMO_EARS = ["M62 80 C 56 60, 54 40, 60 26 C 74 30, 90 40, 102 52 Z", "M158 80 C 164 60, 166 40, 160 26 C 146 30, 130 40, 118 52 Z"];
+const TOMO_INNER = ["M68 66 C 65 54, 64 44, 66 36 C 75 40, 84 46, 92 53 Z", "M152 66 C 155 54, 156 44, 154 36 C 145 40, 136 46, 128 53 Z"];
+const TOMO_HEAD = "M58 90 C 56 60, 78 42, 110 42 C 142 42, 164 60, 162 90 C 162 114, 140 128, 110 128 C 80 128, 58 114, 58 90 Z";
+
+/** Tomo; (x, y) = bottom centre, about 75 units high at s = 1; `hand` is drawn in front, in those units. */
 export function cat(x: number, y: number, s: number, pose: Pose, hand?: SVGTemplateResult, flip = false) {
+  const body = pose !== "bath" && pose !== "sleep";
   const closed = pose === "sleep" || pose === "nap";
   const eyes = closed
-    ? svg`<path d="M-13 -45q4.5 3.5 9 0M4 -45q4.5 3.5 9 0" stroke=${INK} stroke-width="2.2" fill="none" stroke-linecap="round" />`
-    : svg`<ellipse cx="-9" cy="-46" rx="3.6" ry="4.6" fill=${INK} /><ellipse cx="9" cy="-46" rx="3.6" ry="4.6" fill=${INK} />
-        <circle cx="-7.8" cy="-47.6" r="1.3" fill="#fff" /><circle cx="10.2" cy="-47.6" r="1.3" fill="#fff" />`;
-  const head = svg`
-    <path d="M-21 -52l-5 -21l18 10z" fill=${FUR} /><path d="M21 -52l5 -21l-18 10z" fill=${FUR} />
-    <path d="M-19 -56l-3 -11l9 6z" fill=${PINK} /><path d="M19 -56l3 -11l-9 6z" fill=${PINK} />
-    <ellipse cx="0" cy="-44" rx="25" ry="20" fill=${FUR} />
-    <path d="M-5 -63v7M0 -64v8M5 -63v7" stroke=${FUR2} stroke-width="2.4" stroke-linecap="round" />
-    <ellipse cx="0" cy="-36" rx="10" ry="7" fill=${CREAM} />
-    ${eyes}
-    <path d="M-2.6 -40h5.2l-2.6 3z" fill=${PINK} />
-    <path d="M0 -37q-2.5 3 -5 1.5M0 -37q2.5 3 5 1.5" stroke=${INK} stroke-width="1.5" fill="none" stroke-linecap="round" />
-    <path d="M-11 -38h-11M-11 -35l-10 2M11 -38h11M11 -35l10 2" stroke=${INK} stroke-width="1" opacity="0.45" stroke-linecap="round" />
-    <ellipse cx="-16" cy="-38" rx="4" ry="2.4" fill=${PINK} opacity="0.55" /><ellipse cx="16" cy="-38" rx="4" ry="2.4" fill=${PINK} opacity="0.55" />`;
-  const body =
-    pose === "bath" || pose === "sleep"
-      ? svg``
-      : svg`
-        <path class="tail" d="M16 -6c18 2 22 -14 14 -24" stroke=${FUR} stroke-width="7" fill="none" stroke-linecap="round" />
-        <path d="M-20 -4c-4-16 2-30 12-32h16c10 2 16 16 12 32z" fill=${FUR} />
-        <path d="M-15 -20c3 2 5 2 8 0M7 -20c3 2 5 2 8 0" stroke=${FUR2} stroke-width="2.2" fill="none" stroke-linecap="round" />
-        <ellipse cx="0" cy="-16" rx="10" ry="11" fill=${CREAM} />
-        <ellipse cx="-8" cy="-3" rx="7" ry="4.5" fill=${CREAM} /><ellipse cx="8" cy="-3" rx="7" ry="4.5" fill=${CREAM} />`;
-  return svg`<g transform="translate(${x} ${y}) scale(${flip ? -s : s} ${s})">${body}${head}${hand ?? svg``}</g>`;
+    ? svg`<path d="M74 90 Q 90 99 106 90 M114 90 Q 130 99 146 90" fill="none" stroke=${LID} stroke-width="3.5" stroke-linecap="round" />`
+    : svg`<g class="tomo-eyes"><path d="M72 86 Q 90 63 108 86 Q 90 107 72 86 Z M112 86 Q 130 63 148 86 Q 130 107 112 86 Z" fill=${EYE} />
+        <ellipse cx="90" cy="86" rx="4" ry="13" fill=${INK} /><ellipse cx="130" cy="86" rx="4" ry="13" fill=${INK} />
+        <circle cx="94" cy="80" r="2.4" fill="#FFF8DD" /><circle cx="134" cy="80" r="2.4" fill="#FFF8DD" /></g>`;
+  const head = (outline: boolean) =>
+    outline
+      ? svg`<g transform="rotate(-7 110 90)">${TOMO_EARS.map((d) => svg`<path d=${d} />`)}<path d=${TOMO_HEAD} /></g>`
+      : svg`<g transform="rotate(-7 110 90)">
+          ${TOMO_EARS.map((d) => svg`<path d=${d} fill=${INK} />`)}${TOMO_INNER.map((d) => svg`<path d=${d} fill=${EAR} />`)}
+          <path d=${TOMO_HEAD} fill=${INK} />${eyes}
+          <path d="M106 104 L 114 104 L 110 109 Z" fill=${NOSE} stroke=${NOSE} stroke-width="2" stroke-linejoin="round" />
+        </g>`;
+  const tomo = svg`
+    <g fill="#fff" stroke="#fff" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+      ${body ? svg`<path d=${TOMO_BODY} /><path class="tomo-tail" d=${TOMO_TAIL} fill="none" stroke-width="21" />` : svg``}
+      ${head(true)}
+    </g>
+    ${body
+      ? svg`<path class="tomo-tail" d=${TOMO_TAIL} fill="none" stroke=${INK} stroke-width="13" stroke-linecap="round" />
+          <path d=${TOMO_BODY} fill=${INK} />
+          <ellipse cx="96" cy="203" rx="12" ry="7" fill=${INK} /><ellipse cx="124" cy="203" rx="12" ry="7" fill=${INK} />`
+      : svg``}
+    ${head(false)}`;
+  // Tomo's own frame is 220 × 205 (ears to paws); 0.42 brings it to ~75 units.
+  const shift = body ? 205 : 130;
+  return svg`<g transform="translate(${x} ${y}) scale(${flip ? -s : s} ${s})">
+    <g transform="scale(0.42) translate(-110 -${shift})">${tomo}</g>${hand ?? svg``}
+  </g>`;
 }
 
 /** Window on the outside: the weather frog's sky colour, sun or moon. */
@@ -392,6 +404,25 @@ export const roomSceneStyles = css`
     font-size: 15px;
     animation-delay: 0.8s;
   }
+  /* Tomo blinks and swishes its tail, as in its app. */
+  .room-scene .tomo-eyes {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: tomo-blink 5s infinite;
+  }
+  .room-scene .tomo-tail {
+    transform-box: fill-box;
+    transform-origin: 10% 95%;
+    animation: tomo-swish 3.2s ease-in-out infinite;
+  }
+  @keyframes tomo-blink {
+    0%, 93%, 100% { transform: scaleY(1); }
+    95% { transform: scaleY(0.08); }
+  }
+  @keyframes tomo-swish {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-9deg); }
+  }
   .room-scene .twinkle {
     animation: kh-led 2.4s ease-in-out infinite alternate;
   }
@@ -426,6 +457,8 @@ export const roomSceneStyles = css`
     .room-scene .zz,
     .room-scene .led,
     .room-scene .twinkle,
+    .room-scene .tomo-eyes,
+    .room-scene .tomo-tail,
     .room-scene .bubble {
       animation: none;
     }
