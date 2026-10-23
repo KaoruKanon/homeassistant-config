@@ -8,6 +8,7 @@ import { entityName, type HouseModel, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import { frogSky } from "../weather-utils.ts";
+import "./floorplan.ts";
 import { houseScene, roomScene, roomSceneStyles } from "./room-art.ts";
 import { head, hero, v2 } from "./styles.ts";
 
@@ -31,6 +32,11 @@ export class KhV2Rooms extends LitElement {
     v2,
     roomSceneStyles,
     css`
+      .tile.plan {
+        margin-top: 18px;
+        padding: 10px;
+        background: #1c2027;
+      }
       /* The hero: the whole house, cut open. */
       .hero {
         min-height: 210px;
@@ -267,6 +273,9 @@ export class KhV2Rooms extends LitElement {
           frogSky(),
         )}</div>`,
       )}
+      <section class="tile plan" style="--tint: var(--rgb-amber); --w: 12; --w6: 6; --w2: 2">
+        <kh-floorplan .rooms=${rooms} prefix=${this.prefix}></kh-floorplan>
+      </section>
       <div class="bento">
         ${rooms.map((r) => this.roomTile(r))}
         ${loose.length

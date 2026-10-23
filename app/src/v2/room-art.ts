@@ -25,6 +25,12 @@ const RULES: [RegExp, Kind][] = [
   [/labo|flask|atelier|server/, "lab"],
 ];
 
+/** The colours of a room's scene (its wall, then its floor), reused by the plan. */
+export function roomColors(r: Pick<Room, "id" | "name" | "icon">): [string, string] {
+  const sc = SCENES[roomKind(r)];
+  return [sc.wall, sc.floor];
+}
+
 export function roomKind(r: Pick<Room, "id" | "name" | "icon">): Kind {
   const key = `${r.id} ${r.name} ${r.icon}`.toLowerCase();
   return RULES.find(([re]) => re.test(key))?.[1] ?? "generic";

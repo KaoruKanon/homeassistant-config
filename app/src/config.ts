@@ -126,6 +126,8 @@ export interface KaoruHomeConfig {
     };
     fans: string[];
   };
+  /** The flat's plan (Maison page): which TV and PC sit in which room, by area id. */
+  plan?: { tvs: Record<string, string>; computers: Record<string, string> };
   system: {
     trackers: { entity: string; name: string; icon: string }[];
     speedtest?: { download: string; upload: string; ping: string; run?: string };
@@ -340,6 +342,10 @@ export const config: KaoruHomeConfig = {
       autoOff: "automation.turn_off_smart_plug_spare_switch",
     },
     fans: ["fan.xiaomi_smart_fan_2"],
+  },
+  plan: {
+    tvs: { salon: "media_player.samsung_tv_salon", chambre_papa: "media_player.samsung_tv_papa" },
+    computers: { salon: "switch.computer_papa", chambre_william: "switch.computer_rig_kaoru" },
   },
   system: {
     trackers: [
