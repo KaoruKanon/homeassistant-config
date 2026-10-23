@@ -81,9 +81,9 @@ export class KhHomeV2 extends LitElement {
       .scene {
         position: relative;
         overflow: hidden;
-        min-height: 176px;
+        min-height: 150px;
         border-radius: 28px;
-        padding: 18px 22px;
+        padding: 16px 22px;
         display: grid;
         grid-template-columns: 1fr auto;
         align-content: space-between;
@@ -276,15 +276,45 @@ export class KhHomeV2 extends LitElement {
       .wslot {
         display: grid;
       }
+      /* Wall tablet: a slim banner, the room goes to the tiles. */
       :host([wall]) .scene {
         min-height: 0;
-        padding: 14px 20px;
+        padding: 10px 18px;
+        border-radius: 22px;
       }
       :host([wall]) .scene time {
-        font-size: 2.5rem;
+        font-size: 2rem;
+      }
+      :host([wall]) .scene .date,
+      :host([wall]) .scene .hello {
+        font-size: 0.875rem;
+        margin-top: 0;
+      }
+      :host([wall]) .scene .side {
+        gap: 4px;
+      }
+      :host([wall]) .scene .now {
+        font-size: 1.1rem;
+      }
+      :host([wall]) .scene .now img {
+        width: 34px;
+        height: 34px;
+      }
+      :host([wall]) .scene .person {
+        width: 40px;
+        height: 40px;
+      }
+      :host([wall]) .scene .person img,
+      :host([wall]) .scene .person .initial {
+        width: 32px;
+        height: 32px;
       }
       :host([wall]) .scene .chips {
         margin-top: 6px;
+      }
+      :host([wall]) .scene .chip {
+        height: 30px;
+        font-size: 0.8125rem;
       }
       .wall kh-energy-card {
         --kh-kpi-min: 84px;
@@ -467,7 +497,7 @@ export class KhHomeV2 extends LitElement {
               const level = b ? Number(st(b.entity)?.state) / 100 : NaN;
               return html`<button class="person ${home ? "" : "away"}" aria-label="${s.attributes.friendly_name} : ${home ? "à la maison" : "absent"}"
                 @click=${() => openPerson(p)}>
-                ${!isNaN(level) ? ring(level, 46, 3.5, level > 0.2 ? "#ffffff" : "rgb(244, 67, 54)") : nothing}
+                ${!isNaN(level) ? ring(level, this.wall ? 40 : 46, 3.5, level > 0.2 ? "#ffffff" : "rgb(244, 67, 54)") : nothing}
                 ${s.attributes.entity_picture ? html`<img src=${s.attributes.entity_picture} alt="" />` : html`<span class="initial">${String(s.attributes.friendly_name ?? p).charAt(0)}</span>`}
                 <span class="dot"></span>
               </button>`;
