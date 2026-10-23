@@ -20,6 +20,9 @@ import { head, ring, v2 } from "./styles.ts";
 const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const date = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
+/** One colour per thermometer in the Climat tile. */
+const CLIMATE_COLORS = ["orange", "green", "purple", "teal", "amber", "indigo", "red", "blue"];
+
 function greeting(h: number): string {
   if (h < 5 || h >= 22) return "Bonne nuit";
   if (h < 12) return "Bonjour";
@@ -201,14 +204,42 @@ export class KhHomeV2 extends LitElement {
         background: rgb(var(--rgb-red));
       }
 
-      /* Each room of the Climat tile: its 24 h graph runs to the edges of the row. */
-      .item.room {
-        padding-bottom: 0;
-        overflow: hidden;
+      /* Climat: two columns of rooms, each with its colour and its 24 h
+         graph running to the edges of its cell. */
+      .climate {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
       }
-      .room kh-sparkline {
-        grid-column: 1 / -1;
-        margin: 2px -12px 0;
+      .climate .room {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas: "shape name" "shape value" "graph graph";
+        align-items: center;
+        align-content: start;
+        gap: 0 10px;
+        padding: 10px 12px 0;
+        border-radius: 16px;
+        overflow: hidden;
+        text-align: left;
+        background: linear-gradient(160deg, rgba(var(--c), 0.14), rgba(var(--c), 0.02) 70%), var(--kh-card-2);
+      }
+      .climate .shape {
+        grid-area: shape;
+        width: 38px;
+        height: 38px;
+      }
+      .climate .primary {
+        grid-area: name;
+      }
+      .climate .v {
+        grid-area: value;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .climate kh-sparkline {
+        grid-area: graph;
+        margin: 6px -12px 0;
       }
       .energy-big {
         display: flex;
@@ -435,19 +466,20 @@ export class KhHomeV2 extends LitElement {
             : html`<kh-jellyfin></kh-jellyfin>`}
         </section>
 
-        <section class="tile" style="--tint: var(--rgb-green); --w: 4; --w6: 3; --w2: 2">
+        <section class="tile" style="--tint: var(--rgb-green); --w: 8; --w6: 6; --w2: 2">
           ${head("mdi:home-thermometer", "Climat", { href: `${p}/meteo`, label: "Météo" })}
-          <div class="list">
+          <div class="climate">
             ${this.rooms().length
-              ? this.rooms().map((r) => {
+              ? this.rooms().map((r, i) => {
                   const t = Number(hass.states[r.temperature!]?.state);
                   const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
-                  return html`<button class="item room" @click=${() => openMoreInfo(this, r.temperature!)}>
-                    <span class="shape" style="--rgb: var(--rgb-green)"><ha-icon icon=${r.icon}></ha-icon></span>
+                  const c = CLIMATE_COLORS[i % CLIMATE_COLORS.length];
+                  return html`<button class="room" style="--c: var(--rgb-${c})" @click=${() => openMoreInfo(this, r.temperature!)}>
+                    <span class="shape" style="--rgb: var(--rgb-${c})"><ha-icon icon=${r.icon}></ha-icon></span>
                     <span class="primary ellipsis">${r.name}</span>
                     <span class="v">${isNaN(t) ? "—" : `${formatNumber(t)}°`}<span class="secondary">${isNaN(hum) ? "" : ` ${formatNumber(hum, 0)} %`}</span></span>
                     <kh-sparkline compact height="44" .entities=${[
-                      { entity: r.temperature!, label: "Température", color: "var(--rgb-orange)", unit: "°C" },
+                      { entity: r.temperature!, label: "Température", color: `var(--rgb-${c})`, unit: "°C" },
                       ...(r.humidity ? [{ entity: r.humidity, label: "Humidité", color: "var(--rgb-light-blue)", unit: "%" }] : []),
                     ]}></kh-sparkline>
                   </button>`;
@@ -456,7 +488,7 @@ export class KhHomeV2 extends LitElement {
           </div>
         </section>
 
-        <div class="col" style="--w: 4; --w6: 3; --w2: 2">
+        <div class="col" style="--w: 4; --w6: 6; --w2: 2">
           ${h.energy
             ? html`<section class="tile" style="--tint: var(--rgb-orange); --w: 4; --w6: 3; --w2: 2">
                 ${head("mdi:lightning-bolt", "Énergie", { href: `${p}/energie`, label: "Détail" })}
@@ -480,35 +512,33 @@ export class KhHomeV2 extends LitElement {
             : nothing}
         </div>
 
-        <div class="col" style="--w: 4; --w6: 6; --w2: 2">
-          ${favorites.length
-            ? html`<section class="tile first-on-phone" style="--tint: var(--rgb-yellow); --w: 4; --w6: 6; --w2: 2">
-                ${head("mdi:star", "Favoris")}
-                <div class="favs">${favorites.map((f) => this.favorite(f))}</div>
-              </section>`
-            : nothing}
-          <section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 3; --w2: 2">
-            ${head("mdi:desktop-tower-monitor", "Ordinateurs", { href: `${p}/energie`, label: "Énergie" })}
-            <div class="row2">
-              ${h.computers.map((c) => html`<kh-computer entity-id=${c.entity} name=${c.name} busy=${c.busy ?? nothing}></kh-computer>`)}
-            </div>
-          </section>
-          <section class="tile" style="--tint: var(--rgb-teal); --w: 3; --w6: 3; --w2: 2">
-            ${head("mdi:chart-line", "Bourse", { href: `${p}/meteo`, label: "Tout" })}
-            <div class="list">
-              ${(stocks.length ? stocks : h.stocks.slice(0, 3)).map((s) => {
-                const st = hass.states[s.entity];
-                const ch = Number(st?.attributes.regularMarketChangePercent);
-                return st
-                  ? html`<button class="item" style="grid-template-columns: minmax(0, 1fr) auto" @click=${() => openMoreInfo(this, s.entity)}>
-                      <span class="primary ellipsis">${s.name}</span>
-                      <span class="v" style="color: rgb(var(--rgb-${ch >= 0 ? "green" : "red"}))">${isNaN(ch) ? "" : `${ch >= 0 ? "+" : ""}${formatNumber(ch, 1)} %`}</span>
-                    </button>`
-                  : nothing;
-              })}
-            </div>
-          </section>
-        </div>
+        ${favorites.length
+          ? html`<section class="tile first-on-phone" style="--tint: var(--rgb-yellow); --w: 4; --w6: 6; --w2: 2">
+              ${head("mdi:star", "Favoris")}
+              <div class="favs">${favorites.map((f) => this.favorite(f))}</div>
+            </section>`
+          : nothing}
+        <section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 3; --w2: 2">
+          ${head("mdi:desktop-tower-monitor", "Ordinateurs", { href: `${p}/energie`, label: "Énergie" })}
+          <div class="row2">
+            ${h.computers.map((c) => html`<kh-computer entity-id=${c.entity} name=${c.name} busy=${c.busy ?? nothing}></kh-computer>`)}
+          </div>
+        </section>
+        <section class="tile" style="--tint: var(--rgb-teal); --w: 4; --w6: 3; --w2: 2">
+          ${head("mdi:chart-line", "Bourse", { href: `${p}/meteo`, label: "Tout" })}
+          <div class="list">
+            ${(stocks.length ? stocks : h.stocks.slice(0, 3)).map((s) => {
+              const st = hass.states[s.entity];
+              const ch = Number(st?.attributes.regularMarketChangePercent);
+              return st
+                ? html`<button class="item" style="grid-template-columns: minmax(0, 1fr) auto" @click=${() => openMoreInfo(this, s.entity)}>
+                    <span class="primary ellipsis">${s.name}</span>
+                    <span class="v" style="color: rgb(var(--rgb-${ch >= 0 ? "green" : "red"}))">${isNaN(ch) ? "" : `${ch >= 0 ? "+" : ""}${formatNumber(ch, 1)} %`}</span>
+                  </button>`
+                : nothing;
+            })}
+          </div>
+        </section>
 
         <section class="tile" style="--tint: var(--rgb-indigo); --w: 12; --w6: 6; --w2: 2">
           ${head("mdi:gesture-tap-button", "Raccourcis")}

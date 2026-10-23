@@ -8,7 +8,7 @@ import { entityName, type HouseModel, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import { frogSky } from "../weather-utils.ts";
-import { roomScene, roomSceneStyles } from "./room-art.ts";
+import { houseScene, roomScene, roomSceneStyles } from "./room-art.ts";
 import { head, hero, v2 } from "./styles.ts";
 
 /** Maison: the whole house in one hero, then one tile per room. */
@@ -31,6 +31,31 @@ export class KhV2Rooms extends LitElement {
     v2,
     roomSceneStyles,
     css`
+      /* The hero: the whole house, cut open. */
+      .hero {
+        min-height: 210px;
+        background: #2b3363;
+      }
+      .hero > :not(.art) {
+        position: relative;
+        z-index: 1;
+      }
+      .hero .art {
+        position: absolute;
+        inset: 0;
+        container-type: size;
+      }
+      .hero .art::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgb(0 0 0 / 0.32), rgb(0 0 0 / 0) 55%);
+      }
+      @container v2 (max-width: 679px) {
+        .hero .art {
+          --scene-max: 42cqw;
+        }
+      }
       /* Each tile is the scene of its room, the text on its left wall. */
       .room > :not(.art, .cover) {
         position: relative;
@@ -225,6 +250,11 @@ export class KhV2Rooms extends LitElement {
           ${on.length
             ? html`<button class="chip" @click=${() => setLights(on, false)}><ha-icon icon="mdi:lightbulb-off-outline"></ha-icon>Tout éteindre</button>`
             : nothing}`,
+        html`<div class="art">${houseScene(
+          rooms.map((r) => ({ room: r, lit: r.lights.some((id) => isActive(hass.states[id])) })),
+          hass.states["sun.sun"]?.state === "below_horizon",
+          frogSky(),
+        )}</div>`,
       )}
       <div class="bento">
         ${rooms.map((r) => this.roomTile(r))}

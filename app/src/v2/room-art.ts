@@ -280,6 +280,69 @@ export function roomScene(r: Pick<Room, "id" | "name" | "icon">, lit: boolean, n
   </svg>`;
 }
 
+/**
+ * The whole house, cut open like a doll's house: one cell per room in the
+ * colours of its scene, lit when its lights are on; the frog in a lit room,
+ * asleep in a bedroom at night, or sitting in the garden.
+ */
+export function houseScene(rooms: { room: Pick<Room, "id" | "name" | "icon">; lit: boolean }[], night: boolean, sky = "40, 130, 221") {
+  const n = Math.max(1, rooms.length);
+  const cols = n <= 3 ? n : Math.ceil(n / 2), rows = n <= 3 ? 1 : 2;
+  const X0 = 470, X1 = 770, Y0 = 84, Y1 = 206, gap = 6;
+  const cw = (X1 - X0 - gap * (cols + 1)) / cols, ch = (Y1 - Y0 - gap * (rows + 1)) / rows;
+  const cell = (i: number) => ({ x: X0 + gap + (i % cols) * (cw + gap), y: Y0 + gap + Math.floor(i / cols) * (ch + gap) });
+  // Where the frog is: in a lit room, else asleep in a bedroom at night, else in the garden.
+  let frogAt = rooms.findIndex((r) => r.lit);
+  const sleeping = frogAt < 0 && night;
+  if (sleeping) frogAt = rooms.findIndex((r) => roomKind(r.room) === "bedroom");
+  return svg`<svg class="room-scene ${night ? "night-sky" : "day-sky"}" viewBox="0 0 800 240" aria-hidden="true">
+    <defs>
+      <radialGradient id="kh-glow"><stop offset="0" stop-color="#ffd27a" stop-opacity="0.85" /><stop offset="0.5" stop-color="#ffc35a" stop-opacity="0.3" /><stop offset="1" stop-color="#ffb347" stop-opacity="0" /></radialGradient>
+      ${rooms.map((_, i) => {
+        const c = cell(i);
+        return svg`<clipPath id="kh-cell-${i}"><rect x=${c.x} y=${c.y} width=${cw} height=${ch} rx="3" /></clipPath>`;
+      })}
+    </defs>
+    <rect x="-3200" y="-400" width="4000" height="610" fill=${night ? "#18204a" : `rgb(${sky})`} />
+    ${night
+      ? svg`<circle cx="360" cy="46" r="16" fill="#fff4c9" /><circle cx="368" cy="40" r="14" fill="#18204a" />
+          ${[[60, 30], [140, 70], [220, 24], [300, 90], [420, 60], [-80, 50], [-200, 30], [-320, 80], [260, 140], [100, 120]].map(
+            ([x, y], k) => svg`<circle class="twinkle" style="animation-delay:${k * 0.4}s" cx=${x} cy=${y} r=${k % 3 ? 1.4 : 2} fill="#fff" />`,
+          )}`
+      : svg`<circle cx="380" cy="44" r="18" fill="#ffe27a" />
+          <g fill="#fff" opacity="0.9"><ellipse cx="200" cy="60" rx="34" ry="12" /><ellipse cx="222" cy="52" rx="20" ry="12" />
+          <ellipse cx="-60" cy="40" rx="30" ry="10" /><ellipse cx="300" cy="110" rx="24" ry="8" /></g>`}
+    <ellipse cx="200" cy="230" rx="420" ry="70" fill=${night ? "#2c4a3a" : "#7fc98a"} />
+    <ellipse cx="640" cy="236" rx="320" ry="60" fill=${night ? "#24402f" : "#6cbf7a"} />
+    <rect x="-3200" y="206" width="4000" height="60" fill=${night ? "#2f5a3a" : "#5aa469"} />
+    <!-- house -->
+    <rect x="740" y="22" width="18" height="40" fill=${night ? "#5a3a3a" : "#a9524f"} />
+    <path d="M450 90L620 20L790 90z" fill=${night ? "#7a3f3d" : "#d35f5b"} />
+    <path d="M462 90h316v8H462z" fill=${night ? "#5a2f2e" : "#b44f4b"} />
+    <rect x=${X0} y=${Y0} width=${X1 - X0} height=${Y1 - Y0} fill=${night ? "#cfc3ad" : "#f2e6d0"} />
+    ${rooms.map(({ room, lit }, i) => {
+      const c = cell(i);
+      const sc = SCENES[roomKind(room)];
+      return svg`<g clip-path="url(#kh-cell-${i})">
+        <rect x=${c.x} y=${c.y} width=${cw} height=${ch} fill=${sc.wall} />
+        <rect x=${c.x} y=${c.y + ch - 7} width=${cw} height="7" fill=${sc.floor} />
+        ${lit
+          ? svg`<circle cx=${c.x + cw / 2} cy=${c.y + 10} r=${Math.max(cw, ch) * 0.9} fill="url(#kh-glow)" />
+              <rect x=${c.x + cw / 2 - 0.75} y=${c.y} width="1.5" height="7" fill="#4a3428" />
+              <path d="M${c.x + cw / 2 - 7} ${c.y + 14}h14l-3 -7h-8z" fill="#ffe08a" />`
+          : svg`<rect x=${c.x} y=${c.y} width=${cw} height=${ch} fill="#141a40" opacity=${night ? 0.62 : 0.12} />`}
+        ${i === frogAt ? frog(c.x + cw / 2, c.y + ch - 6, Math.min(0.6, ch / 110), sleeping ? "sleep" : "sit") : svg``}
+        ${i === frogAt && sleeping ? svg`<text x=${c.x + cw / 2 + 14} y=${c.y + 18} class="zz small">z</text>` : svg``}
+      </g>`;
+    })}
+    <rect x=${X0 - 4} y=${Y1 - 2} width=${X1 - X0 + 8} height="6" fill=${night ? "#8a7d6a" : "#cdbf9f"} />
+    ${frogAt < 0 ? frog(424, 210, 0.75, "sit") : svg``}
+    <path d="M392 206v-26M384 180h16v-10h-16z" fill="none" stroke=${night ? "#8a7d6a" : "#f6efe2"} stroke-width="4" stroke-linejoin="round" />
+    <g transform="translate(796 206)"><path d="M-12 0c-4-14 2-24 10-28c8 4 12 14 6 28z" fill=${night ? "#2c4a3a" : "#4e9a5e"} /></g>
+    <g transform="translate(452 206)"><path d="M-14 0c-4-16 2-28 12-32c10 4 14 16 8 32z" fill=${night ? "#2c4a3a" : "#4e9a5e"} /></g>
+  </svg>`;
+}
+
 export const roomSceneStyles = css`
   /* The parent is a size container: the furniture never gets wider than the card. */
   .room-scene {
@@ -319,6 +382,9 @@ export const roomSceneStyles = css`
     font-size: 15px;
     animation-delay: 0.8s;
   }
+  .room-scene .twinkle {
+    animation: kh-led 2.4s ease-in-out infinite alternate;
+  }
   .room-scene .led {
     animation: kh-led 1.6s steps(2, jump-none) infinite;
   }
@@ -349,6 +415,7 @@ export const roomSceneStyles = css`
     .room-scene .glow,
     .room-scene .zz,
     .room-scene .led,
+    .room-scene .twinkle,
     .room-scene .bubble {
       animation: none;
     }
