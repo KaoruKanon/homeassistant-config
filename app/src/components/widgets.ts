@@ -106,6 +106,8 @@ export class KhJellyfin extends Widget {
         position: relative;
         overflow: hidden;
         height: 196px;
+        content-visibility: auto;
+        contain-intrinsic-size: auto 196px;
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
         gap: 14px;
@@ -116,12 +118,19 @@ export class KhJellyfin extends Widget {
         width: 100%;
         background: #1d1830;
       }
+      /* Blurred at a quarter of the size then scaled up: the same look for
+         a fraction of the cost on the wall tablet. */
       .jf .bg {
         position: absolute;
-        inset: -20px;
+        left: -5%;
+        top: -5%;
+        width: 27.5%;
+        height: 27.5%;
+        transform: scale(4);
+        transform-origin: 0 0;
         background-size: cover;
         background-position: center 30%;
-        filter: blur(18px) brightness(0.5) saturate(1.3);
+        filter: blur(4px) brightness(0.5) saturate(1.3);
       }
       .jf > :not(.bg) {
         position: relative;

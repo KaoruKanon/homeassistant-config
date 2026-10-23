@@ -20,7 +20,10 @@ for (const [name, device] of [["tablet", screens.tablet], ["mobile", screens.mob
   const shot = async (label) => {
     await page.waitForSelector("kh-popup dialog[open]");
     await page.waitForTimeout(900);
-    await page.screenshot({ path: join(out, `popup-${name}-${label}.png`) });
+    // A screenshot that times out (software WebGL of the native map) is not a popup failure.
+    await page
+      .screenshot({ path: join(out, `popup-${name}-${label}.png`), timeout: 60000, animations: "disabled" })
+      .catch((e) => console.log(name, label, "screenshot skipped:", e.message.split("\n")[0]));
     await page.keyboard.press("Escape");
     await page.waitForTimeout(300);
     console.log(name, label, (await page.locator("kh-popup").count()) === 0 ? "closed" : "STILL OPEN");
