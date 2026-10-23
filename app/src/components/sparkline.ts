@@ -137,7 +137,9 @@ export class KhSparkline extends LitElement {
     .legend .when {
       margin-left: auto;
     }
-    .plot {
+    /* The cursor follows a finger sideways on full graphs only; small ones
+       (inside cards and swipe pages) leave every gesture to the page. */
+    .plot:not(.compact) {
       touch-action: pan-y;
       cursor: crosshair;
     }
@@ -278,7 +280,7 @@ export class KhSparkline extends LitElement {
     const s0 = scales[0];
     return html`
       ${legend}
-      ${svg`<svg class="plot" viewBox="0 0 ${W} ${H}" height=${H} role="img" aria-label="Tendance sur ${this.hours} heures"
+      ${svg`<svg class="plot ${compact ? "compact" : ""}" viewBox="0 0 ${W} ${H}" height=${H} role="img" aria-label="Tendance sur ${this.hours} heures"
         @pointermove=${(e: PointerEvent) => !compact && this.pointer(e, t0, t1, padX)}
         @pointerdown=${(e: PointerEvent) => !compact && this.pointer(e, t0, t1, padX)}
         @pointerleave=${() => (this.cursor = undefined)}

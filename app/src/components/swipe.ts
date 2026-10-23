@@ -24,6 +24,7 @@ export class KhSwipe extends LitElement {
     }
     .track {
       display: flex;
+      gap: var(--swipe-gap, 16px);
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
@@ -42,6 +43,7 @@ export class KhSwipe extends LitElement {
       flex: 0 0 100%;
       min-width: 0;
       scroll-snap-align: start;
+      scroll-snap-stop: always;
       box-sizing: border-box;
     }
     .dots {
@@ -75,13 +77,26 @@ export class KhSwipe extends LitElement {
     this.pages = (e.target as HTMLSlotElement).assignedElements().length;
   }
 
-  private onScroll(): void {
+  /** One page plus the gap between pages. */
+  private get step(): number {
     const t = this.track;
-    this.current = Math.round(t.scrollLeft / Math.max(1, t.clientWidth));
+    return Math.max(1, t.clientWidth + (parseFloat(getComputedStyle(t).columnGap) || 0));
+  }
+
+  private onScroll(): void {
+    this.current = Math.round(this.track.scrollLeft / this.step);
+  }
+
+  /** Never rest between two pages, whatever the browser's snapping did. */
+  private onScrollEnd(): void {
+    if (this.drag) return;
+    const t = this.track;
+    const target = Math.round(t.scrollLeft / this.step) * this.step;
+    if (Math.abs(t.scrollLeft - target) > 2) t.scrollTo({ left: target, behavior: "smooth" });
   }
 
   private go(i: number): void {
-    this.track.scrollTo({ left: i * this.track.clientWidth, behavior: "smooth" });
+    this.track.scrollTo({ left: i * this.step, behavior: "smooth" });
   }
 
   // Mouse drag (touch scrolls natively).
@@ -100,8 +115,7 @@ export class KhSwipe extends LitElement {
     const moved = this.track.classList.contains("dragging");
     this.track.classList.remove("dragging");
     this.drag = undefined;
-    const w = this.track.clientWidth;
-    this.go(Math.round(this.track.scrollLeft / w));
+    this.go(Math.round(this.track.scrollLeft / this.step));
     if (moved) {
       // A drag is not a tap on the card underneath.
       const block = (ev: Event) => ev.stopPropagation();
@@ -118,6 +132,7 @@ export class KhSwipe extends LitElement {
         aria-roledescription="carrousel"
         aria-label=${this.label ?? "Pages"}
         @scroll=${this.onScroll}
+        @scrollend=${this.onScrollEnd}
         @pointerdown=${this.down}
         @pointermove=${this.move}
         @pointerup=${this.up}

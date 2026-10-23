@@ -98,8 +98,14 @@ export class KhMediaCard extends LitElement {
         border-radius: var(--kh-radius-icon);
         background: var(--kh-card-2);
       }
+      .card.music {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      /* The keys share the width (up to 52 px each), so the card never grows. */
       .music .btn {
-        flex: 0 0 52px;
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: 52px;
         background: rgb(74 74 74 / 0.7);
         color: #fff;
       }
