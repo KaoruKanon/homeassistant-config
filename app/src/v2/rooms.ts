@@ -57,8 +57,14 @@ export class KhV2Rooms extends LitElement {
         }
       }
       /* Each tile is the scene of its room, the text on its left wall. */
+      /* The whole card opens the room (the cover link); only the light switch
+         takes its own taps. */
       .room > :not(.art, .cover) {
         position: relative;
+        pointer-events: none;
+      }
+      .room .switch {
+        pointer-events: auto;
       }
       .room .art {
         position: absolute;
