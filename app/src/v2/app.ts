@@ -138,14 +138,15 @@ export class KhV2App extends LitElement {
          panel (beside the HA sidebar, never under it), vertically centred. */
       :host([wall]) .shell {
         display: grid;
-        grid-template-columns: 76px minmax(0, 1fr);
+        /* Same 24 px on both sides: HA sidebar to rail, last card to edge. */
+        grid-template-columns: calc(24px + 68px + 20px) minmax(0, 1fr);
         min-height: 100dvh;
       }
       :host([wall]) main {
         grid-column: 2;
         grid-row: 1;
         max-width: 1600px;
-        padding: max(16px, env(safe-area-inset-top)) 24px 16px 8px;
+        padding: max(16px, env(safe-area-inset-top)) 24px 16px 0;
       }
       nav.rail {
         grid-column: 1;
@@ -155,7 +156,7 @@ export class KhV2App extends LitElement {
         left: auto;
         bottom: auto;
         align-self: start;
-        margin-left: 14px;
+        margin-left: 24px;
         transform: translateY(-50%);
         flex-direction: column;
         gap: 6px;

@@ -176,7 +176,7 @@ class KaoruHomePanel extends LitElement {
       @container kh (min-width: 760px) {
         .shell {
           display: grid;
-          grid-template-columns: 92px minmax(0, 1fr);
+          grid-template-columns: 112px minmax(0, 1fr);
         }
         nav.bar {
           display: none;
@@ -184,7 +184,7 @@ class KaoruHomePanel extends LitElement {
         nav.rail {
           position: sticky;
           top: 24px;
-          margin: 24px 0 0 16px;
+          margin: 24px 0 0 24px;
           align-self: start;
           display: flex;
           flex-direction: column;
@@ -195,7 +195,7 @@ class KaoruHomePanel extends LitElement {
           background: var(--kh-card);
         }
         main {
-          padding: 24px 32px 48px 20px;
+          padding: 24px 24px 48px 0;
           margin: 0 auto;
           width: 100%;
         }
