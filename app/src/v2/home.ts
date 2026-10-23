@@ -261,49 +261,43 @@ export class KhHomeV2 extends LitElement {
         grid-area: graph;
         margin: 6px -12px 0;
       }
-      /* Wall tablet: two rows that fill the screen under the hero; each tile
-         keeps to its cell (content swipes or scrolls inside). Partir and
-         Wi-Fi move to the hero; the other shortcuts are in the dock. */
-      @media (min-width: 1000px) and (max-height: 1100px) and (orientation: landscape) {
-        .scene {
-          min-height: 0;
-          height: 176px;
-          box-sizing: border-box;
-          padding: 14px 20px;
-          align-content: space-between;
-        }
-        .scene time {
-          font-size: 2.6rem;
-        }
-        .scene .chips {
-          margin-top: 0;
-        }
-        .bento {
-          grid-template-columns: repeat(12, minmax(0, 1fr));
-          grid-auto-rows: calc((100dvh - 338px) / 2);
-          gap: 12px;
-          margin-top: 12px;
-        }
-        .tile,
-        .col > .tile {
-          grid-column: span var(--wt, var(--w));
-          overflow: auto;
-          scrollbar-width: none;
-          gap: 8px;
-          padding: 12px 14px;
-        }
-        .col {
-          display: contents;
-        }
-        .shortcuts-tile {
-          display: none;
-        }
-        .pills {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-        .row2 {
-          grid-template-columns: minmax(0, 1fr);
-        }
+      /* Wall tablet: three columns, tiles at their natural height. */
+      .wall {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        align-items: start;
+      }
+      .wcol {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .wall .tile {
+        gap: 10px;
+        padding: 12px 14px;
+      }
+      .wall .pills {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .wall .kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .wall .shortcuts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .wall .shortcuts .action {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        column-gap: 10px;
+        row-gap: 0;
+        padding: 10px 12px;
+      }
+      .wall .shortcuts .action ha-icon {
+        grid-row: span 2;
       }
       .kpis {
         display: grid;
@@ -474,12 +468,6 @@ export class KhHomeV2 extends LitElement {
           ? html`<button class="chip ${badgeClass(windowsBadge(windows))}" style=${badgeStyle(windowsBadge(windows))} @click=${() => openOpenings(this.openings())}>
               <ha-icon icon=${windows > 0 ? "mdi:window-open-variant" : "mdi:window-closed-variant"}></ha-icon>${windows > 0 ? `${windows} ouverte${windows > 1 ? "s" : ""}` : "Fermé"}</button>`
           : nothing}
-        ${this.wall && h.leave
-          ? html`<button class="chip" @click=${() => runScript(h.leave!)}><ha-icon icon="mdi:hand-wave"></ha-icon>Partir</button>`
-          : nothing}
-        ${this.wall && h.wifiQr
-          ? html`<button class="chip" @click=${() => openWifiQr()}><ha-icon icon="mdi:qrcode"></ha-icon>Wi-Fi</button>`
-          : nothing}
         ${alarm
           ? html`<button class="chip ${badgeClass(alarmBadge(alarm.state))}" style=${badgeStyle(alarmBadge(alarm.state))} @click=${() => openAlarm(alarm.entity_id)}>
               <ha-icon icon=${alarmLook(alarm.state).icon}></ha-icon>${alarmLook(alarm.state).label}</button>`
@@ -541,26 +529,22 @@ export class KhHomeV2 extends LitElement {
     const days = forecastDays();
     const stocks = h.stocks.filter((s) => s.home && hass.states[s.entity]);
 
-    return html`
-      ${this.hero()}
-      <div class="bento">
-        <section class="tile" style="--tint: var(--rgb-amber); --w: 7; --w6: 6; --w2: 2; --wt: 4">
+    const T = {
+      lights: html`<section class="tile" style="--tint: var(--rgb-amber); --w: 7; --w6: 6; --w2: 2; --wt: 4">
           ${head("mdi:lightbulb-group", "Lumières", { href: `${p}/pieces`, label: "Pièces" })}
           <kh-swipe label="Lumières">
             ${pagesOf(lights, 6).map(
               (pg) => html`<div class="pills">${pg.map((l) => html`<kh-light-pill entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-pill>`)}</div>`,
             )}
           </kh-swipe>
-        </section>
-
-        <section class="tile ${playing ? "" : "flush"}" style="--tint: var(--rgb-purple); --w: 5; --w6: 6; --w2: 2; --wt: 4">
+        </section>`,
+      media: html`<section class="tile ${playing ? "" : "flush"}" style="--tint: var(--rgb-purple); --w: 5; --w6: 6; --w2: 2; --wt: 4">
           ${playing
             ? html`${head("mdi:play-circle", "En lecture", { href: `${p}/medias`, label: "Médias" })}
                 <kh-media-card entity-id=${playing} kind=${playing === h.spotify ? "music" : "tv"} name=${playing === h.spotify ? "Spotify" : nothing}></kh-media-card>`
             : html`<kh-jellyfin></kh-jellyfin>`}
-        </section>
-
-        <section class="tile" style="--tint: var(--rgb-green); --w: 6; --w6: 6; --w2: 2; --wt: 4">
+        </section>`,
+      climate: html`<section class="tile" style="--tint: var(--rgb-green); --w: 6; --w6: 6; --w2: 2; --wt: 4">
           ${head("mdi:home-thermometer", "Climat", { href: `${p}/meteo`, label: "Météo" })}
           ${this.rooms().length
             ? html`<kh-swipe label="Climat">
@@ -582,24 +566,22 @@ export class KhHomeV2 extends LitElement {
               )}
             </kh-swipe>`
             : html`<div class="secondary">Aucun thermomètre joignable</div>`}
-        </section>
-
-        ${h.energy
+        </section>`,
+      energy: h.energy
           ? html`<section class="tile" style="--tint: var(--rgb-orange); --w: 3; --w6: 3; --w2: 2; --wt: 2">
               ${head("mdi:lightning-bolt", "Énergie", { href: `${p}/energie`, label: "Détail" })}
               ${this.energy()}
             </section>`
-          : nothing}
-
-        ${favorites.length
+          : nothing,
+      favorites: favorites.length
           ? html`<section class="tile first-on-phone" style="--tint: var(--rgb-yellow); --w: 6; --w6: 6; --w2: 2; --wt: 3">
               ${head("mdi:star", "Favoris")}
               <kh-swipe label="Favoris">
                 ${pagesOf(favorites, this.wall && window.innerHeight < 950 ? 1 : 2).map((pg) => html`<div class="favs">${pg.map((f) => this.favorite(f))}</div>`)}
               </kh-swipe>
             </section>`
-          : nothing}
-        ${days.length
+          : nothing,
+      days: days.length
           ? html`<section class="tile" style="--tint: var(--rgb-light-blue); --w: 6; --w6: 3; --w2: 2; --wt: ${favorites.length ? 3 : 6}">
               ${head("mdi:calendar-week", "Cinq jours", { href: `${p}/meteo`, label: "Météo" })}
               <div class="days" role="list">
@@ -613,16 +595,14 @@ export class KhHomeV2 extends LitElement {
                 )}
               </div>
             </section>`
-          : nothing}
-
-        <div class="col" style="--w: 3; --w6: 6; --w2: 2">
-          <section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 3; --w2: 2; --wt: 2">
+          : nothing,
+      computers: html`<section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 3; --w2: 2; --wt: 2">
             ${head("mdi:desktop-tower-monitor", "Ordinateurs", { href: `${p}/energie`, label: "Énergie" })}
             <div class="row2">
               ${h.computers.map((c) => html`<kh-computer entity-id=${c.entity} name=${c.name} busy=${c.busy ?? nothing}></kh-computer>`)}
             </div>
-          </section>
-          <section class="tile" style="--tint: var(--rgb-teal); --w: 4; --w6: 3; --w2: 2; --wt: 2">
+          </section>`,
+      stocks: html`<section class="tile" style="--tint: var(--rgb-teal); --w: 4; --w6: 3; --w2: 2; --wt: 2">
             ${head("mdi:chart-line", "Bourse", { href: `${p}/meteo`, label: "Tout" })}
             <div class="list">
               ${(stocks.length ? stocks : h.stocks.slice(0, 3)).map((s) => {
@@ -636,10 +616,8 @@ export class KhHomeV2 extends LitElement {
                   : nothing;
               })}
             </div>
-          </section>
-        </div>
-
-        <section class="tile shortcuts-tile" style="--tint: var(--rgb-indigo); --w: 12; --w6: 6; --w2: 2">
+          </section>`,
+      shortcuts: html`<section class="tile shortcuts-tile" style="--tint: var(--rgb-indigo); --w: 12; --w6: 6; --w2: 2">
           ${head("mdi:gesture-tap-button", "Raccourcis")}
           <div class="shortcuts">
             ${h.leave
@@ -654,7 +632,28 @@ export class KhHomeV2 extends LitElement {
             <a class="action" style="--c: var(--rgb-light-blue)" href=${`${p}/meteo`}><ha-icon icon="mdi:radar"></ha-icon>Radar<span class="secondary">Pluie, Windy</span></a>
             <a class="action" style="--c: var(--rgb-indigo)" href=${`${p}/systeme`}><ha-icon icon="mdi:cog"></ha-icon>Système<span class="secondary">Réseau, HA</span></a>
           </div>
-        </section>
+        </section>`,
+    };
+
+    // Wall tablet: the three columns of the old Lovelace tablet view, each
+    // tile at its own height (Media, Favoris, PCs | Lumières, Énergie,
+    // Climat | Météo, Bourse, Raccourcis).
+    if (this.wall)
+      return html`
+        ${this.hero()}
+        <div class="wall">
+          <div class="wcol">${T.media}${T.favorites}${T.computers}</div>
+          <div class="wcol">${T.lights}${T.energy}${T.climate}</div>
+          <div class="wcol">${T.days}${T.stocks}${T.shortcuts}</div>
+        </div>
+      `;
+
+    return html`
+      ${this.hero()}
+      <div class="bento">
+        ${T.lights}${T.media}${T.climate}${T.energy}${T.favorites}${T.days}
+        <div class="col" style="--w: 3; --w6: 6; --w2: 2">${T.computers}${T.stocks}</div>
+        ${T.shortcuts}
       </div>
     `;
   }
