@@ -6,7 +6,7 @@ import { openComputer } from "../popups/index.ts";
 import type { Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
-import { cat, roomColors, roomSceneStyles } from "./room-art.ts";
+import { roomColors, roomSceneStyles } from "./room-art.ts";
 
 // The flat, from the user's drawio plan (assets/plan/appartement.drawio):
 // walls, windows, doors and furniture in plan units (about 1 unit = 1 cm),
@@ -40,21 +40,19 @@ const FURNITURE: F[] = [
 interface PlanRoom {
   points: string;
   label: [number, number];
-  /** Where Tomo sits when the room is lit. */
-  spot: [number, number];
   windows?: [number, number][];
   tv?: R;
   pc?: R;
 }
 
 const ROOMS: Record<string, PlanRoom> = {
-  salon: { points: "80,130 720,130 720,440 80,440", label: [430, 180], spot: [322, 250], windows: [[190, 360]], tv: [100, 230, 10, 100], pc: [90, 160, 50, 40] },
-  cuisine: { points: "290,450 720,450 720,710 290,710", label: [505, 560], spot: [430, 600], windows: [[580, 690]] },
-  chambre_william: { points: "290,720 720,720 720,950 290,950", label: [430, 860], spot: [580, 940], windows: [[750, 840]], pc: [460, 726, 50, 40] },
-  chambre_papa: { points: "290,960 720,960 720,1315 290,1315", label: [560, 1060], spot: [560, 1150], windows: [[1142, 1252]], tv: [672, 1190, 8, 100] },
-  couloir: { points: "80,450 280,450 280,1120 200,1120 200,630 80,630", label: [180, 540], spot: [240, 800] },
-  toilette: { points: "80,990 190,990 190,1120 80,1120", label: [135, 1010], spot: [135, 1100] },
-  salle_de_bain: { points: "80,1130 280,1130 280,1315 80,1315", label: [205, 1160], spot: [230, 1290] },
+  salon: { points: "80,130 720,130 720,440 80,440", label: [430, 180], windows: [[190, 360]], tv: [100, 230, 10, 100], pc: [90, 160, 50, 40] },
+  cuisine: { points: "290,450 720,450 720,710 290,710", label: [505, 560], windows: [[580, 690]] },
+  chambre_william: { points: "290,720 720,720 720,950 290,950", label: [430, 860], windows: [[750, 840]], pc: [460, 726, 50, 40] },
+  chambre_papa: { points: "290,960 720,960 720,1315 290,1315", label: [560, 1060], windows: [[1142, 1252]], tv: [672, 1190, 8, 100] },
+  couloir: { points: "80,450 280,450 280,1120 200,1120 200,630 80,630", label: [180, 540] },
+  toilette: { points: "80,990 190,990 190,1120 80,1120", label: [135, 1010] },
+  salle_de_bain: { points: "80,1130 280,1130 280,1315 80,1315", label: [205, 1160] },
 };
 
 /** Doors: hinge, then the leaf's closed and open angles (degrees, 0 = +x, 90 = down). */
@@ -117,7 +115,7 @@ function piece(name: string, w: number, h: number): SVGTemplateResult {
 
 /**
  * The plan of the flat, live: a lit room glows amber, an open window turns
- * red, presence pulses, a playing TV shines; Tomo sits in a lit room.
+ * red, presence pulses, a playing TV shines.
  * Tap a room to open it, its bulb to switch its lights, a TV or a desk for
  * its popup. Landscape (rotated) when wide, upright on phones.
  */
@@ -280,7 +278,6 @@ export class KhFloorplan extends LitElement {
     const tvs = config.plan?.tvs ?? {};
     const pcs = config.plan?.computers ?? {};
     const lit = (r?: Room) => !!r && r.lights.some((id) => isActive(hass.states[id]));
-    const catRoom = Object.keys(ROOMS).find((id) => lit(byId.get(id)));
 
     return html`<svg class="plan" viewBox=${view} role="img" aria-label="Plan de l'appartement">
       <defs>
@@ -355,12 +352,6 @@ export class KhFloorplan extends LitElement {
                 @click=${() => setLights(r.lights, !on)}><circle cx="18" cy="18" r="20" /><path d=${LAMP} transform="translate(6 6)" /></g>`
             : nothing}`;
       })}
-      ${catRoom
-        ? (() => {
-            const [x, y] = at(...ROOMS[catRoom].spot);
-            return cat(x, y, 0.8, night ? "nap" : "sit");
-          })()
-        : nothing}
     </svg>`;
   }
 }
