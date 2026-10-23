@@ -101,7 +101,9 @@ export const v2 = css`
     grid-auto-flow: row dense;
     gap: 16px;
   }
+  /* A tile is as tall as its content: never stretched to its row with empty space. */
   .tile {
+    align-self: start;
     grid-column: span var(--w, 4);
     min-width: 0;
     border-radius: 24px;
@@ -124,9 +126,7 @@ export const v2 = css`
   }
   .col > .tile {
     grid-column: 1 / -1;
-  }
-  .col > :last-child {
-    flex: 1;
+    align-self: stretch; /* full width in its column (the column is a flex stack) */
   }
   .tile.flush {
     padding: 0;

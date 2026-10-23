@@ -69,26 +69,29 @@ export class KhV2Media extends LitElement {
       <div class="bento">
         <div class="col" style="--w: 7; --w6: 6; --w2: 2">
           ${playing.length
-            ? html`<section class="tile" style="--tint: var(--rgb-purple); --w: 7; --w6: 6; --w2: 2">
+            ? html`<section class="tile" style="--tint: var(--rgb-purple)">
                 ${head("mdi:play-circle", "En lecture")}
                 <kh-swipe label="En lecture">${playing.map((id) => html`<div>${card(id)}</div>`)}</kh-swipe>
               </section>`
-            : html`<section class="tile flush" style="--w: 7; --w6: 6; --w2: 2"><kh-jellyfin></kh-jellyfin></section>`}
+            : nothing}
+          ${config.home.jellyfin ? html`<section class="tile flush"><kh-jellyfin></kh-jellyfin></section>` : nothing}
+        </div>
+        <div class="col" style="--w: 5; --w6: 6; --w2: 2">
+          ${m.box
+            ? html`<section class="tile" id="remote" style="--tint: var(--rgb-blue)">
+                ${head("mdi:remote-tv", "Box TV")}
+                <kh-box-remote></kh-box-remote>
+              </section>`
+            : nothing}
           ${idle.length
-            ? html`<section class="tile" style="--tint: var(--rgb-indigo); --w: 7; --w6: 6; --w2: 2">
+            ? html`<section class="tile" style="--tint: var(--rgb-indigo)">
                 ${head("mdi:speaker-multiple", "Lecteurs")}
                 <kh-swipe label="Lecteurs">${pagesOf(idle, 2).map((pg) => html`<div class="stack">${pg.map(card)}</div>`)}</kh-swipe>
               </section>`
             : nothing}
         </div>
-        ${m.box
-          ? html`<section class="tile" id="remote" style="--tint: var(--rgb-blue); --w: 5; --w6: 6; --w2: 2">
-              ${head("mdi:remote-tv", "Box TV")}
-              <kh-box-remote></kh-box-remote>
-            </section>`
-          : nothing}
         ${m.jellyfin.map(
-          (j) => html`<section class="tile" style="--tint: var(--rgb-jellyfin); --w: 12; --w6: 6; --w2: 2">
+          (j) => html`<section class="tile" style="--tint: var(--rgb-jellyfin); --w: 6; --w6: 6; --w2: 2">
             ${head("mdi:filmstrip-box-multiple", `Ajoutés récemment : ${j.title.toLowerCase()}`)}
             <kh-posters entity-id=${j.entity}></kh-posters>
           </section>`,
