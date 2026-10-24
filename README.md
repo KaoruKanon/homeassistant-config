@@ -5,9 +5,11 @@ Ma configuration Home Assistant et son front-end, **Kaoru Home** : un panneau su
 
 Historique du front-end :
 
-* au départ, la config de [matt8707](https://github.com/matt8707/hass-config), inspirée de HomeKit (il ne la maintient plus) ;
-* depuis 2025, [Adaptive Mushroom](https://github.com/sga-noud/adaptive-mushroom) ([forum anglais](https://community.home-assistant.io/t/adaptive-mushroom/640308)) : meilleur responsive, dashboards par personne, menu de navigation ;
-* depuis 2026, **Kaoru Home**, réécrit de zéro (Lit + TypeScript) : il reprend toutes les fonctionnalités du dashboard Mushroom, en plus rapide et plus cohérent, sans carte HACS. Le dashboard Lovelace reste disponible à côté.
+| Période | Front-end | Ce qu'il a apporté |
+|---|---|---|
+| Jusqu'en 2025 | [config de matt8707](https://github.com/matt8707/hass-config) | dashboard inspiré de HomeKit (projet arrêté par son auteur) |
+| 2025 | [Adaptive Mushroom](https://github.com/sga-noud/adaptive-mushroom) | meilleur responsive, dashboards par personne, menu de navigation |
+| Depuis 2026 | **Kaoru Home** | panneau réécrit de zéro (Lit + TypeScript), sans carte HACS : plus rapide, plus cohérent, plan 2D / 3D, scènes illustrées |
 
 T'aimes mon repo ? Laisse une ⭐.
 * [![Twitter](https://img.shields.io/twitter/follow/kaorussh?style=social)](https://twitter.com/kaorussh)
@@ -141,93 +143,6 @@ Source : https://hassagent.readthedocs.io/en/latest/examples/#command-grab-scree
 
 Le minuteur en cours s'affiche dans les badges de l'accueil et clignote tant qu'il tourne. Récupération des minuteurs : [chvancooten](https://github.com/chvancooten/homeassistant-googletokenretriever).
 
-## Dashboard Lovelace (Adaptive Mushroom)
-
-L'ancien dashboard reste disponible. Il s'appuie sur ces cartes et intégrations :
-
-| Dépendance | Usage |
-| --- | --- |
-|Mushroom| Collection de cartes pour home assistant |
-|mini-graph-card| Carte basique pour des graphiques |
-|button-card| Bouton custom |
-|Mini Media Player| Carte pour les appareils de type mediaplayer |
-|browser_mod| Affichage de popup |
-|apexcharts-card| Carte pour les graphiques avancées |
-|card_mod| Modification de l'apparence avec du CSS pour Home assistant |
-|layout-card| Création de layout pour les cartes |
-|Spotcast| Intégration de spotify supplémentaire |
-|Calendar Card Pro| Carte pour calendrier |
-|Horizon Card| Carte pour les événements |
-|Kiosk Mode| Transforme home assistant en kiosk |
-|Xiaomi Mi Smart Pedestal Fan Integration| Integration pour ventilateur xiaomi connecté |
-|Bar Card| Carte pour des barres de progression |
-|Decluterring Card| Template de carte réutilisable |
-|Average Sensor| Capteur pour faire des moyennes de capteur |
-|Hourly Weather Card| Prévision météo en forme de barres |
-|Stack in Card| Carte pour combiner en pile les cartes |
-|Swipe Card| Carte swipable |
-|card-tools| Dépendance pour d'autres modules |
-|search-card| Barre de recherche d'entités |
-|Jellyfin Recently Added| Derniers ajouts de Jellyfin |
-|Yahoo Finance| Cours de la bourse |
-
-Kaoru Home n'utilise aucune de ces cartes ; Average Sensor, Spotcast, Yahoo Finance, l'intégration du ventilateur et browser_mod (tablette) restent utiles à la configuration.
-
-![dashboard]
-![tablette-jour]
-
-<img src="/images/mobile-home.png" height="500"> <img src="/images/mobile-appareil.jpg" height="500"> <img src="/images/mobile-notif.jpg" height="500"> <img src="/images/mobile-automation.jpg" height="500"> <img src="/images/mobile-system.jpg" height="500">
-
-### Animations
-
-Source des inspirations : https://community.home-assistant.io/t/mushroom-cards-build-a-beautiful-dashboard-easily-part-1/388590/3238 (Kaoru Home les reprend).
-
-* Blink de l'icone TV quand la TV est allumée
-
-![](/images/tv-blink.gif)
-
-* Chargement de la barre quand le téléphone se charge
-
-![](/images/smartphone-charging.gif)
-
-* L'icône du media player qui se secoue lorsqu'une musique est jouée
-
-![](/images/audio-boom.gif)
-
-* L'icône des automatisations scintille quand elle est activée
-
-![](/images/automation-enabled-blink.gif)
-
-* Respiration du badge, vert pour la présence, rouge pour l'absence
-
-![](/images/person-live.gif)
-
-* Led du PC qui clignote quand il est allumé
-
-![](/images/computer-led.gif)
-
-* Boucle de chargement quand le PC s'éteint ou s'allume
-
-![](/images/computer-stop.gif)
-
-### Thermomètre
-
-Inspiration des boutons thermomètre : https://community.home-assistant.io/t/mushroom-cards-build-a-beautiful-dashboard-easily-part-1/388590/1034?u=kaoru
-
-![thermometer]
-
-![thermometer-popup]
-
-### Spotify
-
-Carte qui combine mushroom-media-player-card et la barre du mini-media-player, la pochette en fond (Kaoru Home reprend cette construction, et l'applique à Jellyfin).
-
-![spotify-active]
-
-### QR code du Wi-Fi
-
-<img src="/images/wifi-qrcode.png" height="500">
-
 ## TODO et idées..
 
 ### Road-map
@@ -245,15 +160,3 @@ Carte qui combine mushroom-media-player-card et la barre du mini-media-player, l
 * Kaoru Home : placer chaque lumière et chaque capteur sur le plan (positions à ajouter au drawio)
 * Robot aspirateur
 * Vanne thermostatique connectée
-
-<!-- MARKDOWN LINKS & IMAGES -->
-[dashboard]: /images/main_tablet.png
-[mobile-dasboard]: /images/main_mobile.png
-[media-player-control]: /images/media-player-control.jpg
-[spotify-active]: /images/spotify-active.png
-[spotify-popup]: /images/spotify-popup.jpg
-[tablette-jour]: /images/tablette-jour.jpg
-[thermometer-popup]: /images/thermometer-popup.png
-[thermometer]: /images/thermometer.png
-[bouton-snapshot]: images/bouton-snapshot.jpg
-[weather]: images/weather.jpg
