@@ -1,5 +1,6 @@
 import { LitElement, css, html, nothing, svg, type SVGTemplateResult } from "lit";
-import { openMoreInfo, setLights } from "../actions.ts";
+import { isPending, openMoreInfo, setLights, toggle } from "../actions.ts";
+import { Press, pcPress } from "../components/gestures.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive } from "../format.ts";
 import { openComputer } from "../popups/index.ts";
@@ -242,6 +243,10 @@ export class KhFloorplan extends LitElement {
         fill: rgb(33 150 243 / 0.85);
         stroke: #4fc3f7;
       }
+      .badge .progress {
+        fill: #4fc3f7;
+        animation: kh-blink 1s ease-in-out infinite;
+      }
       .badge.tv.on rect {
         fill: rgb(123 92 255 / 0.85);
         stroke: #b48cff;
@@ -286,14 +291,18 @@ export class KhFloorplan extends LitElement {
     `,
   ];
 
+  private onPending = () => this.requestUpdate();
+
   connectedCallback(): void {
     super.connectedCallback();
     this.resize.observe(this);
+    window.addEventListener("kh-pending", this.onPending);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.resize.disconnect();
+    window.removeEventListener("kh-pending", this.onPending);
   }
 
   private open(id: string): void {
@@ -304,12 +313,15 @@ export class KhFloorplan extends LitElement {
   /** PCs and TVs on the plan: icon and name, lit while on; tap for their popup. */
   private deviceBadges(project: (x: number, y: number) => [number, number]) {
     const hass = store.hass!;
-    const badge = (x: number, y: number, name: string, icon: string, on: boolean, kind: string, open: () => void) => {
+    const badge = (x: number, y: number, name: string, icon: string, on: boolean, kind: string, open: () => void, press?: Press, busy = false) => {
       const [px, py] = project(x, y);
       const w = 34 + name.length * 10.5;
-      return svg`<g class="badge ${kind} ${on ? "on" : ""}" transform="translate(${px - w / 2} ${py - 18})" role="button" aria-label="${name} : ${on ? "allumé" : "éteint"}"
-        @click=${open}>
+      return svg`<g class="badge ${kind} ${on ? "on" : ""} ${busy ? "busy" : ""}" transform="translate(${px - w / 2} ${py - 18})" role="button"
+        aria-label="${name} : ${busy ? "en cours" : on ? "allumé" : "éteint"}"
+        @pointerdown=${press?.down ?? nothing} @pointermove=${press?.move ?? nothing} @pointerup=${press?.cancel ?? nothing}
+        @pointercancel=${press?.cancel ?? nothing} @contextmenu=${press?.contextmenu ?? nothing} @click=${press ? press.click : open}>
         <rect width=${w} height="36" rx="18" />
+        ${busy ? svg`<rect class="progress" x="10" y="31" width=${w - 20} height="3" rx="1.5" />` : nothing}
         <path d=${icon} transform="translate(8 6)" />
         <text x="36" y="24">${name}</text>
       </g>`;
@@ -319,7 +331,9 @@ export class KhFloorplan extends LitElement {
       const c = config.home.computers.find((x) => x.entity === entity);
       if (!p || !c) return nothing;
       const [bx, by] = ROOMS[id].pcBadge ?? [p[0] + p[2] / 2, p[1] + p[3] / 2];
-      return badge(bx, by, c.name, MONITOR, isActive(hass.states[entity]), "pc", () => openComputer(c));
+      const busy = isPending(entity) || (c.busy ? isActive(hass.states[c.busy]) : false);
+      return badge(bx, by, c.name, MONITOR, isActive(hass.states[entity]), "pc", () => openComputer(c),
+        pcPress(entity, () => toggle(entity, c.name), () => openComputer(c)), busy);
     });
     const tvs = Object.entries(config.plan?.tvs ?? {}).map(([id, entity]) => {
       const p = ROOMS[id];

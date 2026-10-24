@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing } from "lit";
-import { openMoreInfo, runScript, setAutomation, toggle } from "../actions.ts";
+import { isPending, openMoreInfo, runScript, setAutomation, toggle } from "../actions.ts";
 import { ago, openComputer, openMediaItem, openThermometer, openWifiQr } from "../popups/index.ts";
 import { Press } from "./gestures.ts";
 import "./sparkline.ts";
@@ -357,7 +357,17 @@ export class KhComputer extends Widget {
       const c = config.home.computers.find((x) => x.entity === this.entityId);
       if (c) openComputer(c);
     },
+    true,
   );
+  private onPending = (e: Event) => (e as CustomEvent).detail === this.entityId && this.requestUpdate();
+  connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener("kh-pending", this.onPending);
+  }
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.removeEventListener("kh-pending", this.onPending);
+  }
   protected watched() {
     return [this.entityId, this.busy].filter((x): x is string => !!x);
   }
@@ -373,10 +383,30 @@ export class KhComputer extends Widget {
         background: rgb(0 0 0 / 0.08);
         color: #1f2326;
       }
-      .tile.busy {
-        outline: 2px dashed rgb(var(--rgb-blue));
-        outline-offset: -2px;
-        animation: kh-blink 1.2s ease-in-out infinite;
+      /* Starting or shutting down: a bar runs along the bottom until it is done. */
+      .tile {
+        position: relative;
+        overflow: hidden;
+      }
+      .tile.busy::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, rgb(var(--rgb-blue)), transparent);
+        background-size: 40% 100%;
+        background-repeat: no-repeat;
+        animation: kh-progress 1.3s ease-in-out infinite;
+      }
+      @keyframes kh-progress {
+        from {
+          background-position: -40% 0;
+        }
+        to {
+          background-position: 140% 0;
+        }
       }
     `,
   ];
@@ -385,11 +415,13 @@ export class KhComputer extends Widget {
     const s = hass?.states[this.entityId];
     if (!hass || !s) return nothing;
     const on = isActive(s);
-    const busy = this.busy ? isActive(hass.states[this.busy]) : false;
+    const waiting = isPending(this.entityId);
+    const busy = waiting || (this.busy ? isActive(hass.states[this.busy]) : false);
     return html`<button
       class="card tile ${on ? "on" : ""} ${busy ? "busy" : ""}"
       aria-pressed=${String(on)}
-      aria-description="Appui long : détails"
+      aria-busy=${String(busy)}
+      aria-description="Appui : allumer ou éteindre ; appui long ou double appui : détails"
       @pointerdown=${this.press.down}
       @pointerup=${this.press.cancel}
           @pointermove=${this.press.move}
@@ -401,7 +433,7 @@ export class KhComputer extends Widget {
       <span class="shape ${on ? "" : "off"}"><ha-icon icon="mdi:desktop-tower-monitor"></ha-icon></span>
       <div>
         <div class="primary">${this.name}</div>
-        <div class="secondary">${isUnavailable(s) ? "Indisponible" : busy ? "En cours…" : on ? "Allumé" : "Éteint"}</div>
+        <div class="secondary">${isUnavailable(s) ? "Indisponible" : busy ? (waiting ? (on ? "Arrêt en cours…" : "Démarrage en cours…") : "En cours…") : on ? "Allumé" : "Éteint"}</div>
       </div>
     </button>`;
   }

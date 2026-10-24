@@ -22,7 +22,8 @@ import {
   type Object3D,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { openMoreInfo, setLights } from "../actions.ts";
+import { isPending, openMoreInfo, setLights, toggle } from "../actions.ts";
+import { pcPress } from "../components/gestures.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive } from "../format.ts";
 import { openComputer } from "../popups/index.ts";
@@ -181,6 +182,18 @@ export class KhPlan3d extends LitElement {
         border-color: #4fc3f7;
         color: #fff;
       }
+      .badge.busy {
+        background-image: linear-gradient(90deg, transparent, rgb(79 195 247 / 0.9), transparent);
+        background-size: 40% 3px;
+        background-position: -40% 100%;
+        background-repeat: no-repeat;
+        animation: kh-progress 1.3s ease-in-out infinite;
+      }
+      @keyframes kh-progress {
+        to {
+          background-position: 140% 100%;
+        }
+      }
       .badge.tv.on {
         background: rgb(123 92 255 / 0.85);
         border-color: #b48cff;
@@ -209,14 +222,18 @@ export class KhPlan3d extends LitElement {
     `,
   ];
 
+  private onPending = () => this.requestUpdate();
+
   connectedCallback(): void {
     super.connectedCallback();
     this.resize.observe(this);
+    window.addEventListener("kh-pending", this.onPending);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.resize.disconnect();
+    window.removeEventListener("kh-pending", this.onPending);
     cancelAnimationFrame(this.frame);
     this.controls?.dispose();
     this.scene.traverse((o) => {
@@ -493,7 +510,12 @@ export class KhPlan3d extends LitElement {
               const pos = p && this.at(bx, by, 165);
               if (!pos || !c) return nothing;
               const on = isActive(hass.states[entity]);
-              return html`<button class="badge pc ${on ? "on" : ""}" style="left:${pos[0]}px; top:${pos[1]}px" @click=${() => openComputer(c)}>
+              const busy = isPending(entity) || (c.busy ? isActive(hass.states[c.busy]) : false);
+              const press = pcPress(entity, () => toggle(entity, c.name), () => openComputer(c));
+              return html`<button class="badge pc ${on ? "on" : ""} ${busy ? "busy" : ""}" style="left:${pos[0]}px; top:${pos[1]}px"
+                aria-description="Appui : allumer ou éteindre ; appui long ou double appui : détails"
+                @pointerdown=${press.down} @pointermove=${press.move} @pointerup=${press.cancel} @pointercancel=${press.cancel}
+                @contextmenu=${press.contextmenu} @click=${press.click}>
                 <ha-icon icon="mdi:monitor"></ha-icon>${c.name}</button>`;
             })}
             ${Object.entries(config.plan?.tvs ?? {}).map(([id, entity]) => {

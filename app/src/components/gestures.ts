@@ -10,9 +10,17 @@ export class Press {
   private held = false;
   private start?: { x: number; y: number };
 
+  private tapTimer = 0;
+
+  /**
+   * `double`: a double tap opens the details too; a single tap then waits
+   * 260 ms to be sure it is not the first of two (for actions like starting
+   * a PC, which a double tap must not run twice).
+   */
   constructor(
     private onTap: () => void,
     private onHold: () => void,
+    private double = false,
   ) {}
 
   down = (e: PointerEvent): void => {
@@ -44,7 +52,17 @@ export class Press {
       this.held = false;
       return;
     }
-    this.onTap();
+    if (!this.double) return this.onTap();
+    if (this.tapTimer) {
+      window.clearTimeout(this.tapTimer);
+      this.tapTimer = 0;
+      this.onHold();
+      return;
+    }
+    this.tapTimer = window.setTimeout(() => {
+      this.tapTimer = 0;
+      this.onTap();
+    }, 260);
   };
 
   /** The long-press menu of mobile browsers would cover our popup. */
@@ -111,4 +129,16 @@ export function installPressFeedback(root: HTMLElement | ShadowRoot): void {
     target?.classList.remove("rippling");
     clear();
   }, { passive: true });
+}
+
+const pcPresses = new Map<string, Press>();
+/**
+ * The shared gesture of a PC wherever it is shown (tile, plan badges): tap
+ * to start or (after a confirmation) shut it down, long press or double
+ * tap for its details. One instance per PC.
+ */
+export function pcPress(entity: string, onTap: () => void, onHold: () => void): Press {
+  let p = pcPresses.get(entity);
+  if (!p) pcPresses.set(entity, (p = new Press(onTap, onHold, true)));
+  return p;
 }

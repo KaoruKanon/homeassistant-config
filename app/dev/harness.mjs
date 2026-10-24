@@ -20,12 +20,14 @@ const fakeHass = () => {
     "sensor.temp": st("sensor.temp", "21.4", { device_class: "temperature" }),
     // the same plug exposed as a light through "change device type" (switch_as_x)
     "light.homelab_as_light": st("light.homelab_as_light", "on", { friendly_name: "Homelab lumière", supported_color_modes: ["onoff"] }),
+    // a PC (matches switch.computer_*), kept out of the rooms
+    "switch.computer_test": st("switch.computer_test", "off", { friendly_name: "PC test" }),
   };
   const onPlug = (id) => id.includes("plug") || id.includes("homelab_as_light");
   const entities = Object.fromEntries(
     Object.keys(states).map((id) => [
       id,
-      { entity_id: id, area_id: onPlug(id) ? null : "bureau", device_id: onPlug(id) ? "dev-plug" : null, platform: id === "light.homelab_as_light" ? "switch_as_x" : "demo" },
+      { entity_id: id, area_id: onPlug(id) || id.includes("computer") ? null : "bureau", device_id: onPlug(id) ? "dev-plug" : null, platform: id === "light.homelab_as_light" ? "switch_as_x" : "demo" },
     ]),
   );
   return {
@@ -153,6 +155,40 @@ check(
 
 // Open window is flagged
 check("open window flagged", (await page.locator("kh-room-view").evaluate((el) => el.shadowRoot.querySelector(".status.alert")?.textContent ?? "")).includes("Fenêtre"));
+
+// PC: a tap starts it at once, a tap to shut it down asks first; double tap opens details
+await page.evaluate(() => {
+  const pc = document.createElement("kh-computer");
+  pc.setAttribute("entity-id", "switch.computer_test");
+  pc.setAttribute("name", "PC test");
+  pc.id = "pc";
+  document.body.append(pc);
+});
+await page.waitForSelector("#pc >> button.tile");
+await calls();
+await page.locator("#pc >> button.tile").click();
+await page.waitForTimeout(450);
+c = await calls();
+check("PC off: a tap sends turn_on without asking", c.length === 1 && c[0].service === "turn_on" && (await page.locator("kh-confirm-dialog").count()) === 0, JSON.stringify(c));
+check("PC starting: progress shown until it is on", await page.locator("#pc >> button.tile").evaluate((b) => b.classList.contains("busy")));
+await page.evaluate(() => {
+  const h = window.__hass;
+  const next = { ...h, states: { ...h.states, "switch.computer_test": { ...h.states["switch.computer_test"], state: "on" } } };
+  window.__hass = next;
+  document.querySelector("kaoru-home").hass = next;
+});
+await page.waitForTimeout(200);
+check("PC on: progress gone", !(await page.locator("#pc >> button.tile").evaluate((b) => b.classList.contains("busy"))));
+await page.locator("#pc >> button.tile").click();
+await page.waitForSelector("kh-confirm-dialog dialog[open]", { timeout: 2000 }).catch(() => {});
+check("PC on: a tap asks before shutting down", (await page.locator("kh-confirm-dialog").count()) === 1);
+await page.locator("kh-confirm-dialog button.cancel").click();
+c = await calls();
+check("PC: cancel sends nothing", c.length === 0, JSON.stringify(c));
+await page.locator("#pc >> button.tile").dblclick();
+await page.waitForTimeout(450);
+c = await calls();
+check("PC: a double tap sends nothing (it opens the details)", c.length === 0 && (await page.locator("kh-confirm-dialog").count()) === 0, JSON.stringify(c));
 
 await browser.close();
 process.exit(results.some((r) => r.startsWith("FAIL")) ? 1 : 0);

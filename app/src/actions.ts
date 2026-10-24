@@ -32,7 +32,9 @@ export async function toggle(entityId: string, label: string): Promise<boolean> 
   if (!store.hass || !canToggle(entityId) || seen === undefined || seen === "unavailable") return false;
   const turnOn = seen !== "on";
 
-  if (needsConfirmation(entityId)) {
+  // A PC starts on a tap; only switching it off asks first.
+  const askFirst = needsConfirmation(entityId) && !(turnOn && matches(entityId, config.confirmOffOnly ?? []));
+  if (askFirst) {
     const ok = await confirmAction(
       {
         title: turnOn ? `Allumer ${label} ?` : `Éteindre ${label} ?`,
@@ -49,8 +51,37 @@ export async function toggle(entityId: string, label: string): Promise<boolean> 
   const hass = store.hass;
   if (!hass || hass.states[entityId]?.state !== seen) return false;
   await hass.callService(entityId.split(".")[0], turnOn ? "turn_on" : "turn_off", {}, { entity_id: entityId });
+  if (matches(entityId, config.confirmOffOnly ?? [])) markPending(entityId, turnOn);
   return true;
 }
+
+/**
+ * Devices that take a while to change (a PC starting or shutting down):
+ * what was asked and when, until the state follows (or 3 minutes pass).
+ */
+const pending = new Map<string, { on: boolean; since: number }>();
+const PENDING_MS = 180_000;
+
+function markPending(entityId: string, on: boolean): void {
+  pending.set(entityId, { on, since: Date.now() });
+  window.dispatchEvent(new CustomEvent("kh-pending", { detail: entityId }));
+  // Views waiting on it are told when the wait runs out, even if the state never changes.
+  window.setTimeout(() => window.dispatchEvent(new CustomEvent("kh-pending", { detail: entityId })), PENDING_MS + 500);
+}
+
+/** True while a start or a stop asked from here is still under way. */
+export function isPending(entityId: string): boolean {
+  const p = pending.get(entityId);
+  if (!p) return false;
+  const reached = isActiveState(store.hass?.states[entityId]?.state) === p.on;
+  if (reached || Date.now() - p.since > PENDING_MS) {
+    pending.delete(entityId);
+    return false;
+  }
+  return true;
+}
+
+const isActiveState = (state?: string) => state === "on";
 
 function confirmBody(entityId: string, turnOn: boolean): string {
   if (entityId.startsWith("switch.smart_plug_")) {

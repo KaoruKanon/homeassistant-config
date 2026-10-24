@@ -57,6 +57,8 @@ export interface KaoruHomeConfig {
   hide: string[];
   /** Entities whose toggle asks for confirmation first. */
   confirm: string[];
+  /** Among those, the ones that start without asking (a PC): only turning off is confirmed. */
+  confirmOffOnly?: string[];
   /** Display names that replace the friendly name. */
   names: Record<string, string>;
   /** Weather entities, first available wins. */
@@ -168,6 +170,7 @@ export const config: KaoruHomeConfig = {
     "switch.*_reboot",
     "switch.wol_*",
   ],
+  confirmOffOnly: ["switch.computer_*", "switch.wol_*"],
   names: {
     "light.switch_wall_*": "Plafonnier",
     "light.chambre": "Chambre",
