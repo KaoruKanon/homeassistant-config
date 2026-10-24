@@ -3,7 +3,7 @@ import { isPending, openMoreInfo, setLights, toggle } from "../actions.ts";
 import { Press, pcPress } from "../components/gestures.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive } from "../format.ts";
-import { openComputer } from "../popups/index.ts";
+import { openComputer } from "../popups/open.ts";
 import { entityName, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";

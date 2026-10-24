@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from "lit";
 import { isPending, openMoreInfo, runScript, setAutomation, toggle } from "../actions.ts";
-import { ago, openComputer, openMediaItem, openThermometer, openWifiQr } from "../popups/index.ts";
+import { ago, openComputer, openMediaItem, openThermometer, openWifiQr } from "../popups/open.ts";
 import { Press } from "./gestures.ts";
 import "./sparkline.ts";
 import "./swipe.ts";
@@ -119,9 +119,10 @@ export class KhJellyfin extends Widget {
         right: 0;
         bottom: 0;
         width: min(260px, 60%);
+        height: 100%;
         z-index: -1;
-        background-size: cover;
-        background-position: center 25%;
+        object-fit: cover;
+        object-position: center 25%;
         -webkit-mask-image: linear-gradient(to right, transparent, black 70%);
         mask-image: linear-gradient(to right, transparent, black 70%);
       }
@@ -199,7 +200,7 @@ export class KhJellyfin extends Widget {
         const art = item.fanart || item.poster;
         return html`<div class="card jf" role="button" tabindex="0" @click=${() => openMediaItem(item)}
           @keydown=${(e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && openMediaItem(item)}>
-          ${art ? html`<div class="art" style="background-image:url('${art}')"></div>` : nothing}
+          ${art ? html`<img class="art" src=${art} alt="" loading="lazy" decoding="async" />` : nothing}
           <div class="head">
             <span class="shape">${jellyfinLogo(22)}</span>
             <div>

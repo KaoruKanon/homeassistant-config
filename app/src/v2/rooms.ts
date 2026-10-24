@@ -3,7 +3,7 @@ import { setLights } from "../actions.ts";
 import "../components/light-pill.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive, isUnavailable } from "../format.ts";
-import { alarmLook, openAlarm, openOpenings } from "../popups/index.ts";
+import { alarmLook, openAlarm, openOpenings } from "../popups/open.ts";
 import { entityName, type HouseModel, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";

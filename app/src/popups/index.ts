@@ -4,24 +4,14 @@ import "../components/mini-map.ts";
 import "../components/sparkline.ts";
 import { openPopup, refreshPopup } from "../components/popup.ts";
 import { config, type Computer, type Favorite } from "../config.ts";
-import { formatNumber, isActive, isUnavailable, stateLabel } from "../format.ts";
+import { ago, alarmLook, formatNumber, isActive, isUnavailable, stateLabel } from "../format.ts";
 import { store } from "../store.ts";
 import type { HassEntity } from "../types.ts";
 
 // Details popups, rebuilt from the old browser_mod popups (popup/*.yaml).
+// Downloaded on the first tap, through ./open.ts.
 
-const since = new Intl.RelativeTimeFormat("fr-FR", { numeric: "auto" });
-
-/** "il y a 3 heures" from an ISO date. */
-export function ago(iso?: string): string {
-  if (!iso) return "";
-  const s = (Date.parse(iso) - Date.now()) / 1000;
-  const abs = Math.abs(s);
-  if (abs < 60) return "à l'instant";
-  if (abs < 3600) return since.format(Math.round(s / 60), "minute");
-  if (abs < 86400) return since.format(Math.round(s / 3600), "hour");
-  return since.format(Math.round(s / 86400), "day");
-}
+export { ago, alarmLook };
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -290,33 +280,6 @@ export function openTablet(): void {
   });
 }
 
-/** Icon, colour and French label of an alarm state. */
-export function alarmLook(state?: string): { icon: string; color: string; label: string; alert: boolean } {
-  switch (state) {
-    case "disarmed":
-      return { icon: "mdi:shield-off-outline", color: "grey", label: "Désarmée", alert: false };
-    case "armed_home":
-      return { icon: "mdi:shield-home", color: "green", label: "Armée, maison", alert: false };
-    case "armed_away":
-      return { icon: "mdi:shield-lock", color: "green", label: "Armée, absence", alert: false };
-    case "armed_night":
-      return { icon: "mdi:shield-moon", color: "indigo", label: "Armée, nuit", alert: false };
-    case "armed_vacation":
-      return { icon: "mdi:shield-airplane", color: "green", label: "Armée, vacances", alert: false };
-    case "armed_custom_bypass":
-      return { icon: "mdi:shield-half-full", color: "green", label: "Armée, personnalisée", alert: false };
-    case "arming":
-      return { icon: "mdi:shield-sync", color: "orange", label: "Armement…", alert: true };
-    case "disarming":
-      return { icon: "mdi:shield-sync", color: "orange", label: "Désarmement…", alert: true };
-    case "pending":
-      return { icon: "mdi:shield-alert", color: "orange", label: "Délai d'entrée", alert: true };
-    case "triggered":
-      return { icon: "mdi:bell-ring", color: "red", label: "Déclenchée !", alert: true };
-    default:
-      return { icon: "mdi:shield-outline", color: "grey", label: "Indisponible", alert: false };
-  }
-}
 
 const ALARM_MODES: { mode: AlarmMode; bit: number; label: string; icon: string }[] = [
   { mode: "arm_away", bit: 2, label: "Absence", icon: "mdi:shield-lock" },

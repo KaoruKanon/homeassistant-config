@@ -1,5 +1,6 @@
 import { LitElement, css, html, nothing, svg } from "lit";
 import { openMoreInfo } from "../actions.ts";
+import { recall, remember } from "../cache.ts";
 import { config } from "../config.ts";
 import { formatNumber } from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
@@ -237,6 +238,12 @@ export class KhEnergyCard extends LitElement {
     const e = config.home.energy;
     const conn = store.hass?.connection;
     if (!e || !conn) return;
+    // Seen less than a minute ago (another page, the compact card): drawn from memory.
+    type Saved = { today: number[]; yesterday: number[]; days: { date: Date; kwh: number }[] };
+    const key = `energy|${e.meter}`;
+    const saved = recall<Saved>(key);
+    if (saved) Object.assign(this, saved.value);
+    if (saved && saved.age < 60_000) return;
     const midnight = new Date();
     midnight.setHours(0, 0, 0, 0);
     const yesterday = new Date(midnight.getTime() - 86400000);
@@ -259,8 +266,9 @@ export class KhEnergyCard extends LitElement {
       this.today = t;
       this.yesterday = y;
       this.days = (days[e.meter] ?? []).map((r) => ({ date: new Date(r.start), kwh: Math.max(0, r.change ?? 0) }));
+      remember(key, { today: t, yesterday: y, days: this.days });
     } catch {
-      this.today = [];
+      if (!saved) this.today = [];
     }
   }
 

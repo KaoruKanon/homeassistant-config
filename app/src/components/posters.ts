@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing } from "lit";
-import { openMediaItem } from "../popups/index.ts";
+import { openMediaItem } from "../popups/open.ts";
 import { EntitiesController, store } from "../store.ts";
 import { base } from "../styles.ts";
 

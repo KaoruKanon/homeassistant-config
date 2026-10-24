@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo } from "../actions.ts";
-import { alarmLook, openAlarm, openOpenings, openPerson } from "../popups/index.ts";
+import { alarmLook, openAlarm, openOpenings, openPerson } from "../popups/open.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive } from "../format.ts";
 import { currentPerson } from "../rooms.ts";

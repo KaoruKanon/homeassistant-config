@@ -1,4 +1,5 @@
 import { LitElement, css, html, nothing, svg } from "lit";
+import { recall, remember } from "../cache.ts";
 import { formatNumber } from "../format.ts";
 import { store } from "../store.ts";
 
@@ -209,6 +210,11 @@ export class KhSparkline extends LitElement {
   private async load(): Promise<void> {
     const conn = store.hass?.connection;
     if (!conn || !this.entities?.length) return;
+    // A graph seen less than a minute ago draws from memory, older ones refresh behind.
+    const key = `history|${this.hours}|${this.entities.map((e) => e.entity).join()}`;
+    const saved = recall<Point[][]>(key);
+    if (saved) this.series = saved.value;
+    if (saved && saved.age < 60_000) return;
     const start = new Date(Date.now() - this.hours * 3600_000).toISOString();
     try {
       const res = await conn.sendMessagePromise<Record<string, { s: string; lu: number }[]>>({
@@ -222,8 +228,9 @@ export class KhSparkline extends LitElement {
       this.series = this.entities.map((e) =>
         (res[e.entity] ?? []).map((p) => ({ t: p.lu * 1000, v: Number(p.s) })).filter((p) => !isNaN(p.v)),
       );
+      remember(key, this.series);
     } catch {
-      this.series = [];
+      if (!saved) this.series = [];
     }
   }
 

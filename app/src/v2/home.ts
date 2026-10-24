@@ -10,7 +10,7 @@ import { still, weatherIcon } from "../components/weather-card.ts";
 import "../components/widgets.ts";
 import { config, type Favorite } from "../config.ts";
 import { formatNumber, isActive, stateLabel } from "../format.ts";
-import { alarmLook, openAlarm, openOpenings, openPerson, openWifiQr } from "../popups/index.ts";
+import { alarmLook, openAlarm, openOpenings, openPerson, openWifiQr } from "../popups/open.ts";
 import { currentPerson, type HouseModel } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { alarmBadge, badgeClass, badgeStyle, badgeStyles, lightsBadge, temperatureBadge, timerBadge, windowsBadge } from "../badges.ts";

@@ -3,6 +3,7 @@ import { keyed } from "lit/directives/keyed.js";
 import { cancelConfirmation } from "../components/confirm-dialog.ts";
 import { installPressFeedback, scrollToTop } from "../components/gestures.ts";
 import { closePopup, openPopup } from "../components/popup.ts";
+import { preloadPopups } from "../popups/open.ts";
 import { config } from "../config.ts";
 import { house } from "../house.ts";
 import { currentPerson, roomsFor } from "../rooms.ts";
@@ -76,8 +77,20 @@ export class KhV2App extends LitElement {
         margin: 0 auto;
         padding: max(16px, env(safe-area-inset-top)) 24px calc(120px + env(safe-area-inset-bottom));
       }
+      /* A short settle, not a fade from blank: changing menu must not feel like a reload. */
       .page {
-        animation: kh-rise 320ms cubic-bezier(0.22, 1, 0.36, 1);
+        animation: kh-settle 200ms ease-out;
+      }
+      @keyframes kh-settle {
+        from {
+          opacity: 0.6;
+          transform: translateY(6px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .page {
+          animation: none;
+        }
       }
       .loading {
         height: 40vh;
@@ -204,6 +217,23 @@ export class KhV2App extends LitElement {
 
   protected firstUpdated(): void {
     installPressFeedback(this.renderRoot as ShadowRoot);
+    this.prefetch();
+  }
+
+  /**
+   * Once the first page is up and the browser idle, the other pages and the
+   * popups are downloaded one by one: opening a menu later is instant.
+   */
+  private prefetch(): void {
+    const idle = (f: () => void) => ("requestIdleCallback" in window ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 200));
+    const queue = Object.keys(PAGES);
+    const next = (): void => {
+      const section = queue.shift();
+      if (!section) preloadPopups();
+      else if (this.loaded.has(section)) idle(next);
+      else PAGES[section]().then(() => (this.loaded.add(section), idle(next)), () => idle(next));
+    };
+    setTimeout(() => idle(next), 1500);
   }
 
   private lastPage?: string;

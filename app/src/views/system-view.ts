@@ -3,7 +3,7 @@ import { openMoreInfo, restartHomeAssistant, setAutomation, triggerAutomation } 
 import { gauge, gaugeStyles } from "../components/gauge.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive, stateLabel } from "../format.ts";
-import { ago, openPerson, openTablet } from "../popups/index.ts";
+import { ago, openPerson, openTablet } from "../popups/open.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import type { HassEntity } from "../types.ts";
