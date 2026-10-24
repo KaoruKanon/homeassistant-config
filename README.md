@@ -88,14 +88,27 @@ Chargement à froid de l'accueil, profil tablette (1280 × 800), processeur rale
 | Dont modules ajoutés (HACS, `/local`) | 1 209 Ko | 309 Ko | 358 Ko |
 | Éléments dans la page | 1 444 | 948 | 1 024 |
 
-Score Lighthouse « Performance » (Chrome DevTools, Lighthouse 12, médiane de 3) :
+Score Lighthouse « Performance » (Lighthouse 12, médiane de 3) :
 
 | | Lovelace (Adaptive Mushroom) | Maison V1 | Maison V2 |
 |---|---|---|---|
-| Mobile | non mesuré | 64 | 71 |
-| Ordinateur | non mesuré | 95 | 96 |
-| Temps de blocage, mobile | non mesuré | 4,0 s | 2,2 s |
+| Mobile | non mesuré | 70 | 73 |
+| Ordinateur | non mesuré | 96 | 96 |
+| Temps de blocage, mobile | non mesuré | 2,4 s | 1,6 s |
 
+Chaque page de la V2 :
+
+| Page | Mobile | Ordinateur | Décalage de mise en page |
+|---|---|---|---|
+| Accueil | 73 | 96 | 0,002 |
+| Maison (plan) | 74 | 97 | 0 |
+| Une pièce | 73 | 99 | 0 |
+| Médias | 75 | 99 | 0 |
+| Météo | 74 | 98 | 0,001 |
+| Énergie | 74 | 99 | 0,058 |
+| Système | 64 | 64 | 0,006 |
+
+* Système est plombée par la carte native de Home Assistant (MapLibre), dessinée sans GPU par Chrome sans écran pendant la mesure.
 * La colonne Lovelace date du 23 octobre 2026, avant sa suppression : même script, même profil, avec ses 28 ressources HACS et `card-mod`.
 * L'essentiel du temps restant est celui du frontend de Home Assistant lui-même, commun aux trois. Kaoru Home charge environ 70 Ko gzip pour afficher l'accueil (Lit et composants communs compris) ; les autres pages arrivent à la demande, et three.js (150 Ko gzip) seulement pour le plan 3D.
 

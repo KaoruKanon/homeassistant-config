@@ -308,6 +308,8 @@ export class KhFloorplan extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    // Orientation from the first render: drawing it landscape then portrait moved the whole page.
+    this.wide = (this.getBoundingClientRect().width || window.innerWidth) >= 600;
     this.resize.observe(this);
     window.addEventListener("kh-pending", this.onPending);
   }

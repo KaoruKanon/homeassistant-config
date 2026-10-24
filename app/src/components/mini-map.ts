@@ -35,12 +35,21 @@ export class KhMiniMap extends LitElement {
     passive: { type: Boolean },
     ready: { state: true },
     failed: { state: true },
+    seen: { state: true },
   };
   declare entities: string[];
   declare height: number;
   declare passive: boolean;
   declare ready: boolean;
   declare failed: boolean;
+  /** On screen at least once: MapLibre is heavy, it starts only then. */
+  declare seen: boolean;
+  private watch = new IntersectionObserver(([e]) => {
+    if (!e.isIntersecting) return;
+    this.watch.disconnect();
+    this.seen = true;
+    if (!this.ready) ensureHaMap().then((ok) => ((this.ready = ok), (this.failed = !ok)));
+  });
 
   constructor() {
     super();
@@ -49,6 +58,7 @@ export class KhMiniMap extends LitElement {
     this.passive = false;
     this.ready = !!customElements.get("ha-map");
     this.failed = false;
+    this.seen = false;
   }
 
   static styles = css`
@@ -77,13 +87,18 @@ export class KhMiniMap extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    if (!this.ready) ensureHaMap().then((ok) => ((this.ready = ok), (this.failed = !ok)));
+    this.watch.observe(this);
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.watch.disconnect();
   }
 
   render() {
     const h = `height:${this.height}px`;
     if (this.failed) return html`<div class="map" style=${h}><a href="/map">Ouvrir la carte de Home Assistant</a></div>`;
-    if (!this.ready) return html`<div class="map" style=${h} aria-busy="true"></div>`;
+    if (!this.ready || !this.seen) return html`<div class="map" style=${h} aria-busy="true"></div>`;
     return html`<ha-map
       style=${h}
       .entities=${this.entities.map((entity_id) => ({ entity_id }))}
