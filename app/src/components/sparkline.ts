@@ -296,10 +296,16 @@ export class KhSparkline extends LitElement {
         )}</defs>
         ${!compact && s0 && smoothed[0]?.length > 1
           ? svg`
-            <line x1="0" x2=${W} y1=${s0.y(s0.hi)} y2=${s0.y(s0.hi)} stroke="var(--kh-line)" stroke-dasharray="3 5" />
-            <line x1="0" x2=${W} y1=${s0.y(s0.lo)} y2=${s0.y(s0.lo)} stroke="var(--kh-line)" stroke-dasharray="3 5" />
-            <text x=${padX + 2} y=${s0.y(s0.hi) - 4}>max ${formatNumber(s0.hi)} ${first.unit}</text>
-            <text x=${padX + 2} y=${s0.y(s0.lo) - 4}>min ${formatNumber(s0.lo)} ${first.unit}</text>
+            ${s0.y(s0.lo) - s0.y(s0.hi) < 18
+              ? // Flat or nearly: one line, one label, so min and max do not overlap.
+                svg`<line x1="0" x2=${W} y1=${s0.y(s0.hi)} y2=${s0.y(s0.hi)} stroke="var(--kh-line)" stroke-dasharray="3 5" />
+                  <text x=${padX + 2} y=${s0.y(s0.hi) - 4}>${formatNumber(s0.lo) === formatNumber(s0.hi)
+                    ? `stable à ${formatNumber(s0.hi)} ${first.unit}`
+                    : `entre ${formatNumber(s0.lo)} et ${formatNumber(s0.hi)} ${first.unit}`}</text>`
+              : svg`<line x1="0" x2=${W} y1=${s0.y(s0.hi)} y2=${s0.y(s0.hi)} stroke="var(--kh-line)" stroke-dasharray="3 5" />
+                  <line x1="0" x2=${W} y1=${s0.y(s0.lo)} y2=${s0.y(s0.lo)} stroke="var(--kh-line)" stroke-dasharray="3 5" />
+                  <text x=${padX + 2} y=${s0.y(s0.hi) - 4}>max ${formatNumber(s0.hi)} ${first.unit}</text>
+                  <text x=${padX + 2} y=${s0.y(s0.lo) - 4}>min ${formatNumber(s0.lo)} ${first.unit}</text>`}
             ${stale && cur === undefined ? svg`<text x=${W - padX} y="11" text-anchor="end">relevé à ${hourFormat.format(new Date(t1))}</text>` : nothing}
             <text x=${padX} y=${H - 4}>${hourFormat.format(new Date(t0))}</text>
             <text x=${W / 2} y=${H - 4} text-anchor="middle">${hourFormat.format(new Date((t0 + t1) / 2))}</text>
