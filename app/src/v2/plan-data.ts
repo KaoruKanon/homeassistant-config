@@ -1,3 +1,6 @@
+import { config } from "../config.ts";
+import type { Room } from "../rooms.ts";
+
 // The flat, from the user's drawio plan (app/assets/plan/appartement.drawio):
 // walls, windows, doors and furniture in plan units (about 1 unit = 1 cm),
 // the rooms keyed by the HA area they belong to. Shared by the 2D and 3D views.
@@ -18,10 +21,10 @@ export const WALLS: R[] = [
 export const FURNITURE: F[] = [
   ["bed_single", 620, 770, 100, 180, -180], ["chair", 545, 190, 40, 52, 0], ["chair", 545, 278, 40, 52, 180], ["chair", 501, 234, 40, 52, -90],
   ["chair", 589, 234, 40, 52, 90], ["round_table", 515, 210, 100, 100, 0], ["couch", 237.5, 176, 170, 80, 90], ["refrigerator", 500, 450, 60, 62, 0],
-  ["bathtub", 20, 1190, 180, 60, 90], ["bed_double", 280, 1120, 200, 180, -90], ["range", 468, 647, 75, 62, -180], ["dresser", 60, 260, 100, 40, -90],
+  ["bathtub", 20, 1190, 180, 60, 90], ["bed_double", 280, 1120, 200, 180, -90], ["range", 468, 647, 75, 62, -180], ["tv_stand", 60, 260, 100, 40, -90],
   ["toilet", 110, 1043, 50, 67, -180], ["sink", 140, 1134, 40, 35, 0], ["sink_double", 290, 640, 160, 70, -180], ["wardrobe", 290, 885, 130, 65, -180], ["wardrobe", 420, 885, 100, 65, -180],
   ["wardrobe", 380, 960, 260, 65, 0], ["washing_machine", 560, 645, 60, 60, -180], ["bookcase", 295, 721, 100, 30, 0], ["glass_cabinet", 80, 372.5, 100, 65, -180],
-  ["office_chair", 465, 766, 40, 43, -180], ["desk", 395, 721, 180, 50, -180], ["bookcase", 565, 730, 50, 30, -90], ["bar_table", 630, 490, 130, 50, 90],
+  ["office_chair", 465, 766, 40, 43, -180], ["desk", 395, 721, 180, 50, -180], ["low_bookcase", 565, 730, 50, 30, -90], ["desk_extension", 575, 721, 42, 50, 0], ["bar_table", 630, 490, 130, 50, 90],
   ["kitchen_cabinet", 305, 450, 180, 52, 0], ["office_chair", 140, 147, 40, 43, 30], ["desk", 75, 155, 80, 50, 90], ["dresser", 295, 385.5, 240, 52, -180],
   ["dresser", 670, 388, 50, 52, -180], ["dresser", 630, 1220, 120, 40, 90],
 ];
@@ -61,5 +64,11 @@ export const FURNITURE_3D: Record<string, [number, string]> = {
   table: [22, "#c58a45"], desk: [22, "#8a5d3f"], dresser: [28, "#a77a55"], bookcase: [44, "#6a4a35"], office_chair: [14, "#e85d75"],
   refrigerator: [52, "#e8eef0"], range: [28, "#58606b"], sink: [26, "#e8eef0"], sink_double: [28, "#e8eef0"], washing_machine: [28, "#f6efe2"],
   bathtub: [18, "#ffffff"], toilet: [14, "#ffffff"], wardrobe: [60, "#6a4a35"], glass_cabinet: [40, "#8a5d3f"],
-  bar_table: [30, "#b8875a"], kitchen_cabinet: [30, "#e8754f"],
+  bar_table: [30, "#b8875a"], kitchen_cabinet: [30, "#e8754f"], tv_stand: [24, "#2b2f3a"], low_bookcase: [30, "#6a4a35"],
+  desk_extension: [22, "#8a5d3f"],
 };
+
+/** A room's lights for its bulb: its own, plus those placed on the plan. */
+export function planLights(r: Pick<Room, "id" | "lights">): string[] {
+  return [...new Set([...r.lights, ...(config.plan?.lights?.[r.id] ?? []).map((l) => l.entity)])];
+}

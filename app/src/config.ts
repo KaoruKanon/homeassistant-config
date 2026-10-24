@@ -129,7 +129,16 @@ export interface KaoruHomeConfig {
     fans: string[];
   };
   /** The flat's plan (Maison page): which TV and PC sit in which room, by area id. */
-  plan?: { tvs: Record<string, string>; computers: Record<string, string> };
+  plan?: {
+    tvs: Record<string, string>;
+    computers: Record<string, string>;
+    /**
+     * Lights shown one by one on the plan, by room (plan units): a ceiling
+     * light or a lamp at a point, a LED strip between two points. They also
+     * count as the room's lights for its bulb.
+     */
+    lights?: Record<string, { entity: string; kind: "ceiling" | "lamp" | "strip"; at: [number, number]; to?: [number, number] }[]>;
+  };
   system: {
     trackers: { entity: string; name: string; icon: string }[];
     speedtest?: { download: string; upload: string; ping: string; run?: string };
@@ -353,6 +362,14 @@ export const config: KaoruHomeConfig = {
   plan: {
     tvs: { salon: "media_player.samsung_tv_salon", chambre_papa: "media_player.samsung_tv_papa" },
     computers: { salon: "switch.computer_papa", chambre_william: "switch.computer_rig_kaoru" },
+    lights: {
+      chambre_william: [
+        { entity: "light.plafond_1", kind: "ceiling", at: [410, 835] },
+        { entity: "light.plafond_2", kind: "ceiling", at: [590, 835] },
+        { entity: "light.lampe_japonaise", kind: "lamp", at: [408, 738] },
+        { entity: "light.yeelight_stripe", kind: "strip", at: [400, 724], to: [572, 724] },
+      ],
+    },
   },
   system: {
     trackers: [

@@ -178,6 +178,35 @@ export function model(name: string, w: number, d: number): Group | undefined {
       cyl(g, 1.5, 7, kx - 33, 95, 4, m("#f6efe2", 0.3), 10).rotation.z = 0.9;
       return g;
     }
+    case "tv_stand": {
+      // Low TV unit: black top and sides, two open shelves, a drawer.
+      const h = 46, black = m("#23262e", 0.5), wood = m("#8a5d3f", 0.6);
+      box(g, w, 3, d, 0, h - 3, 0, black);
+      box(g, w, 3, d, 0, 5, 0, black);
+      for (const sx of [-1, 0, 1]) box(g, 3, h - 8, d, sx * (w / 2 - 1.5) * (sx === 0 ? 0 : 1), 5, 0, black);
+      box(g, w - 6, h - 8, 2, 0, 5, -d / 2 + 1, black);
+      box(g, w / 2 - 6, 16, 1.5, -w / 4, 9, d / 2 - 1, wood); // drawer
+      box(g, 12, 1.5, 1.5, -w / 4, 22, d / 2, m(STEEL, 0.25, 0.85));
+      box(g, 26, 6, 18, w / 4, 8, 0, m(BLACK, 0.4)); // the TV box on the shelf
+      box(g, 3, 1, 0.5, w / 4 + 8, 12, 9.2, m("#5ef08a", 0.3));
+      legs(g, w, d, 5, 4, black, 2);
+      return g;
+    }
+    case "low_bookcase": {
+      // Under the desk extension: two shelves of books.
+      const h = 70, wood = m(DARK_WOOD);
+      for (const sx of [-1, 1]) box(g, 2.5, h, d, sx * (w / 2 - 1.25), 0, 0, wood);
+      for (let i = 0; i <= 2; i++) box(g, w, 2.5, d, 0, (h - 2.5) * (i / 2), 0, wood);
+      const colors = ["#e85d75", "#4a90c8", "#f2c14e", "#5aa469"];
+      for (let i = 0; i < 2; i++) for (let k = 0; k < Math.floor((w - 8) / 7); k++) box(g, 5, 20 + ((k * 5 + i) % 7), d - 6, -w / 2 + 6 + k * 7, (h - 2.5) * (i / 2) + 2.5, 0, m(colors[(k + i) % 4], 0.9));
+      return g;
+    }
+    case "desk_extension": {
+      // The desk carries on over the low bookcase.
+      box(g, w, 4, d, 0, 72, 0, m(WOOD, 0.6));
+      box(g, 4, 72, 4, w / 2 - 4, 0, d / 2 - 4, m(DARK_WOOD));
+      return g;
+    }
     case "bookcase": {
       const h = 110, wood = m(DARK_WOOD);
       for (const sx of [-1, 1]) box(g, 2.5, h, d, sx * (w / 2 - 1.25), 0, 0, wood);
@@ -302,17 +331,70 @@ export function flatTv(length: number): { group: Group; screen: MeshStandardMate
   return { group: g, screen };
 }
 
-/** A PC: a monitor on its stand facing +z, keyboard, the tower beside the desk. */
-export function computer(w: number): { group: Group; screen: MeshStandardMaterial } {
+/** A PC tower, front to +z: dark case, power light, side window lit while it runs. */
+function tower(g: Group, x: number, y: number, z: number, glow: MeshStandardMaterial[], rgb = false): void {
+  box(g, 20, 44, 42, x, y, z, m("#1a1c22", 0.4, 0.3));
+  box(g, 0.6, 30, 30, x + 10.2, y + 8, z, rgb ? glowMat(glow, "#5a2bff") : m("#2b2f3a", 0.2, 0.3)); // side window
+  box(g, 2, 2, 0.6, x, y + 38, z + 21.2, glowMat(glow, "#4fc3f7")); // power light
+  if (rgb) box(g, 16, 1, 0.6, x, y + 3, z + 21.2, glowMat(glow, "#ff3fa4"));
+}
+
+/** A material that lights up with the PC (collected so the plan can switch it). */
+function glowMat(list: MeshStandardMaterial[], color: string): MeshStandardMaterial {
+  const mt = new MeshStandardMaterial({ color: "#15161b", roughness: 0.3, emissive: color, emissiveIntensity: 0 });
+  list.push(mt);
+  return mt;
+}
+
+function monitor(g: Group, x: number, z: number, wide: number, turn: number, screens: MeshStandardMaterial[]): void {
+  const mg = new Group();
+  box(mg, 18, 1.5, 14, 0, 0, -4, m(BLACK, 0.4));
+  box(mg, 4, 14, 3, 0, 1.5, -6, m(BLACK, 0.4));
+  box(mg, wide, wide * 0.5, 2.5, 0, 14, -6, m(BLACK, 0.3));
+  const screen = new MeshStandardMaterial({ color: "#0b0b12", roughness: 0.15, metalness: 0.2, emissive: "#2196f3", emissiveIntensity: 0 });
+  const s = new Mesh(new BoxGeometry(wide - 2.5, wide * 0.5 - 2.5, 0.5), screen);
+  s.position.set(0, 14 + (wide * 0.5) / 2, -4.6);
+  mg.add(s);
+  mg.position.set(x, 0, z);
+  mg.rotation.y = turn;
+  g.add(mg);
+  screens.push(screen);
+}
+
+/**
+ * A PC, front to +z, standing on its desk top (y = 0): monitor, keyboard and
+ * mouse, the tower on the floor beside the desk (`towerAt`). Returns every
+ * material that lights up while it runs.
+ */
+export function computer(w: number, towerAt?: [number, number, number]): { group: Group; screens: MeshStandardMaterial[] } {
   const g = new Group();
-  const screen = new MeshStandardMaterial({ color: "#0b0b12", roughness: 0.15, metalness: 0.2, emissive: "#000000" });
-  const mw = Math.min(60, w * 1.1);
-  box(g, 18, 1.5, 12, 0, 0, -4, m(BLACK, 0.4));
-  box(g, 4, 12, 3, 0, 1.5, -6, m(BLACK, 0.4));
-  box(g, mw, mw * 0.58, 2.5, 0, 12, -6, m(BLACK, 0.3));
-  const s = new Mesh(new BoxGeometry(mw - 3, mw * 0.58 - 3, 0.5), screen);
-  s.position.set(0, 12 + (mw * 0.58) / 2, -4.5);
-  g.add(s);
-  box(g, mw * 0.8, 1.5, 14, 0, 0, 14, m("#2b2f3a", 0.5)); // keyboard
-  return { group: g, screen };
+  const screens: MeshStandardMaterial[] = [];
+  monitor(g, 0, 0, Math.min(56, w * 1.1), 0, screens);
+  box(g, 40, 1.5, 13, 0, 0, 14, m("#2b2f3a", 0.5)); // keyboard
+  box(g, 5, 1.5, 8, 26, 0, 15, m("#2b2f3a", 0.5)); // mouse
+  if (towerAt) tower(g, towerAt[0], towerAt[1], towerAt[2], screens);
+  return { group: g, screens };
+}
+
+/**
+ * The gaming setup: two screens side by side, slightly turned in, a wide
+ * desk mat, a lit keyboard and a mouse, headphones, and the RGB tower on the
+ * desk extension (`towerAt`).
+ */
+export function gamingSetup(towerAt: [number, number, number]): { group: Group; screens: MeshStandardMaterial[] } {
+  const g = new Group();
+  const screens: MeshStandardMaterial[] = [];
+  monitor(g, -31, -2, 60, 0.12, screens);
+  monitor(g, 31, -2, 60, -0.12, screens);
+  box(g, 90, 0.4, 36, 0, 0, 14, m("#1a1c22", 0.95)); // desk mat
+  box(g, 44, 2, 14, -6, 0.4, 13, m("#23262e", 0.5));
+  box(g, 42, 0.4, 12, -6, 2.4, 13, glowMat(screens, "#ff3fa4")); // keyboard backlight
+  box(g, 6, 2.5, 10, 26, 0.4, 15, m("#23262e", 0.5));
+  const cup = cyl(g, 4.5, 9, -44, 0, 16, m("#f6efe2", 0.4), 16); // a mug
+  cup.castShadow = true;
+  const head = new Mesh(new TorusGeometry(8, 1.6, 8, 20, Math.PI), m(BLACK, 0.4));
+  head.position.set(44, 14, 10);
+  g.add(head);
+  tower(g, towerAt[0], towerAt[1], towerAt[2], screens, true);
+  return { group: g, screens };
 }

@@ -4,10 +4,10 @@ import { Press, pcPress } from "../components/gestures.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive } from "../format.ts";
 import { openComputer } from "../popups/index.ts";
-import type { Room } from "../rooms.ts";
+import { entityName, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
-import { DOORS, FURNITURE, ROOMS, WALLS } from "./plan-data.ts";
+import { DOORS, FURNITURE, ROOMS, WALLS, planLights } from "./plan-data.ts";
 import { roomColors, roomSceneStyles } from "./room-art.ts";
 
 
@@ -57,6 +57,12 @@ function piece(name: string, w: number, h: number): SVGTemplateResult {
     case "kitchen_cabinet":
       return svg`<rect width=${w} height=${h} rx="4" fill="#e8754f" /><rect x="10" y="8" width="46" height="34" rx="4" fill="#2b2f3a" />
         <circle cx=${w - 28} cy=${h / 2} r="11" fill="#f6efe2" /><path d="M${w - 17} ${h / 2}h6" stroke="#f6efe2" stroke-width="3" />`;
+    case "tv_stand":
+      return svg`<rect width=${w} height=${h} rx="4" fill="#2b2f3a" /><rect x=${w * 0.55} y="6" width=${w * 0.35} height=${h - 12} rx="2" fill="#1a1c22" />`;
+    case "low_bookcase":
+      return svg`<rect width=${w} height=${h} rx="3" fill="#6a4a35" /><path d="M6 ${h / 2}H${w - 6}" stroke="#4a3428" stroke-width="2" />`;
+    case "desk_extension":
+      return svg`<rect width=${w} height=${h} rx="4" fill="#8a5d3f" opacity="0.92" />`;
     case "bookcase":
       return svg`<rect width=${w} height=${h} rx="3" fill="#6a4a35" />`;
     case "office_chair":
@@ -112,7 +118,7 @@ export class KhFloorplan extends LitElement {
     new EntitiesController(this, () => {
       const p = config.plan;
       return [
-        ...(this.rooms ?? []).flatMap((r) => [...r.lights, ...r.openings, ...r.motion, ...[r.temperature, r.humidity].filter((x): x is string => !!x)]),
+        ...(this.rooms ?? []).flatMap((r) => [...planLights(r), ...r.openings, ...r.motion, ...[r.temperature, r.humidity].filter((x): x is string => !!x)]),
         ...Object.values(p?.tvs ?? {}),
         ...Object.values(p?.computers ?? {}),
         "sun.sun",
@@ -224,7 +230,8 @@ export class KhFloorplan extends LitElement {
       .bulb.on path {
         fill: #2b2003;
       }
-      .badge {
+      .badge,
+      .fixture {
         cursor: pointer;
       }
       .badge rect {
@@ -345,6 +352,34 @@ export class KhFloorplan extends LitElement {
     return [...pcs, ...tvs];
   }
 
+  /** Lights placed one by one: a dot (or a line for a strip) in their colour; tap to switch that one. */
+  private fixtures2d(project: (x: number, y: number) => [number, number]) {
+    const hass = store.hass!;
+    return Object.values(config.plan?.lights ?? {}).flat().map((l) => {
+      const st = hass.states[l.entity];
+      if (!st) return nothing;
+      const on = isActive(st);
+      const rgb = st.attributes.rgb_color as number[] | undefined;
+      const color = on ? (rgb ? `rgb(${rgb.join(",")})` : "#ffc98a") : "#5d6368";
+      const name = entityName(hass, l.entity, config);
+      const [x, y] = project(...l.at);
+      const tap = () => toggle(l.entity, name);
+      if (l.kind === "strip" && l.to) {
+        const [x2, y2] = project(...l.to);
+        return svg`<g class="fixture" role="button" aria-label="${name} : ${on ? "allumé" : "éteint"}" @click=${tap}>
+          <line x1=${x} y1=${y} x2=${x2} y2=${y2} stroke="transparent" stroke-width="22" />
+          ${on ? svg`<line x1=${x} y1=${y} x2=${x2} y2=${y2} stroke=${color} stroke-width="14" opacity="0.35" stroke-linecap="round" />` : nothing}
+          <line x1=${x} y1=${y} x2=${x2} y2=${y2} stroke=${color} stroke-width="5" stroke-linecap="round" /><title>${name}</title></g>`;
+      }
+      const r = l.kind === "ceiling" ? 13 : 10;
+      return svg`<g class="fixture" role="button" aria-label="${name} : ${on ? "allumé" : "éteint"}" @click=${tap}>
+        ${on ? svg`<circle cx=${x} cy=${y} r=${r * 2.6} fill=${color} opacity="0.28" />` : nothing}
+        <circle cx=${x} cy=${y} r=${r} fill=${color} stroke="#1c2027" stroke-width="3" />
+        ${l.kind === "ceiling" ? svg`<circle cx=${x} cy=${y} r=${r / 2.4} fill="#fff" opacity=${on ? 0.9 : 0.25} />` : nothing}
+        <title>${name}</title></g>`;
+    });
+  }
+
   private setMode(m: "2d" | "3d"): void {
     this.mode = m;
     try {
@@ -387,7 +422,7 @@ export class KhFloorplan extends LitElement {
     const byId = new Map((this.rooms ?? []).map((r) => [r.id, r]));
     const tvs = config.plan?.tvs ?? {};
     const pcs = config.plan?.computers ?? {};
-    const lit = (r?: Room) => !!r && r.lights.some((id) => isActive(hass.states[id]));
+    const lit = (r?: Room) => !!r && planLights(r).some((id) => isActive(hass.states[id]));
 
     return html`<svg class="plan" viewBox=${view} role="img" aria-label="Plan de l'appartement">
       <defs>
@@ -457,11 +492,12 @@ export class KhFloorplan extends LitElement {
           ${presence ? svg`<circle class="presence" cx=${x} cy=${y - 30} r="40" />` : nothing}
           <text class="label ${small ? "small" : ""}" x=${x} y=${y} text-anchor="middle">${r.name}</text>
           ${climate ? svg`<text class="label small" x=${x} y=${y + 22} text-anchor="middle">${climate}</text>` : nothing}
-          ${r.lights.length
+          ${planLights(r).length
             ? svg`<g class="bulb ${on ? "on" : ""}" transform="translate(${x - (small ? 13 : 18)} ${y - (small ? 46 : 62)}) scale(${small ? 0.72 : 1})" role="button" aria-label=${on ? `Éteindre ${r.name}` : `Allumer ${r.name}`}
-                @click=${() => setLights(r.lights, !on)}><circle cx="18" cy="18" r="20" /><path d=${LAMP} transform="translate(6 6)" /></g>`
+                @click=${() => setLights(planLights(r), !on)}><circle cx="18" cy="18" r="20" /><path d=${LAMP} transform="translate(6 6)" /></g>`
             : nothing}`;
       })}
+      ${this.fixtures2d(at)}
       ${this.deviceBadges(at)}
     </svg>`;
   }
