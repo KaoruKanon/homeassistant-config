@@ -61,6 +61,21 @@ const DOORS: [number, number, number, number][] = [
   [285, 1080, -90, 0], [195, 1000, 90, 0], [280, 1125, 180, 90],
 ];
 
+/** Height and colour of each piece of furniture in the 3D view. */
+const FURNITURE_3D: Record<string, [number, string]> = {
+  couch: [26, "#4a90c8"], bed_single: [18, "#f2b84b"], bed_double: [18, "#f2b84b"], chair: [14, "#8a5d3f"], round_table: [22, "#c58a45"],
+  table: [22, "#c58a45"], desk: [22, "#8a5d3f"], dresser: [28, "#a77a55"], bookcase: [44, "#6a4a35"], office_chair: [14, "#e85d75"],
+  refrigerator: [52, "#e8eef0"], range: [28, "#58606b"], sink: [26, "#e8eef0"], sink_double: [28, "#e8eef0"], washing_machine: [28, "#f6efe2"],
+  bathtub: [18, "#ffffff"], toilet: [14, "#ffffff"],
+};
+
+/** A darker shade of a hex colour (f < 1). */
+function shade(hex: string, f: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const c = (v: number) => Math.round(v * f).toString(16).padStart(2, "0");
+  return `#${c((n >> 16) & 255)}${c((n >> 8) & 255)}${c(n & 255)}`;
+}
+
 const LAMP = "M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z";
 
 function piece(name: string, w: number, h: number): SVGTemplateResult {
@@ -120,15 +135,23 @@ function piece(name: string, w: number, h: number): SVGTemplateResult {
  * its popup. Landscape (rotated) when wide, upright on phones.
  */
 export class KhFloorplan extends LitElement {
-  static properties = { rooms: { attribute: false }, prefix: {}, wide: { state: true } };
+  static properties = { rooms: { attribute: false }, prefix: {}, wide: { state: true }, mode: { state: true } };
   declare rooms: Room[];
   declare prefix: string;
   declare wide: boolean;
+  /** Flat plan or isometric view; remembered per screen. */
+  declare mode: "2d" | "3d";
   private resize = new ResizeObserver(([e]) => (this.wide = e.contentRect.width >= 600));
 
   constructor() {
     super();
     this.wide = true;
+    this.mode = "2d";
+    try {
+      if (localStorage.getItem("kh-plan-mode") === "3d") this.mode = "3d";
+    } catch {
+      /* private browsing: 2D */
+    }
     new RegistryController(this);
     new EntitiesController(this, () => {
       const p = config.plan;
@@ -147,6 +170,31 @@ export class KhFloorplan extends LitElement {
     css`
       :host {
         display: block;
+      }
+      .wrap {
+        position: relative;
+      }
+      .switch {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 1;
+        display: inline-flex;
+        padding: 3px;
+        border-radius: 12px;
+        background: rgb(0 0 0 / 0.45);
+      }
+      .switch button {
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 9px;
+        font-weight: 800;
+        font-size: 0.8125rem;
+        color: rgb(255 255 255 / 0.7);
+      }
+      .switch button[aria-pressed="true"] {
+        background: rgb(255 255 255 / 0.9);
+        color: #1c2027;
       }
       svg.plan {
         display: block;
@@ -196,6 +244,12 @@ export class KhFloorplan extends LitElement {
         stroke: rgb(0 0 0 / 0.45);
         stroke-width: 4px;
         pointer-events: none;
+      }
+      .iso .label {
+        font-size: 30px;
+      }
+      .iso .label.small {
+        font-size: 22px;
       }
       .label.small {
         font-size: 16px;
@@ -265,9 +319,137 @@ export class KhFloorplan extends LitElement {
     window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
   }
 
+  private setMode(m: "2d" | "3d"): void {
+    this.mode = m;
+    try {
+      localStorage.setItem("kh-plan-mode", m);
+    } catch {
+      /* not kept */
+    }
+  }
+
   render() {
-    const hass = store.hass;
-    if (!hass) return nothing;
+    if (!store.hass) return nothing;
+    return html`<div class="wrap">
+      <div class="switch" role="group" aria-label="Vue du plan">
+        <button aria-pressed=${String(this.mode === "2d")} @click=${() => this.setMode("2d")}>2D</button>
+        <button aria-pressed=${String(this.mode === "3d")} @click=${() => this.setMode("3d")}>3D</button>
+      </div>
+      ${this.mode === "3d" ? this.plan3d() : this.plan2d()}
+    </div>`;
+  }
+
+  /** Isometric view: floors flat, walls and furniture raised, painted back to front. */
+  private plan3d() {
+    const hass = store.hass!;
+    const night = hass.states["sun.sun"]?.state === "below_horizon";
+    const byId = new Map((this.rooms ?? []).map((r) => [r.id, r]));
+    const lit = (r?: Room) => !!r && r.lights.some((id) => isActive(hass.states[id]));
+    const tvs = config.plan?.tvs ?? {};
+    const pcs = config.plan?.computers ?? {};
+    // The long side of the flat runs left to right: u along the plan's y, v across.
+    const uv = (x: number, y: number): [number, number] => [y, 800 - x];
+    const C = 0.866, S = 0.5;
+    const iso = (u: number, v: number, z = 0): [number, number] => [(u - v) * C, (u + v) * S - z];
+    const pts = (list: [number, number][]) => list.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(" ");
+    const floor = (points: string) =>
+      pts(points.split(" ").map((p) => { const [x, y] = p.split(",").map(Number); return iso(...uv(x, y)); }));
+
+    type Box = { u0: number; v0: number; u1: number; v1: number; z: number; top: string; side: string; front: string; cls?: string; click?: () => void; title?: string };
+    const box = (x: number, y: number, w: number, h: number, z: number, top: string, side?: string, front?: string): Box => {
+      const [a, b] = uv(x, y), [c, d] = uv(x + w, y + h);
+      return { u0: Math.min(a, c), v0: Math.min(b, d), u1: Math.max(a, c), v1: Math.max(b, d), z, top, side: side ?? shade(top, 0.78), front: front ?? shade(top, 0.62) };
+    };
+    const boxes: Box[] = [];
+    // Walls, cut in short pieces so the painter's order stays right along long runs.
+    for (const [x, y, w, h] of WALLS) {
+      const n = Math.max(1, Math.ceil(Math.max(w, h) / 40));
+      for (let i = 0; i < n; i++)
+        boxes.push(w >= h ? box(x + (w / n) * i, y, w / n, h, 46, "#3a3f4b", "#2b2f3a", "#23262e") : box(x, y + (h / n) * i, w, h / n, 46, "#3a3f4b", "#2b2f3a", "#23262e"));
+    }
+    for (const [id, p] of Object.entries(ROOMS)) {
+      const open = (byId.get(id)?.openings ?? []).some((o) => isActive(hass.states[o]));
+      for (const [a, b] of p.windows ?? []) {
+        const n = Math.max(1, Math.ceil((b - a) / 40));
+        for (let i = 0; i < n; i++) boxes.push({ ...box(719, a + ((b - a) / n) * i, 12, (b - a) / n, 47, open ? "#ff6b5e" : "#8ecae6"), cls: open ? "window open" : "" });
+      }
+    }
+    for (const [name, x, y, w, h, rot] of FURNITURE) {
+      const turned = Math.abs(rot) % 180 === 90;
+      const bw = turned ? h : w, bh = turned ? w : h;
+      const bx = x + w / 2 - bw / 2, by = y + h / 2 - bh / 2;
+      const [z, color] = FURNITURE_3D[name] ?? [20, "#8a5d3f"];
+      boxes.push(box(bx, by, bw, bh, z, color));
+    }
+    for (const [id, p] of Object.entries(ROOMS)) {
+      const tv = tvs[id], pc = pcs[id];
+      if (p.tv && tv) {
+        const on = isActive(hass.states[tv]);
+        boxes.push({ ...box(p.tv[0], p.tv[1], p.tv[2], p.tv[3], 60, on ? "#b48cff" : "#1d1830", on ? "#7b5cff" : "#15121f", on ? "#ff6fa8" : "#100d18"), cls: "device", click: () => openMoreInfo(this, tv), title: "Télévision" });
+      }
+      if (p.pc && pc) {
+        const on = isActive(hass.states[pc]);
+        const c = config.home.computers.find((x) => x.entity === pc);
+        boxes.push({ ...box(p.pc[0], p.pc[1], p.pc[2], p.pc[3], 46, on ? "#4fc3f7" : "#2b2f3a"), cls: "device", click: () => c && openComputer(c), title: c?.name ?? "Ordinateur" });
+      }
+    }
+    boxes.sort((a, b) => a.u1 + a.v1 - (b.u1 + b.v1));
+
+    const all: [number, number][] = [];
+    for (const [x, y] of [[60, 110], [740, 110], [740, 1335], [60, 1335]] as [number, number][]) {
+      const [u, v] = uv(x, y);
+      all.push(iso(u, v), iso(u, v, 60));
+    }
+    const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+    const view = `${Math.min(...xs) - 20} ${Math.min(...ys) - 20} ${Math.max(...xs) - Math.min(...xs) + 40} ${Math.max(...ys) - Math.min(...ys) + 40}`;
+
+    return html`<svg class="plan iso" viewBox=${view} role="img" aria-label="Vue 3D de l'appartement">
+      <defs>
+        <radialGradient id="kh-glow3"><stop offset="0" stop-color="#ffd27a" stop-opacity="0.8" /><stop offset="0.5" stop-color="#ffc35a" stop-opacity="0.3" /><stop offset="1" stop-color="#ffb347" stop-opacity="0" /></radialGradient>
+      </defs>
+      <polygon points=${floor("60,110 740,110 740,1335 60,1335")} fill="#1c2027" />
+      ${Object.entries(ROOMS).map(([id, p]) => {
+        const r = byId.get(id);
+        const [wall] = roomColors(r ?? { id, name: id, icon: "" });
+        return svg`<polygon class="room-area" points=${floor(p.points)} fill=${wall} @click=${() => r && this.open(id)}><title>${r?.name ?? id}</title></polygon>
+          <polygon class="dark" points=${floor(p.points)} fill="#0d1230" opacity=${lit(r) ? 0 : night ? 0.5 : 0.12} />`;
+      })}
+      <polygon points=${floor("80,639 190,639 190,980 80,980")} fill="#3a3f4b" />
+      ${Object.entries(ROOMS).map(([id, p]) => {
+        if (!lit(byId.get(id))) return nothing;
+        const [cx, cy] = iso(...uv(...p.label));
+        return svg`<ellipse class="glow" cx=${cx} cy=${cy} rx="260" ry="150" fill="url(#kh-glow3)" />`;
+      })}
+      ${boxes.map((b) => {
+        const A = iso(b.u0, b.v1), B = iso(b.u1, b.v1), Cc = iso(b.u1, b.v0);
+        const At = iso(b.u0, b.v1, b.z), Bt = iso(b.u1, b.v1, b.z), Ct = iso(b.u1, b.v0, b.z), Dt = iso(b.u0, b.v0, b.z);
+        return svg`<g class=${b.cls ?? ""} @click=${b.click ?? nothing} style=${b.click ? "" : "pointer-events:none"}>
+          ${b.title ? svg`<title>${b.title}</title>` : nothing}
+          <polygon points=${pts([A, B, Bt, At])} fill=${b.front} />
+          <polygon points=${pts([B, Cc, Ct, Bt])} fill=${b.side} />
+          <polygon points=${pts([Dt, Ct, Bt, At])} fill=${b.top} />
+        </g>`;
+      })}
+      ${Object.entries(ROOMS).map(([id, p]) => {
+        const r = byId.get(id);
+        if (!r) return nothing;
+        const [x, y] = iso(...uv(...p.label), 70);
+        const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
+        const on = lit(r);
+        const small = id === "toilette";
+        return svg`
+          <text class="label ${small ? "small" : ""}" x=${x} y=${y} text-anchor="middle">${r.name}</text>
+          ${!isNaN(t) ? svg`<text class="label small" x=${x} y=${y + 28} text-anchor="middle">${formatNumber(t)}°</text>` : nothing}
+          ${r.lights.length && !small
+            ? svg`<g class="bulb ${on ? "on" : ""}" transform="translate(${x - 18} ${y - 62})" role="button" aria-label=${on ? `Éteindre ${r.name}` : `Allumer ${r.name}`}
+                @click=${() => setLights(r.lights, !on)}><circle cx="18" cy="18" r="20" /><path d=${LAMP} transform="translate(6 6)" /></g>`
+            : nothing}`;
+      })}
+    </svg>`;
+  }
+
+  private plan2d() {
+    const hass = store.hass!;
     const night = hass.states["sun.sun"]?.state === "below_horizon";
     const wide = this.wide;
     // Landscape: the plan turned a quarter (the salon on the left); text stays upright.
