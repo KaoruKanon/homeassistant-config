@@ -47,10 +47,7 @@ export class KhV2App extends LitElement {
   /** Wall tablet: the menu becomes a rail on the left, out of the tiles' way. */
   declare wall: boolean;
   private loaded = new Set<string>();
-  private resize = new ResizeObserver(([e]) => {
-    this.phone = e.contentRect.width < 680;
-    this.wall = !this.phone && isWall(e.contentRect.width);
-  });
+  private resize = new ResizeObserver(([e]) => this.layout(e.contentRect.width));
 
   constructor() {
     super();
@@ -206,7 +203,15 @@ export class KhV2App extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    // The layout (phone, wall) from the first render: waiting for the observer
+    // drew the page once in the wrong layout, then moved everything.
+    this.layout(this.getBoundingClientRect().width || window.innerWidth);
     this.resize.observe(this);
+  }
+
+  private layout(width: number): void {
+    this.phone = width < 680;
+    this.wall = !this.phone && isWall(width);
   }
 
   disconnectedCallback(): void {

@@ -21,10 +21,14 @@ import { head, pagesOf, ring, v2 } from "./styles.ts";
 const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const date = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
-/** Wall tablet: tiles by importance, and their expected heights before measuring. */
+/**
+ * Wall tablet: tiles by importance, and their expected heights before
+ * measuring (as measured on the tablet: right estimates mean the first
+ * arrangement is the final one, nothing moves once the tiles are drawn).
+ */
 const WALL_ORDER = ["media", "jellyfin", "lights", "energy", "climate", "days", "favorites", "computers", "stocks", "shortcuts"];
 const WALL_ESTIMATE: Record<string, number> = {
-  media: 240, jellyfin: 220, lights: 210, energy: 380, climate: 200, days: 170, favorites: 250, computers: 130, stocks: 100, shortcuts: 200,
+  media: 240, jellyfin: 244, lights: 268, energy: 174, climate: 126, days: 164, favorites: 250, computers: 128, stocks: 92, shortcuts: 222,
 };
 
 /** One colour per thermometer in the Climat tile. */
