@@ -395,8 +395,7 @@ export class KhPlan3d extends LitElement {
     }
     for (const [entity, { m, light }] of live.tvs) {
       const on = isActive(hass.states[entity]);
-      m.emissive.set(on ? "#7b5cff" : "#000000");
-      m.emissiveIntensity = on ? 1.4 : 0;
+      m.emissiveIntensity = on ? 1.15 : 0; // the picture shows only while it plays
       light.intensity = on ? 4 * 10000 : 0;
     }
     for (const [entity, m] of live.pcs) {

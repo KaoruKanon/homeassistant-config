@@ -19,10 +19,10 @@ export const FURNITURE: F[] = [
   ["bed_single", 620, 770, 100, 180, -180], ["chair", 545, 190, 40, 52, 0], ["chair", 545, 278, 40, 52, 180], ["chair", 501, 234, 40, 52, -90],
   ["chair", 589, 234, 40, 52, 90], ["round_table", 515, 210, 100, 100, 0], ["couch", 237.5, 176, 170, 80, 90], ["refrigerator", 500, 450, 60, 62, 0],
   ["bathtub", 20, 1190, 180, 60, 90], ["bed_double", 280, 1120, 200, 180, -90], ["range", 468, 647, 75, 62, -180], ["dresser", 60, 260, 100, 40, -90],
-  ["toilet", 110, 1043, 50, 67, -180], ["sink", 140, 1134, 40, 35, 0], ["sink_double", 290, 640, 160, 70, -180], ["dresser", 290, 885, 130, 65, -180],
-  ["dresser", 380, 960, 260, 65, 0], ["washing_machine", 560, 645, 60, 60, -180], ["bookcase", 295, 721, 100, 30, 0], ["dresser", 80, 372.5, 100, 65, -180],
-  ["office_chair", 465, 766, 40, 43, -180], ["desk", 395, 721, 180, 50, -180], ["bookcase", 565, 730, 50, 30, -90], ["table", 630, 490, 130, 50, 90],
-  ["dresser", 305, 450, 180, 52, 0], ["office_chair", 140, 147, 40, 43, 30], ["desk", 75, 155, 80, 50, 90], ["dresser", 295, 385.5, 240, 52, -180],
+  ["toilet", 110, 1043, 50, 67, -180], ["sink", 140, 1134, 40, 35, 0], ["sink_double", 290, 640, 160, 70, -180], ["wardrobe", 290, 885, 130, 65, -180], ["wardrobe", 420, 885, 100, 65, -180],
+  ["wardrobe", 380, 960, 260, 65, 0], ["washing_machine", 560, 645, 60, 60, -180], ["bookcase", 295, 721, 100, 30, 0], ["glass_cabinet", 80, 372.5, 100, 65, -180],
+  ["office_chair", 465, 766, 40, 43, -180], ["desk", 395, 721, 180, 50, -180], ["bookcase", 565, 730, 50, 30, -90], ["bar_table", 630, 490, 130, 50, 90],
+  ["kitchen_cabinet", 305, 450, 180, 52, 0], ["office_chair", 140, 147, 40, 43, 30], ["desk", 75, 155, 80, 50, 90], ["dresser", 295, 385.5, 240, 52, -180],
   ["dresser", 670, 388, 50, 52, -180], ["dresser", 630, 1220, 120, 40, 90],
 ];
 
@@ -41,12 +41,12 @@ export interface PlanRoom {
 
 export const ROOMS: Record<string, PlanRoom> = {
   salon: { points: "80,130 720,130 720,440 80,440", label: [430, 180], windows: [[190, 360]], tv: [100, 230, 10, 100], tvBadge: [105, 280], pcBadge: [115, 155], pc: [90, 160, 50, 40] },
-  cuisine: { points: "290,450 720,450 720,710 290,710", label: [505, 560], windows: [[580, 690]] },
+  cuisine: { points: "290,450 720,450 720,710 290,710", label: [505, 624], windows: [[580, 690]] },
   chambre_william: { points: "290,720 720,720 720,950 290,950", label: [430, 860], windows: [[750, 840]], pc: [460, 726, 50, 40] },
-  chambre_papa: { points: "290,960 720,960 720,1315 290,1315", label: [560, 1060], windows: [[1142, 1252]], tv: [672, 1190, 8, 100], tvBadge: [652, 1240] },
+  chambre_papa: { points: "290,960 720,960 720,1315 290,1315", label: [505, 1181], windows: [[1142, 1252]], tv: [672, 1190, 8, 100], tvBadge: [652, 1240] },
   couloir: { points: "80,450 280,450 280,1120 200,1120 200,630 80,630", label: [180, 540] },
-  toilette: { points: "80,990 190,990 190,1120 80,1120", label: [135, 1010] },
-  salle_de_bain: { points: "80,1130 280,1130 280,1315 80,1315", label: [205, 1160] },
+  toilette: { points: "80,990 190,990 190,1120 80,1120", label: [135, 1088] },
+  salle_de_bain: { points: "80,1130 280,1130 280,1315 80,1315", label: [180, 1266] },
 };
 
 /** Doors: hinge, then the leaf's closed and open angles (degrees, 0 = +x, 90 = down). */
@@ -60,5 +60,6 @@ export const FURNITURE_3D: Record<string, [number, string]> = {
   couch: [26, "#4a90c8"], bed_single: [18, "#f2b84b"], bed_double: [18, "#f2b84b"], chair: [14, "#8a5d3f"], round_table: [22, "#c58a45"],
   table: [22, "#c58a45"], desk: [22, "#8a5d3f"], dresser: [28, "#a77a55"], bookcase: [44, "#6a4a35"], office_chair: [14, "#e85d75"],
   refrigerator: [52, "#e8eef0"], range: [28, "#58606b"], sink: [26, "#e8eef0"], sink_double: [28, "#e8eef0"], washing_machine: [28, "#f6efe2"],
-  bathtub: [18, "#ffffff"], toilet: [14, "#ffffff"],
+  bathtub: [18, "#ffffff"], toilet: [14, "#ffffff"], wardrobe: [60, "#6a4a35"], glass_cabinet: [40, "#8a5d3f"],
+  bar_table: [30, "#b8875a"], kitchen_cabinet: [30, "#e8754f"],
 };

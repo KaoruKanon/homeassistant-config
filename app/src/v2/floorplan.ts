@@ -46,6 +46,16 @@ function piece(name: string, w: number, h: number): SVGTemplateResult {
       return svg`<rect width=${w} height=${h} rx="5" fill="#8a5d3f" />`;
     case "dresser":
       return svg`<rect width=${w} height=${h} rx="5" fill="#a77a55" /><path d="M6 ${h / 2}H${w - 6}" stroke="#946a48" stroke-width="2" />`;
+    case "wardrobe":
+      return svg`<rect width=${w} height=${h} rx="4" fill="#6a4a35" /><path d="M${w / 2} 4V${h - 4}" stroke="#4a3428" stroke-width="2.5" />
+        <rect x=${w / 2 - 8} y=${h - 12} width="5" height="6" rx="2" fill="#c9b79a" /><rect x=${w / 2 + 3} y=${h - 12} width="5" height="6" rx="2" fill="#c9b79a" />`;
+    case "glass_cabinet":
+      return svg`<rect width=${w} height=${h} rx="4" fill="#8a5d3f" /><rect x="6" y=${h - 14} width=${w - 12} height="9" rx="2" fill="#bfe6f2" opacity="0.9" />`;
+    case "bar_table":
+      return svg`<rect width=${w} height=${h * 0.7} rx="5" fill="#b8875a" /><circle cx=${w * 0.3} cy=${h * 0.95} r="11" fill="#3c4250" /><circle cx=${w * 0.7} cy=${h * 0.95} r="11" fill="#3c4250" />`;
+    case "kitchen_cabinet":
+      return svg`<rect width=${w} height=${h} rx="4" fill="#e8754f" /><rect x="10" y="8" width="46" height="34" rx="4" fill="#2b2f3a" />
+        <circle cx=${w - 28} cy=${h / 2} r="11" fill="#f6efe2" /><path d="M${w - 17} ${h / 2}h6" stroke="#f6efe2" stroke-width="3" />`;
     case "bookcase":
       return svg`<rect width=${w} height=${h} rx="3" fill="#6a4a35" />`;
     case "office_chair":

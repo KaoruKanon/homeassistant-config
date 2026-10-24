@@ -1,4 +1,4 @@
-import { BoxGeometry, CylinderGeometry, Group, Mesh, MeshStandardMaterial } from "three";
+import { BoxGeometry, CanvasTexture, CylinderGeometry, Group, Mesh, MeshStandardMaterial, SRGBColorSpace, TorusGeometry } from "three";
 
 // Furniture of the 3D plan, built from simple shapes at real-ish sizes
 // (1 unit ≈ 1 cm, y up). Each model fills a w × d footprint centred on its
@@ -97,6 +97,87 @@ export function model(name: string, w: number, d: number): Group | undefined {
       }
       return g;
     }
+    case "wardrobe": {
+      // Two-door (or more) wardrobe, doors to the front.
+      const h = 150, body = m("#6a4a35", 0.7), door = m("#7a573f", 0.6);
+      box(g, w, h, d, 0, 0, 0, body);
+      box(g, w + 2, 3, d + 2, 0, h, 0, m("#5b3b28", 0.7)); // cornice
+      const doors = Math.max(2, Math.round(w / 55));
+      const dw = (w - 4) / doors;
+      for (let i = 0; i < doors; i++) {
+        const x = -w / 2 + 2 + dw * (i + 0.5);
+        box(g, dw - 2, h - 10, 1.2, x, 5, d / 2 + 0.6, door);
+        box(g, 1.5, 22, 2.5, x + (i % 2 ? -1 : 1) * (dw / 2 - 6), h / 2 - 11, d / 2 + 1.8, m(STEEL, 0.25, 0.85)); // handles
+      }
+      return g;
+    }
+    case "glass_cabinet": {
+      // Display cabinet: wood frame, glass doors, lit shelves with a few things on them.
+      const h = 110, wood = m("#8a5d3f", 0.6);
+      box(g, w, 6, d, 0, 0, 0, wood);
+      box(g, w, 4, d, 0, h - 4, 0, wood);
+      for (const sx of [-1, 1]) box(g, 3, h, d, sx * (w / 2 - 1.5), 0, 0, wood);
+      box(g, w - 6, h - 10, 2, 0, 6, -d / 2 + 1, wood); // back
+      for (const y of [38, 72]) box(g, w - 6, 2, d - 6, 0, y, 0, m("#a77a55", 0.6));
+      const things = ["#e85d75", "#f2c14e", "#4a90c8", "#f6efe2", "#5aa469"];
+      for (let i = 0; i < 5; i++) cyl(g, 4, 10 + (i % 3) * 4, -w / 2 + 12 + i * ((w - 24) / 4), i % 2 ? 40 : 74, -4, m(things[i], 0.4), 12);
+      const glass = new MeshStandardMaterial({ color: "#cfe9f2", roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.28 });
+      for (const sx of [-1, 1]) {
+        box(g, w / 2 - 4, h - 12, 1, sx * (w / 4 - 0.5), 6, d / 2 - 1, glass);
+        box(g, w / 2 - 4, 2.5, 1.5, sx * (w / 4 - 0.5), 6, d / 2 - 0.5, wood);
+        box(g, w / 2 - 4, 2.5, 1.5, sx * (w / 4 - 0.5), h - 8.5, d / 2 - 0.5, wood);
+      }
+      return g;
+    }
+    case "bar_table": {
+      // Bar shelf fixed to the wall (at -z), brackets underneath, two stools in front.
+      const top = m("#b8875a", 0.5);
+      box(g, w, 4, d * 0.7, 0, 100, -d / 2 + (d * 0.7) / 2, top);
+      for (const sx of [-1, 1]) {
+        box(g, 3, 28, 3, sx * (w / 2 - 15), 72, -d / 2 + 2, m(BLACK, 0.4, 0.5)); // wall rail
+        const brace = box(g, 3, 3, d * 0.6, sx * (w / 2 - 15), 86, -d / 2 + (d * 0.3), m(BLACK, 0.4, 0.5));
+        brace.rotation.x = 0.55;
+      }
+      for (const sx of [-0.28, 0.28]) {
+        const x = sx * w, z = d / 2 + 6;
+        cyl(g, 16, 2, x, 0, z, m(BLACK, 0.3, 0.6), 20);
+        cyl(g, 2.5, 66, x, 2, z, m(STEEL, 0.25, 0.85), 12);
+        const ring = new Mesh(new TorusGeometry(11, 1, 8, 24), m(STEEL, 0.25, 0.85));
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(x, 30, z);
+        g.add(ring);
+        cyl(g, 17, 5, x, 68, z, m("#3c4250", 0.8), 24);
+      }
+      return g;
+    }
+    case "kitchen_cabinet": {
+      // Base unit with drawers and a worktop; the microwave and the kettle on top.
+      const front = m("#e8754f", 0.55);
+      box(g, w, 6, d - 4, 0, 0, -2, m(BLACK, 0.8)); // plinth
+      box(g, w, 80, d - 2, 0, 6, -1, m("#cf6340", 0.6));
+      const cols = Math.max(2, Math.round(w / 60));
+      const cw = w / cols;
+      for (let c = 0; c < cols; c++)
+        for (let r = 0; r < 3; r++) {
+          box(g, cw - 3, 24, 1.2, -w / 2 + cw * (c + 0.5), 8 + r * 26, d / 2, front);
+          box(g, 14, 1.8, 2, -w / 2 + cw * (c + 0.5), 8 + r * 26 + 19, d / 2 + 1, m(STEEL, 0.25, 0.85));
+        }
+      box(g, w + 2, 4, d + 2, 0, 86, 0, m("#3a3f4b", 0.35)); // worktop
+      // Microwave, door window and keypad.
+      const mx = -w / 2 + 34;
+      box(g, 48, 28, 34, mx, 90, -2, m("#2b2f3a", 0.35, 0.3));
+      box(g, 30, 18, 0.6, mx - 6, 95, 15.3, m("#0b0b12", 0.1, 0.3));
+      box(g, 8, 18, 0.6, mx + 17, 95, 15.3, m("#4a5168", 0.4));
+      // Kettle and teapot.
+      const kx = w / 2 - 26;
+      cyl(g, 8, 2, kx, 90, 0, m(BLACK, 0.4), 20);
+      cyl(g, 6.5, 20, kx, 92, 0, m(STEEL, 0.2, 0.9), 20, 5);
+      box(g, 2, 12, 8, kx + 7, 96, 0, m(BLACK, 0.4));
+      const pot = cyl(g, 8, 11, kx - 24, 90, 4, m("#f6efe2", 0.3), 20, 6);
+      pot.scale.set(1, 1, 1);
+      cyl(g, 1.5, 7, kx - 33, 95, 4, m("#f6efe2", 0.3), 10).rotation.z = 0.9;
+      return g;
+    }
     case "bookcase": {
       const h = 110, wood = m(DARK_WOOD);
       for (const sx of [-1, 1]) box(g, 2.5, h, d, sx * (w / 2 - 1.25), 0, 0, wood);
@@ -163,15 +244,60 @@ export function model(name: string, w: number, d: number): Group | undefined {
   return undefined;
 }
 
-/** A flat TV on a foot, its screen facing +z; returns the screen's material to light it. */
+/** A picture for a TV that is on: a soft sunset of colours, drawn once. */
+let tvPicture: CanvasTexture | undefined;
+function picture(): CanvasTexture {
+  if (tvPicture) return tvPicture;
+  const c = document.createElement("canvas");
+  c.width = 320;
+  c.height = 180;
+  const x = c.getContext("2d")!;
+  const sky = x.createLinearGradient(0, 0, 0, 180);
+  sky.addColorStop(0, "#3b2a8f");
+  sky.addColorStop(0.55, "#d6539a");
+  sky.addColorStop(1, "#ffb35c");
+  x.fillStyle = sky;
+  x.fillRect(0, 0, 320, 180);
+  x.fillStyle = "#fff4c9";
+  x.beginPath();
+  x.arc(210, 105, 26, 0, Math.PI * 2);
+  x.fill();
+  x.fillStyle = "#2a1f55";
+  x.beginPath();
+  x.moveTo(0, 180);
+  x.lineTo(0, 130);
+  x.lineTo(70, 95);
+  x.lineTo(140, 135);
+  x.lineTo(220, 110);
+  x.lineTo(320, 140);
+  x.lineTo(320, 180);
+  x.fill();
+  tvPicture = new CanvasTexture(c);
+  tvPicture.colorSpace = SRGBColorSpace;
+  return tvPicture;
+}
+
+/**
+ * A slim flat TV on a brushed-metal stand, screen facing +z: glossy black
+ * when off (it reflects the room), a bright picture when on. Returns the
+ * screen's material, lit by the plan when the TV plays.
+ */
 export function flatTv(length: number): { group: Group; screen: MeshStandardMaterial } {
   const g = new Group();
-  const screen = new MeshStandardMaterial({ color: "#0b0b12", roughness: 0.15, metalness: 0.2, emissive: "#000000" });
-  box(g, 22, 2, 14, 0, 0, 0, m(BLACK, 0.4)); // foot
-  box(g, 4, 10, 4, 0, 2, 0, m(BLACK, 0.4));
-  box(g, length, length * 0.58, 3, 0, 12, 0, m(BLACK, 0.3)); // bezel
-  const s = new Mesh(new BoxGeometry(length - 4, length * 0.58 - 4, 0.5), screen);
-  s.position.set(0, 12 + (length * 0.58) / 2, 1.8);
+  const h = length * 0.5625; // 16:9
+  const lift = 9;
+  const screen = new MeshStandardMaterial({ color: "#050507", roughness: 0.06, metalness: 0.65, emissive: "#ffffff", emissiveIntensity: 0, emissiveMap: picture() });
+  const metal = m("#9aa3ab", 0.25, 0.9);
+  // V-shaped stand: two feet and a spine.
+  box(g, length * 0.42, 1.2, 12, 0, 0, 0, metal);
+  box(g, 3, lift, 2, 0, 1.2, -1, metal);
+  // Panel: thin body, hair-line bezel, a slightly thicker bottom strip with a small logo light.
+  box(g, length, h, 1.8, 0, lift, 0, m("#121317", 0.35, 0.4));
+  box(g, length * 0.6, h * 0.62, 2.6, 0, lift + h * 0.19, -1.8, m("#121317", 0.5, 0.3)); // back bulge
+  box(g, length, 1.6, 2.2, 0, lift, 0.2, m("#2a2d33", 0.3, 0.7));
+  box(g, 2, 0.6, 0.4, 0, lift + 0.4, 1.4, m("#e8eef0", 0.3, 0.2));
+  const s = new Mesh(new BoxGeometry(length - 1.4, h - 2.4, 0.3), screen);
+  s.position.set(0, lift + 1.6 + (h - 2.4) / 2, 1);
   g.add(s);
   return { group: g, screen };
 }
