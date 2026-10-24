@@ -190,19 +190,57 @@ Création d'une carte qui combine mushroom-media-player-card et la barre du mini
 
 ## Kaoru Home
 
-Kaoru Home est un panneau Home Assistant sur mesure (Lit + TypeScript, compilé avec Vite) pensé pour la tablette murale, l'application Companion et le PC. Les pièces viennent des zones de Home Assistant ; `app/src/config.ts` ne fait qu'ajouter ce que le registre ne sait pas (noms, ordre des pièces, favoris par personne, confirmations).
+Kaoru Home est le front-end sur mesure de cette configuration : un panneau Home Assistant écrit en Lit + TypeScript, compilé avec Vite, pensé pour la tablette murale (Lenovo M10 sous Fully Kiosk), l'application Companion et le PC. Il reprend les fonctionnalités du dashboard Adaptive Mushroom, en plus rapide et plus cohérent. Les pièces viennent des zones de Home Assistant ; `app/src/config.ts` ajoute seulement ce que le registre ne sait pas (noms, ordre des pièces, favoris par personne, confirmations, plan de l'appartement).
 
-* Sources : `app/`
-* Panneau : déclaré en `panel_custom` dans `configuration.yaml`, servi sur `/maison` depuis `www/kaoru-home/kaoru-home.js`
-* Le bundle n'est pas versionné : il est compilé par la CI à chaque release et inclus dans le zip.
+Deux panneaux, déclarés en `panel_custom` dans `configuration.yaml` et servis par le même bundle :
 
-Pour le compiler en local (Node 22) :
+| Panneau | URL | Contenu |
+|---|---|---|
+| Maison (V1) | `/maison` | l'accueil Mushroom refait : colonnes, swipe cards, popups |
+| Maison V2 | `/maison-v2` | la refonte : tuiles « bento », scènes illustrées, plan 2D / 3D |
+
+### Maison V2 : interface
+
+* **Navigation** : un dock flottant en bas (téléphone, PC), un rail d'icônes à gauche sur la tablette murale ; six thèmes : Accueil, Maison, Médias, Météo, Énergie, Système.
+* **Accueil** : bandeau avec la grenouille météo, l'heure, les personnes et les badges aux couleurs du Lovelace (température, minuteur, lumières, fenêtres, alarme avec son popup et son clavier). Tuiles : lumières (variateur au glissé), lecture en cours (carte Spotify façon Lovelace), Jellyfin, climat par pièce avec courbes, énergie, prévisions, favoris, ordinateurs, bourse, raccourcis. Sur la tablette, tout tient sur un écran : trois colonnes équilibrées selon la hauteur réelle des tuiles.
+* **Maison** : le **plan de l'appartement** (depuis `app/assets/plan/appartement.drawio`), en 2D ou en vraie 3D (three.js, chargé seulement quand on choisit la 3D). Pièces allumées, fenêtres ouvertes, présence, TV et PC en direct ; un appui ouvre une pièce, allume une lampe ou un PC. Puis une carte illustrée par pièce (Tomo, le chat noir de l'app Tomo, y vit).
+* **Pièce** : sa scène, ses lumières, prises (protégées), médias, ouvertures, présence, climat sur 24 h.
+* **Médias, Météo, Énergie, Système** : scènes animées ; télécommande de la box, affiches Jellyfin, heures et jours, radar Windy, graphe Linky jour / 7 jours, carte de la famille (carte native de HA), Internet, mises à jour, automatisations, batteries, recherche.
+
+Règles de design :
+
+* Une couleur par thème ou par pièce, en dégradés doux ; tuiles à la hauteur de leur contenu, jamais étirées.
+* Scènes en aplats sans contour, dans le style de la grenouille météo de Google ; la nuit, tout s'assombrit, une pièce allumée devient chaude.
+* Animations sobres et utiles (pression, apparition, lumière), coupées si le système demande moins d'animations.
+* Responsive : téléphone (une colonne, favoris en haut), tablette (un écran sans défilement), PC (marges égales autour du rail).
+
+### Sécurité des actions
+
+* Les prises Tuya du homelab (`switch.smart_plug_*`) et tout ce qui est rattaché à leur appareil demandent une confirmation, dans les deux sens, et ne sont jamais groupées dans un « tout éteindre ».
+* Un PC démarre sur un simple appui ; l'éteindre demande une confirmation (`confirmOffOnly`). Un appui long ou un double appui ouvre ses détails ; une barre de progression s'affiche tant qu'il démarre ou s'arrête.
+* Chaque commande envoie un `turn_on` / `turn_off` explicite selon l'état vu à l'écran, jamais un `toggle`.
+
+### Développer
+
+Sources : `app/` (Node 22). Le bundle (`www/kaoru-home/`) n'est pas versionné : la CI le compile à chaque release et l'inclut dans le zip.
 
 ```sh
-cd app && npm ci && npm run build
+cd app && npm ci
+npm run check   # types
+npm test        # tests unitaires (node:test)
+npm run build   # www/kaoru-home/ : kaoru-home.js (chargeur), manifest.json, app-<hash>.js, chunks/
 ```
 
-`npm run check` (types) et `npm test` (tests unitaires `node:test`) tournent aussi sur chaque PR qui touche `app/`, avec un budget de 150 Ko gzip pour le bundle.
+* `kaoru-home.js` ne change jamais : il lit `manifest.json` (non mis en cache) et charge la version compilée du moment, donc une mise à jour se voit sans vider le cache du navigateur.
+* La V2, les pages et three.js sont des chunks séparés, téléchargés à la première visite.
+* `app/dev/` : déploiement sur l'instance de test (`deploy-dev.sh`), tests dans Chrome avec un faux Home Assistant (`harness.mjs`), audit de mise en page sur dix tailles d'écran (`layout-audit.mjs`), captures (`screens.mjs`), mesures (`perf.mjs`). Les tests n'actionnent que des entités simulées.
+
+### Déployer en production
+
+1. Fusionner la branche dans `master`.
+2. Poser un tag sur `master` (ex. `2026.10.0`) : l'action *Create Config Zip* compile le panneau et publie `homeassistant-config-<tag>.zip` dans la release GitHub.
+3. Dans `ansible-infra`, passer `homeassistant_config_version` à ce tag (`production/group_vars/hass/vars`) par une PR : la CI joue `playbook_hass.yml`, qui télécharge le zip, le décompresse dans `/opt/homeassistant/config` sur hass01 et redémarre Home Assistant.
+4. Les panneaux « Maison » et « Maison V2 » apparaissent dans la barre latérale ; le dashboard Lovelace reste disponible.
 
 ## TODO et idées..
 
@@ -213,10 +251,11 @@ cd app && npm ci && npm run build
 
 ### Problèmes à fix
 
-* TBD
+* Kaoru Home : les plafonniers et la lampe japonaise de la chambre William n'ont pas de zone dans Home Assistant (ils sont rattachés à la pièce par `config.plan.lights`).
 
 ### Idées
 * Prise en charge par le dashboard de futures caméras.
+* Kaoru Home : placer chaque lumière et chaque capteur sur le plan (positions à ajouter au drawio).
 * Système d'alarme
 * Robot aspirateur
 * Vanne thermostatique connecté
