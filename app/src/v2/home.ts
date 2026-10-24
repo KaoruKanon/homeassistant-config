@@ -505,8 +505,9 @@ export class KhHomeV2 extends LitElement {
         ${!isNaN(indoor)
           ? html`<span class="chip ${badgeClass(temperatureBadge(indoor))}" style=${badgeStyle(temperatureBadge(indoor))}><ha-icon icon="mdi:home"></ha-icon>${formatNumber(indoor)}°</span>`
           : nothing}
-        ${timer && timer !== "Pas de timer"
-          ? html`<span class="chip ${badgeClass(timerBadge(timerOn))}" style=${badgeStyle(timerBadge(timerOn))}><ha-icon icon="mdi:google-assistant"></ha-icon>${timer}</span>`
+        ${timer && !["unavailable", "unknown"].includes(timer)
+          ? html`<span class="chip ${badgeClass(timerBadge(timerOn))}" style=${badgeStyle(timerBadge(timerOn))} aria-label="Minuteur de la cuisine : ${timer}">
+              <ha-icon icon="mdi:google-assistant"></ha-icon>${timer}</span>`
           : nothing}
         ${!isNaN(lights)
           ? html`<a class="chip ${badgeClass(lightsBadge(lights))}" style=${badgeStyle(lightsBadge(lights))} href=${`${this.prefix}/pieces`}>

@@ -31,7 +31,11 @@ Deux panneaux, déclarés en `panel_custom` dans `configuration.yaml` et servis 
 
 <img src="/images/kaoru-home/mobile-accueil.jpg" height="500"> <img src="/images/kaoru-home/mobile-maison.jpg" height="500"> <img src="/images/kaoru-home/mobile-piece.jpg" height="500"> <img src="/images/kaoru-home/mobile-medias.jpg" height="500"> <img src="/images/kaoru-home/mobile-meteo.jpg" height="500"> <img src="/images/kaoru-home/mobile-energie.jpg" height="500"> <img src="/images/kaoru-home/mobile-systeme.jpg" height="500">
 
-Les zones sensibles (plan de l'appartement, carte des positions, agenda) sont floutées sur les captures.
+Le plan de l'appartement, en 2D et en 3D :
+
+<img src="/images/kaoru-home/pc-plan-2d.jpg" width="49%"> <img src="/images/kaoru-home/pc-plan-3d.jpg" width="49%">
+
+La carte des positions et l'agenda sont floutés sur les captures.
 
 ### Maison V2 : les pages
 
