@@ -9,6 +9,7 @@ import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import { DOORS, FURNITURE, ROOMS, WALLS, planLights } from "./plan-data.ts";
 import { roomColors, roomSceneStyles } from "./room-art.ts";
+import { currentSky } from "./sky.ts";
 
 
 
@@ -122,6 +123,7 @@ export class KhFloorplan extends LitElement {
         ...Object.values(p?.tvs ?? {}),
         ...Object.values(p?.computers ?? {}),
         "sun.sun",
+        ...config.weather,
       ];
     });
   }
@@ -212,6 +214,10 @@ export class KhFloorplan extends LitElement {
       }
       .iso .label.small {
         font-size: 22px;
+      }
+      .label .temp {
+        fill: #ffe08a;
+        font-weight: 800;
       }
       .label.small {
         font-size: 16px;
@@ -419,6 +425,7 @@ export class KhFloorplan extends LitElement {
 
   private plan2d() {
     const hass = store.hass!;
+    const sky = currentSky();
     const night = hass.states["sun.sun"]?.state === "below_horizon";
     const wide = this.wide;
     // Landscape: the plan turned a quarter (the salon on the left); text stays upright.
@@ -474,7 +481,7 @@ export class KhFloorplan extends LitElement {
         ${WALLS.map(([x, y, w, h]) => svg`<rect class="wall" x=${x} y=${y} width=${w} height=${h} />`)}
         ${Object.entries(ROOMS).flatMap(([id, p]) => {
           const open = (byId.get(id)?.openings ?? []).some((o) => isActive(hass.states[o]));
-          return (p.windows ?? []).map(([a, b]) => svg`<rect class="window ${open ? "open" : ""}" x="718" y=${a} width="14" height=${b - a} rx="3" />`);
+          return (p.windows ?? []).map(([a, b]) => svg`<rect class="window ${open ? "open" : ""}" x="718" y=${a} width="14" height=${b - a} rx="3" style=${open ? "" : `fill: ${sky.window}`} />`);
         })}
         ${DOORS.map(([x, y, a0, a1], i) => {
           const rad = (d: number) => (d * Math.PI) / 180, r = 78;
@@ -492,11 +499,11 @@ export class KhFloorplan extends LitElement {
         const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
         const on = lit(r);
         const presence = r.motion.some((m) => isActive(hass.states[m]));
-        const climate = [!isNaN(t) ? `${formatNumber(t)}°` : "", !isNaN(hum) ? `${formatNumber(hum, 0)} %` : ""].filter(Boolean).join("  ");
+        const climate = !isNaN(hum) ? `${formatNumber(hum, 0)} %` : "";
         const small = id === "toilette";
         return svg`
           ${presence ? svg`<circle class="presence" cx=${x} cy=${y - 30} r="40" />` : nothing}
-          <text class="label ${small ? "small" : ""}" x=${x} y=${y} text-anchor="middle">${r.name}</text>
+          <text class="label ${small ? "small" : ""}" x=${x} y=${y} text-anchor="middle">${r.name}${!isNaN(t) ? svg`<tspan class="temp" dx="8">${formatNumber(t)}°</tspan>` : nothing}</text>
           ${climate ? svg`<text class="label small" x=${x} y=${y + 22} text-anchor="middle">${climate}</text>` : nothing}
           ${planLights(r).length
             ? svg`<g class="bulb ${on ? "on" : ""}" transform="translate(${x - (small ? 13 : 18)} ${y - (small ? 46 : 62)}) scale(${small ? 0.72 : 1})" role="button" aria-label=${on ? `Éteindre ${r.name}` : `Allumer ${r.name}`}

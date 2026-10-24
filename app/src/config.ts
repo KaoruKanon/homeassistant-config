@@ -132,6 +132,8 @@ export interface KaoruHomeConfig {
   plan?: {
     tvs: Record<string, string>;
     computers: Record<string, string>;
+    /** Compass bearing the windows look out to (0 = north, 90 = east…): where the sun comes in. */
+    windowsFacing?: number;
     /**
      * Lights shown one by one on the plan, by room (plan units): a ceiling
      * light or a lamp at a point, a LED strip between two points. They also
@@ -362,6 +364,7 @@ export const config: KaoruHomeConfig = {
   plan: {
     tvs: { salon: "media_player.samsung_tv_salon", chambre_papa: "media_player.samsung_tv_papa" },
     computers: { salon: "switch.computer_papa", chambre_william: "switch.computer_rig_kaoru" },
+    windowsFacing: 225,
     lights: {
       chambre_william: [
         { entity: "light.plafond_1", kind: "spot", at: [420, 835] },

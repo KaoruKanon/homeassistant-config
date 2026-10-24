@@ -1,8 +1,10 @@
 import { LitElement, css, html, nothing } from "lit";
 import "../components/energy-card.ts";
 import "../components/energy-devices.ts";
+import "../components/sankey.ts";
 import "../components/tile.ts";
 import "../components/widgets.ts";
+import { openMoreInfo } from "../actions.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive } from "../format.ts";
 import { entityName } from "../rooms.ts";
@@ -24,7 +26,7 @@ export class KhV2Energy extends LitElement {
     new RegistryController(this);
     new EntitiesController(this, () => {
       const e = config.home.energy;
-      return [e?.power, e?.today, ...config.energyPage.plugs, "sun.sun"].filter((x): x is string => !!x);
+      return [e?.power, e?.today, ...config.energyPage.plugs, ...Object.values(this.power ?? {}), "sun.sun"].filter((x): x is string => !!x);
     });
   }
 
@@ -71,6 +73,14 @@ export class KhV2Energy extends LitElement {
               <kh-energy-card></kh-energy-card>
             </section>`
           : nothing}
+        <section class="tile" style="--tint: var(--rgb-amber); --w: 12; --w6: 6; --w2: 2">
+          ${head("mdi:transit-connection-variant", "Où part l'électricité")}
+          <kh-sankey .total=${watts} .flows=${Object.entries(this.power ?? {}).map(([sw, sensor]) => ({
+            name: entityName(hass, sw, config),
+            watts: Number(hass.states[sensor]?.state) || 0,
+            open: () => openMoreInfo(this, sensor),
+          }))}></kh-sankey>
+        </section>
         <section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 6; --w2: 2">
           ${head("mdi:desktop-tower-monitor", "Ordinateurs")}
           <div class="stack">

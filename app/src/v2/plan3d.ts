@@ -1,13 +1,17 @@
 import { LitElement, css, html, nothing } from "lit";
 import {
+  AdditiveBlending,
   AmbientLight,
+  BufferGeometry,
   BoxGeometry,
   Color,
   CylinderGeometry,
   DirectionalLight,
+  Float32BufferAttribute,
   Group,
   HemisphereLight,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   PCFSoftShadowMap,
   PerspectiveCamera,
@@ -35,6 +39,7 @@ import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import { FURNITURE, FURNITURE_3D, ROOMS, WALLS, planLights } from "./plan-data.ts";
 import { roomColors } from "./room-art.ts";
+import { currentSky } from "./sky.ts";
 import { computer, flatTv, gamingSetup, model } from "./plan3d-models.ts";
 
 // Plan units are ~cm; the scene is centred on the flat, y up.
@@ -58,6 +63,8 @@ interface Live {
   floorBase: Map<string, Color>;
   lamps: Map<string, PointLight>;
   windows: Map<string, MeshStandardMaterial[]>;
+  /** Sun patches on the floor, one per window. */
+  beams: { mesh: Mesh; a: number; b: number; minX: number }[];
   tvs: Map<string, { m: MeshStandardMaterial; light: PointLight }>;
   pcs: Map<string, MeshStandardMaterial[]>;
   /** Lights placed one by one: their glowing part and their light(s). */
@@ -102,6 +109,7 @@ export class KhPlan3d extends LitElement {
         ...Object.values(p?.tvs ?? {}),
         ...Object.values(p?.computers ?? {}),
         "sun.sun",
+        ...config.weather,
       ];
     });
   }
@@ -141,9 +149,17 @@ export class KhPlan3d extends LitElement {
         text-shadow: 0 1px 3px rgb(0 0 0 / 0.7);
         white-space: nowrap;
       }
-      .tag small {
-        font-weight: 700;
-        opacity: 0.9;
+      .tag .name {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .tag .t {
+        padding: 1px 7px;
+        border-radius: 9px;
+        background: rgb(0 0 0 / 0.45);
+        font-size: 0.8125rem;
+        font-variant-numeric: tabular-nums;
       }
       .bulb {
         pointer-events: auto;
@@ -298,7 +314,7 @@ export class KhPlan3d extends LitElement {
     sc.far = 3000;
     s.add(this.sun);
 
-    const live: Live = { floors: new Map(), floorBase: new Map(), lamps: new Map(), windows: new Map(), tvs: new Map(), pcs: new Map(), fixtures: new Map() };
+    const live: Live = { floors: new Map(), floorBase: new Map(), lamps: new Map(), windows: new Map(), beams: [], tvs: new Map(), pcs: new Map(), fixtures: new Map() };
     const byId = new Map((this.rooms ?? []).map((r) => [r.id, r]));
 
     // Ground slab under the flat.
@@ -338,10 +354,20 @@ export class KhPlan3d extends LitElement {
 
     for (const [id, p] of Object.entries(ROOMS)) {
       const list: MeshStandardMaterial[] = [];
+      const minX = Math.min(...p.points.split(" ").map((xy) => Number(xy.split(",")[0])));
       for (const [a, b] of p.windows ?? []) {
         const m = mat("#8ecae6", { roughness: 0.2, transparent: true, opacity: 0.85 });
         s.add(slab(717, a, 16, b - a, 46, m, 30));
         list.push(m);
+        // The patch of sunlight this window casts on the floor (moved in sync()).
+        const geo = new BufferGeometry();
+        geo.setAttribute("position", new Float32BufferAttribute(new Array(12).fill(0), 3));
+        geo.setIndex([0, 1, 2, 0, 2, 3]);
+        const beamMat = new MeshBasicMaterial({ color: "#fff1c9", transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending });
+        const beam = new Mesh(geo, beamMat);
+        beam.renderOrder = 2;
+        s.add(beam);
+        live.beams.push({ mesh: beam, a, b, minX });
       }
       live.windows.set(id, list);
     }
@@ -484,10 +510,36 @@ export class KhPlan3d extends LitElement {
     const hass = store.hass, live = this.live;
     if (!hass || !live) return;
     const night = hass.states["sun.sun"]?.state === "below_horizon";
-    this.sun.intensity = night ? 0.25 : 2.2;
-    this.sun.color.set(night ? "#7f8cff" : "#fff4e0");
-    this.hemi.intensity = night ? 0.25 : 1.1;
-    this.ambient.intensity = night ? 0.12 : 0.35;
+    const sky = currentSky();
+    // The sun where it really is: its bearing relative to the windows (which look out along +x).
+    const rad = (d: number) => (d * Math.PI) / 180;
+    const phi = rad(sky.azimuth - (config.plan?.windowsFacing ?? 225));
+    const el = rad(Math.max(sky.elevation, 4));
+    const toSun = new Vector3(Math.cos(phi) * Math.cos(el), Math.sin(el), Math.sin(phi) * Math.cos(el));
+    this.sun.position.copy(toSun).multiplyScalar(1400);
+    this.sun.intensity = sky.sun;
+    this.sun.color.set(sky.sunColor);
+    this.hemi.intensity = sky.ambient * 3;
+    this.hemi.color.set(sky.window);
+    this.ambient.intensity = sky.ambient;
+    // Sun patches: each window corner projected on the floor along the sunlight.
+    const into = toSun.clone().negate();
+    for (const { mesh, a, b, minX } of live.beams) {
+      const mat = mesh.material as MeshBasicMaterial;
+      const lit = sky.beam > 0.02 && into.y < -0.05 && into.x < -0.05;
+      mat.opacity = lit ? 0.6 * sky.beam : 0;
+      mat.color.set(sky.sunColor);
+      if (!lit) continue;
+      const pos = mesh.geometry.getAttribute("position") as Float32BufferAttribute;
+      const corners: [number, number][] = [[a, 30], [b, 30], [b, 76], [a, 76]];
+      corners.forEach(([z, y], i) => {
+        const t = (y - 1) / -into.y;
+        const fx = Math.max(minX + 10 - CX, 717 - CX + into.x * t);
+        pos.setXYZ(i, fx, 1, z - CZ + into.z * t);
+      });
+      pos.needsUpdate = true;
+      mesh.geometry.computeBoundingSphere();
+    }
     for (const r of this.rooms ?? []) {
       const on = planLights(r).some((id) => isActive(hass.states[id]));
       const lamp = live.lamps.get(r.id);
@@ -496,8 +548,9 @@ export class KhPlan3d extends LitElement {
       if (floor && baseColor) floor.emissive.set(on ? "#3a2400" : "#000000");
       const open = r.openings.some((o) => isActive(hass.states[o]));
       for (const w of live.windows.get(r.id) ?? []) {
-        w.color.set(open ? "#ff6b5e" : "#8ecae6");
-        w.emissive.set(open ? "#7a1408" : "#000000");
+        w.color.set(open ? "#ff6b5e" : sky.window);
+        w.emissive.set(open ? "#7a1408" : sky.window);
+        w.emissiveIntensity = open ? 1 : sky.glow;
       }
     }
     for (const [entity, { m, light }] of live.tvs) {
@@ -605,7 +658,7 @@ export class KhPlan3d extends LitElement {
                   ? html`<button class="bulb ${on ? "on" : ""}" aria-label=${on ? `Éteindre ${r.name}` : `Allumer ${r.name}`}
                       @click=${() => setLights(lights, !on)}><ha-icon icon=${on ? "mdi:lightbulb-on" : "mdi:lightbulb-outline"}></ha-icon></button>`
                   : nothing}
-                <span>${r.name}</span>${!isNaN(t) ? html`<small>${formatNumber(t)}°</small>` : nothing}
+                <span class="name">${r.name}${!isNaN(t) ? html`<span class="t">${formatNumber(t)}°</span>` : nothing}</span>
               </div>`;
             })}
             ${Object.entries(config.plan?.computers ?? {}).map(([id, entity]) => {
