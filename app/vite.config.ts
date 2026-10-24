@@ -42,7 +42,9 @@ export default defineConfig({
         chunkFileNames: "chunks/[name]-[hash].js",
         // One "core" chunk for everything the home view needs; each theme
         // page and its own components load on first visit.
-        manualChunks: (id) => (PAGE_ONLY.test(id) ? undefined : id.includes("/src/") || id.includes("node_modules") ? "core" : undefined),
+        // three.js (the plan's 3D view) is its own chunk, loaded only when 3D is chosen.
+        manualChunks: (id) =>
+          id.includes("node_modules/three/") ? "three" : PAGE_ONLY.test(id) ? undefined : id.includes("/src/") || id.includes("node_modules") ? "core" : undefined,
       },
     },
     target: "es2022",
