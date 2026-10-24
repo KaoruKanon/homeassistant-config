@@ -203,9 +203,18 @@ Deux panneaux, déclarés en `panel_custom` dans `configuration.yaml` et servis 
 
 * **Navigation** : un dock flottant en bas (téléphone, PC), un rail d'icônes à gauche sur la tablette murale ; six thèmes : Accueil, Maison, Médias, Météo, Énergie, Système.
 * **Accueil** : bandeau avec la grenouille météo, l'heure, les personnes et les badges aux couleurs du Lovelace (température, minuteur, lumières, fenêtres, alarme avec son popup et son clavier). Tuiles : lumières (variateur au glissé), lecture en cours (carte Spotify façon Lovelace), Jellyfin, climat par pièce avec courbes, énergie, prévisions, favoris, ordinateurs, bourse, raccourcis. Sur la tablette, tout tient sur un écran : trois colonnes équilibrées selon la hauteur réelle des tuiles.
-* **Maison** : le **plan de l'appartement** (depuis `app/assets/plan/appartement.drawio`), en 2D ou en vraie 3D (three.js, chargé seulement quand on choisit la 3D). Pièces allumées, fenêtres ouvertes, présence, TV et PC en direct ; un appui ouvre une pièce, allume une lampe ou un PC. Puis une carte illustrée par pièce (Tomo, le chat noir de l'app Tomo, y vit).
+* **Maison** : le **plan de l'appartement** (depuis `app/assets/plan/appartement.drawio`), en 2D ou en vraie 3D (three.js, chargé seulement quand on choisit la 3D, rotation au doigt ou à la souris). Puis une carte illustrée par pièce (Tomo, le chat noir de l'app Tomo, y vit).
+  * En direct : pièces allumées, fenêtres ouvertes, présence, température à côté du nom de chaque pièce, TV et PC (badges).
+  * Les fenêtres montrent le vrai ciel (météo et soleil : bleu, orange au lever et au coucher, gris sous la pluie, nuit) ; en 3D la lumière du soleil entre selon sa vraie position (fenêtres orientées à l'ouest, `plan.windowsFacing`).
+  * Mobilier réel en 3D : meuble TV, vitrine, armoires, table de bar, meuble de cuisine avec micro-ondes, setup gaming à deux écrans, tours des PC, lit, salle de bain…
+  * Lumières placées une par une (`plan.lights`) : les spots, la lampe japonaise et le bandeau LED de la chambre William, chacun dans sa couleur ; un appui allume ou éteint celle-là seulement.
+  * Un appui sur une pièce l'ouvre ; sur l'ampoule, toute la pièce ; sur un badge, la TV ou le PC.
 * **Pièce** : sa scène, ses lumières, prises (protégées), médias, ouvertures, présence, climat sur 24 h.
-* **Médias, Météo, Énergie, Système** : scènes animées ; télécommande de la box, affiches Jellyfin, heures et jours, radar Windy, graphe Linky jour / 7 jours, carte de la famille (carte native de HA), Internet, mises à jour, automatisations, batteries, recherche.
+* **Médias** : lecture en cours, carte Jellyfin (même construction que la carte Spotify), télécommande condensée de la box, affiches des films et séries ajoutés.
+* **Météo** : la grenouille du moment, heures et jours, courbes 24 h, soleil et lune, radar Windy, bourse.
+* **Énergie** : graphe Linky jour / 7 jours, **Sankey « Où part l'électricité »** (de la puissance du Linky vers chaque prise qui mesure : bureau de Kaoru, homelab, trottinette et Shiro quand elles consomment, puis « Reste de la maison », PC de Papa compris ; `energyPage.meters`), ordinateurs, prises, minuterie de la trottinette, ventilateur.
+* **Système** : carte de la famille (carte native de HA), Internet, Home Assistant, mises à jour, tablette, automatisations, batteries, recherche.
+* **Messages** : les notifications (y compris celles de Home Assistant) s'affichent en haut, dans le style du panneau et en français ; une page s'ouvre toujours en haut.
 
 Règles de design :
 
@@ -213,10 +222,11 @@ Règles de design :
 * Scènes en aplats sans contour, dans le style de la grenouille météo de Google ; la nuit, tout s'assombrit, une pièce allumée devient chaude.
 * Animations sobres et utiles (pression, apparition, lumière), coupées si le système demande moins d'animations.
 * Responsive : téléphone (une colonne, favoris en haut), tablette (un écran sans défilement), PC (marges égales autour du rail).
+* Les graphes ne changent jamais la taille de leur carte quand on les parcourt du doigt.
 
 ### Sécurité des actions
 
-* Les prises Tuya du homelab (`switch.smart_plug_*`) et tout ce qui est rattaché à leur appareil demandent une confirmation, dans les deux sens, et ne sont jamais groupées dans un « tout éteindre ».
+* Les prises Tuya (`switch.smart_plug_*` : homelab, bureau, trottinette, Shiro) et tout ce qui est rattaché à leur appareil demandent une confirmation, dans les deux sens, et ne sont jamais groupées dans un « tout éteindre ».
 * Un PC démarre sur un simple appui ; l'éteindre demande une confirmation (`confirmOffOnly`). Un appui long ou un double appui ouvre ses détails ; une barre de progression s'affiche tant qu'il démarre ou s'arrête.
 * Chaque commande envoie un `turn_on` / `turn_off` explicite selon l'état vu à l'écran, jamais un `toggle`.
 
@@ -233,7 +243,8 @@ npm run build   # www/kaoru-home/ : kaoru-home.js (chargeur), manifest.json, app
 
 * `kaoru-home.js` ne change jamais : il lit `manifest.json` (non mis en cache) et charge la version compilée du moment, donc une mise à jour se voit sans vider le cache du navigateur.
 * La V2, les pages et three.js sont des chunks séparés, téléchargés à la première visite.
-* `app/dev/` : déploiement sur l'instance de test (`deploy-dev.sh`), tests dans Chrome avec un faux Home Assistant (`harness.mjs`), audit de mise en page sur dix tailles d'écran (`layout-audit.mjs`), captures (`screens.mjs`), mesures (`perf.mjs`). Les tests n'actionnent que des entités simulées.
+* `app/dev/` : déploiement sur l'instance de test (`deploy-dev.sh`), tests dans Chrome avec un faux Home Assistant (`harness.mjs` : prises protégées, actions de pièce, PC), audit de mise en page sur dix tailles d'écran (`layout-audit.mjs`), captures (`screens.mjs`), mesures (`perf.mjs`). Les tests n'actionnent que des entités simulées.
+* Le plan : `app/assets/plan/appartement.drawio` est la source ; les murs, fenêtres et meubles en sont extraits dans `app/src/v2/plan-data.ts`, les modèles 3D sont dans `plan3d-models.ts`.
 
 ### Déployer en production
 
@@ -241,6 +252,11 @@ npm run build   # www/kaoru-home/ : kaoru-home.js (chargeur), manifest.json, app
 2. Poser un tag sur `master` (ex. `2026.10.0`) : l'action *Create Config Zip* compile le panneau et publie `homeassistant-config-<tag>.zip` dans la release GitHub.
 3. Dans `ansible-infra`, passer `homeassistant_config_version` à ce tag (`production/group_vars/hass/vars`) par une PR : la CI joue `playbook_hass.yml`, qui télécharge le zip, le décompresse dans `/opt/homeassistant/config` sur hass01 et redémarre Home Assistant.
 4. Les panneaux « Maison » et « Maison V2 » apparaissent dans la barre latérale ; le dashboard Lovelace reste disponible.
+
+Avant la première mise en production :
+
+* Home Assistant 2026.10 ou plus récent (la carte native utilisée par le panneau).
+* Ranger dans la zone « Chambre William » les spots (`light.plafond_1`, `light.plafond_2`), la lampe japonaise et l'appareil du bandeau LED (son entité n'accepte pas de zone propre).
 
 ## TODO et idées..
 
@@ -251,7 +267,7 @@ npm run build   # www/kaoru-home/ : kaoru-home.js (chargeur), manifest.json, app
 
 ### Problèmes à fix
 
-* Kaoru Home : les plafonniers et la lampe japonaise de la chambre William n'ont pas de zone dans Home Assistant (ils sont rattachés à la pièce par `config.plan.lights`).
+* TBD
 
 ### Idées
 * Prise en charge par le dashboard de futures caméras.
