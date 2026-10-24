@@ -364,7 +364,7 @@ export const config: KaoruHomeConfig = {
   plan: {
     tvs: { salon: "media_player.samsung_tv_salon", chambre_papa: "media_player.samsung_tv_papa" },
     computers: { salon: "switch.computer_papa", chambre_william: "switch.computer_rig_kaoru" },
-    windowsFacing: 225,
+    windowsFacing: 270, // west
     lights: {
       chambre_william: [
         { entity: "light.plafond_1", kind: "spot", at: [420, 835] },
