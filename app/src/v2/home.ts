@@ -467,7 +467,7 @@ export class KhHomeV2 extends LitElement {
     const alarm = st(h.chips.alarm);
     const timerOn = st(h.chips.timerActive)?.state === "active" || isActive(st(h.chips.timerActive));
     const bat = new Map(this.batteries().map((b) => [b.key, b]));
-    const style = `--frog: ${FROG_SKY[frog] ?? "40, 130, 221"}; --scene: ${scene.startsWith("http") ? `url('${scene}')` : "none"}; --shift: ${place === "field" ? "20%" : place === "hills" ? "40%" : "10%"}`;
+    const style = `--frog: ${FROG_SKY[frog] ?? "40, 130, 221"}; --scene: ${/^(https?:)?\//.test(scene) ? `url('${scene}')` : "none"}; --shift: ${place === "field" ? "20%" : place === "hills" ? "40%" : "10%"}`;
 
     return html`<section class="scene" style=${style}>
       <div>

@@ -199,7 +199,7 @@ export class KhWeatherCard extends LitElement {
     const rgb = (frogStatus && FROG_RGB[frogStatus]) || "40, 130, 221";
     const shift = frogPlace === "field" ? "20%" : frogPlace === "hills" ? "40%" : "10%";
     // The frog scene sits at the bottom; its sky colour fades into the card above it.
-    const background = frogImage?.startsWith("http")
+    const background = /^(https?:)?\//.test(frogImage ?? "")
       ? `background-color: rgb(${rgb}); background-image: linear-gradient(to bottom, rgb(${rgb}) 0%, rgba(${rgb}, 0) 40%), url('${frogImage}'); background-size: 100% 100%, max(100%, 520px) auto; background-position: top, ${shift} bottom`
       : `background: rgb(${rgb})`;
     const outdoor = h.outdoorTemperature ? Number(hass.states[h.outdoorTemperature]?.state) : NaN;

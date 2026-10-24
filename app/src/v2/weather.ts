@@ -138,7 +138,7 @@ export class KhV2Weather extends LitElement {
     const f = config.home.frog;
     const st = (id?: string) => (id ? store.hass?.states[id]?.state : undefined);
     const image = st(f?.image) ?? "";
-    if (!image.startsWith("http")) return nothing;
+    if (!/^(https?:)?\//.test(image)) return nothing; // a URL or a /local path
     const sky = frogSky();
     const place = st(f?.location);
     const shift = place === "field" ? "20%" : place === "hills" ? "40%" : "10%";
