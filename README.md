@@ -76,6 +76,29 @@ La carte des positions et l'agenda sont floutés sur les captures.
 * Un PC démarre sur un simple appui ; l'éteindre demande une confirmation. Un appui long ou un double appui ouvre ses détails.
 * Chaque commande envoie un `turn_on` / `turn_off` explicite selon l'état vu à l'écran, jamais un `toggle`.
 
+### Performances
+
+Chargement à froid de l'accueil, profil tablette (1280 × 800), processeur ralenti 4 fois, médiane de 5 mesures (`app/dev/perf.mjs`) :
+
+| | Lovelace (Adaptive Mushroom) | Maison V1 | Maison V2 |
+|---|---|---|---|
+| Premier vrai contenu affiché | 6,98 s | 4,83 s | 4,55 s |
+| Temps de blocage | 4,13 s | 2,34 s | 2,19 s |
+| JavaScript téléchargé | 2 503 Ko | 1 347 Ko | 1 396 Ko |
+| Dont modules ajoutés (HACS, `/local`) | 1 209 Ko | 309 Ko | 358 Ko |
+| Éléments dans la page | 1 444 | 948 | 1 024 |
+
+Score Lighthouse « Performance » (Chrome DevTools, Lighthouse 12, médiane de 3) :
+
+| | Lovelace (Adaptive Mushroom) | Maison V1 | Maison V2 |
+|---|---|---|---|
+| Mobile | non mesuré | 64 | 71 |
+| Ordinateur | non mesuré | 95 | 96 |
+| Temps de blocage, mobile | non mesuré | 4,0 s | 2,2 s |
+
+* La colonne Lovelace date du 23 octobre 2026, avant sa suppression : même script, même profil, avec ses 28 ressources HACS et `card-mod`.
+* L'essentiel du temps restant est celui du frontend de Home Assistant lui-même, commun aux trois. Kaoru Home charge environ 70 Ko gzip pour afficher l'accueil (Lit et composants communs compris) ; les autres pages arrivent à la demande, et three.js (150 Ko gzip) seulement pour le plan 3D.
+
 ### Développer
 
 Sources : `app/` (Node 22). Le bundle (`www/kaoru-home/`) n'est pas versionné : la CI le compile à chaque release et l'inclut dans le zip.
@@ -89,7 +112,7 @@ npm run build   # www/kaoru-home/ : kaoru-home.js (chargeur), manifest.json, app
 
 * `kaoru-home.js` ne change jamais : il lit `manifest.json` (non mis en cache) et charge la version compilée du moment, donc une mise à jour se voit sans vider le cache du navigateur.
 * La V2, les pages et three.js sont des chunks séparés, téléchargés à la première visite.
-* `app/dev/` : tests dans Chrome avec un faux Home Assistant (`harness.mjs` : prises protégées, actions de pièce, PC), audit de mise en page sur dix tailles d'écran (`layout-audit.mjs`), captures (`screens.mjs`), mesures (`perf.mjs`). Les tests n'actionnent que des entités simulées.
+* `app/dev/` : tests dans Chrome avec un faux Home Assistant (`harness.mjs` : prises protégées, actions de pièce, PC), audit de mise en page sur dix tailles d'écran (`layout-audit.mjs`), captures (`screens.mjs`), mesures de chargement (`perf.mjs`). Les tests n'actionnent que des entités simulées.
 * Le plan : `app/assets/plan/appartement.drawio` est la source ; les murs, fenêtres et meubles en sont extraits dans `app/src/v2/plan-data.ts`, les modèles 3D sont dans `plan3d-models.ts`.
 
 ### Publier
