@@ -26,7 +26,7 @@ export class KhV2Energy extends LitElement {
     new RegistryController(this);
     new EntitiesController(this, () => {
       const e = config.home.energy;
-      return [e?.power, e?.today, ...config.energyPage.plugs, ...Object.values(this.power ?? {}), "sun.sun"].filter((x): x is string => !!x);
+      return [e?.power, e?.today, ...config.energyPage.plugs, ...(config.energyPage.meters ?? []).map((m) => m.power), "sun.sun"].filter((x): x is string => !!x);
     });
   }
 
@@ -75,11 +75,12 @@ export class KhV2Energy extends LitElement {
           : nothing}
         <section class="tile" style="--tint: var(--rgb-amber); --w: 12; --w6: 6; --w2: 2">
           ${head("mdi:transit-connection-variant", "Où part l'électricité")}
-          <kh-sankey .total=${watts} .flows=${Object.entries(this.power ?? {}).map(([sw, sensor]) => ({
-            name: entityName(hass, sw, config),
-            watts: Number(hass.states[sensor]?.state) || 0,
-            open: () => openMoreInfo(this, sensor),
+          <kh-sankey .total=${watts} .flows=${(p.meters ?? []).map((m) => ({
+            name: m.name,
+            watts: Number(hass.states[m.power]?.state) || 0,
+            open: () => openMoreInfo(this, m.power),
           }))}></kh-sankey>
+          <div class="secondary">Ce que les prises ne mesurent pas (dont le PC de Papa) est compté dans « Reste de la maison ».</div>
         </section>
         <section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 6; --w2: 2">
           ${head("mdi:desktop-tower-monitor", "Ordinateurs")}

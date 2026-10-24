@@ -116,6 +116,11 @@ export interface KaoruHomeConfig {
   };
   energyPage: {
     plugs: string[];
+    /**
+     * What the measuring plugs feed, for "Où part l'électricité": a name, the
+     * power sensor, and whether it is often unplugged (shown only while it draws).
+     */
+    meters?: { name: string; power: string; occasional?: boolean }[];
     spare?: {
       plug: string;
       name: string;
@@ -188,6 +193,7 @@ export const config: KaoruHomeConfig = {
     "media_player.spotify": "Spotify",
     "media_player.google_home_*": "Enceinte",
     "switch.smart_plug_homelab_switch": "Homelab",
+    "switch.smart_plug_kaoru_switch_2": "Bureau de Kaoru",
     "switch.smart_plug_shiro_switch": "Shiro",
     "switch.smart_plug_spare_switch": "Trottinette",
   },
@@ -348,7 +354,13 @@ export const config: KaoruHomeConfig = {
     windy: { lat: 49.966, lon: 2.557 },
   },
   energyPage: {
-    plugs: ["switch.smart_plug_homelab_switch", "switch.smart_plug_shiro_switch"],
+    plugs: ["switch.smart_plug_homelab_switch", "switch.smart_plug_kaoru_switch_2", "switch.smart_plug_shiro_switch"],
+    meters: [
+      { name: "Bureau de Kaoru (RIG)", power: "sensor.smart_plug_kaoru_active_power_2" },
+      { name: "Homelab", power: "sensor.smart_plug_homelab_active_power" },
+      { name: "Trottinette", power: "sensor.smart_plug_spare_active_power", occasional: true },
+      { name: "Shiro", power: "sensor.smart_plug_shiro_active_power", occasional: true },
+    ],
     spare: {
       plug: "switch.smart_plug_spare_switch",
       name: "Trottinette",
