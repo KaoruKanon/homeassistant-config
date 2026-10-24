@@ -1,196 +1,22 @@
 # Home assistant configuration
 [![Demandez moi n'importe quoi !](https://img.shields.io/badge/Demandez%20moi-n'%20importe%20quoi-1abc9c.svg)](https://github.com/KaoruKanon/homeassistant-config) [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity) [![Twitter](https://img.shields.io/twitter/follow/kaorussh?style=social)](https://twitter.com/kaorussh)   [![GitHub stars](https://img.shields.io/github/stars/KaoruKanon/homeassistant-config?style=social)](https://github.com/KaoruKanon/homeassistant-config)
 
+Ma configuration Home Assistant et son front-end, **Kaoru Home** : un panneau sur mesure pensé pour la tablette murale (Lenovo M10+ sous [Fully Kiosk](https://play.google.com/store/apps/details?id=de.ozerov.fully&hl=fr&gl=US), raccordée avec un chargeur magnétique), l'application Companion et le PC.
 
-Cette configuration est basée sur ce repo [ [github](https://github.com/sga-noud/adaptive-mushroom) / [forum anglais](https://community.home-assistant.io/t/adaptive-mushroom/640308) ]
+Historique du front-end :
 
-Initialement, ma config était basée sur https://github.com/matt8707/hass-config. Depuis 2025, ma config home assistant a migré vers Adaptative Mushroom. De plus matt8707 ne maintient plus sa config inspiré de homekit pour se consacrer sur un autre projet.
-
-Point fort du projet Adaptive Mushroom :
-
-* Meilleur responsive
-* Personalisation des dashboard par user plus facile
-* Système de menu pour naviguer entre dashboard
-* Modularité par dahsboard plus importante 
-
-Mon Home assistant tourne sous un PC dell pro récupéré, avec lequel j'utilise une tablette Lenovo wall mounted sous [Fullykiosk](https://play.google.com/store/apps/details?id=de.ozerov.fully&hl=fr&gl=US). La tablette est raccordé avec un chageur magnétique.
+* au départ, la config de [matt8707](https://github.com/matt8707/hass-config), inspirée de HomeKit (il ne la maintient plus) ;
+* depuis 2025, [Adaptive Mushroom](https://github.com/sga-noud/adaptive-mushroom) ([forum anglais](https://community.home-assistant.io/t/adaptive-mushroom/640308)) : meilleur responsive, dashboards par personne, menu de navigation ;
+* depuis 2026, **Kaoru Home**, réécrit de zéro (Lit + TypeScript) : il reprend toutes les fonctionnalités du dashboard Mushroom, en plus rapide et plus cohérent, sans carte HACS. Le dashboard Lovelace reste disponible à côté.
 
 T'aimes mon repo ? Laisse une ⭐.
 * [![Twitter](https://img.shields.io/twitter/follow/kaorussh?style=social)](https://twitter.com/kaorussh)
 * [Profil HACF](https://forum.hacf.fr/u/kaoru)
 * [Topic de mon dashboard sur HACF](https://forum.hacf.fr/t/mon-dashboard-kaoru/1022)
 
-![dashboard]
-![tablette-jour]
-
-<img src="/images/mobile-home.png" height="500"> <img src="/images/mobile-appareil.jpg" height="500"> <img src="/images/mobile-notif.jpg" height="500"> <img src="/images/mobile-automation.jpg" height="500"> <img src="/images/mobile-system.jpg" height="500">
-
-## Equipement et configuration
-
-- HASS supervised tourne avec debian 11 sur machine DELL de récupération. 
-
-| Icon | Device | Total |
-|------|:--------------:|:------:|
-| 🖥️ |️ Ordinateurs | 2 |
-| 🌡️ | Xiaomi mijia Temperature Humidity 2019 | 5 |
-| 📱 | Smartphone | 2 |
-| 📱 | Lenovo TAB M10+ & Fully Kiosk Browser | 1 |
-| 💡 | Bulb E27 yeelight & yeelight strip | 7 |
-| 🔘 | Switch Xiaomi | 3 |
-| 📺 | Samsung TV | 1 |
-| ⚡ | Lixee Zlinky TIC | 1 |
-| 🔌 | Tuya Smart Plug Zigbee 3.0 | 4 |
-| 🗝️ | Sonoff Zigbee 3.0 USB Dongle Plus | 1 |
-| 👁️ | Zigbee PIR Module TS0202 | 3 | 
-| ☀️ | Zigbee Tyua PIR Luminance TS0601 | 1 | 
-| 🔛 | Zigbee E1 Wall Switch QBKG38LM  | 1 | 
-| 🚪 | Zigbee Déctereur Ouverture Porte et Fenêtre eWeLink SNZB-04 | 6 |
-
-D'autres ampoules et boutons et interrupteur zigbee, etc devraient arriver d'ici prochainement pour terminer la domotisation des lumières
-
-## Liste des intégrations et frontend HASS : 
-
-| Dépendance | Usage |
-| --- | --- |
-|Mushroom| Collection de cartes pour home assistant |
-|mini-graph-card| Carte basique pour des graphiques |
-|button-card| Bouton custom |
-|Mini Media Player| Carte pour les appareils de type mediaplayer |
-|browser_mod| Affichage de popup |
-|apexcharts-card| Carte pour les graphiques avancées
-|card_mod| Modification de l'apparence avec du CSS pour Home assistant
-|layout-card| Création de layout pour les cartes
-|Spotcast| Intégration de spotify supplémentaire |
-|Calendar Card Pro| Carte pour calendrier |
-|Horizon Card| Carte pour les événements 
-|Kiosk Mode| Transforme home assistant en kiosk |
-|Xiaomi Mi Smart Pedestal Fan Integration| Integration pour ventalitateur xiaomi connecté | 
-|Bar Card| Carte pour des barres de progression |
-|Decluterring Card| Template de carte réutilsable | 
-|Average Sensor| Capteur pour faire des moyennes de capteur |
-|Hourly Weather Card| Prévision météo en forme de barres |
-|Stack in Card| Carte pour combiner en pile les cartes |
-|Swipe Card| Carte swipable |
-|card-tools| Dépendance pour d'autres modules |
-|search-card| Barre de recherche d'entités |
-|Plex Recently Added| Module pour récupérer les derniers nouveautés de plex |
-|Yahoo Finance| Module pour récupérer les actions en bourses |
-
-## Liste des fonctionnalités de Home assistant  
-* Suivi de la météo
-* Suivi de la consommation du linky
-* Suivi de plex 
-* Suivi de la température intérieure
-* Suivi de la consommation des appareils sous batteries
-* Suivi des personnes 
-* Suivi rapide des cours de la bourse
-* Dashboard personnalisable par personne 
-* Gestion des lampes et automatisation associés
-* Gestion de spotify, des googles home et TV.
-* Gestion des prises connectées
-* Gestion des ordinateurs 
-* Gestion des Télévisions et Audio/Spotify 
-* Gestion du ventilateur connecté
-* Autres : Affiche le QR Code pour le wifi, agenda perso..
-
-## Détails de certaines fonctionalités pour vos inspirations 
-### Animation 
-
-Un certains nombres d'animation dans le dahsboard ont été mis en place pour le rendre un peu plus vivant.
-
-Source des inspirations : https://community.home-assistant.io/t/mushroom-cards-build-a-beautiful-dashboard-easily-part-1/388590/3238
-
-* Blink de l'icone TV quand la TV est allumé 
-
-![](/images/tv-blink.gif)
-
-* Chargement de la barre quand le téléphone se charge 
-
-![](/images/smartphone-charging.gif)
-
-* L'icon du mediaplayer qui se secoue lorsqu'une musique est joué 
-
-![](/images/audio-boom.gif)
-
-* L'icone des boutons des automations scintille qunand elle est activé (pas en cours d'exécution forcément)
-
-![](/images/automation-enabled-blink.gif)
-
-* Respiration du badge en fonction de la couleur, vert pour la présence ou rouge pour l'absence 
-
-![](/images/person-live.gif)
-
-* Led du PC qui clignote quand il est allumé 
-
-![](/images/computer-led.gif)
-
-* Boucle de chargement quand le pc s'éteint ou s'allume
-
-![](/images/computer-stop.gif)
-
-Les icons SVG utiliser pour la météo provient de ce repo : https://github.com/basmilius/weather-icons
-
-### Thermomètre
-Inspiration des boutons thermomètre : https://community.home-assistant.io/t/mushroom-cards-build-a-beautiful-dashboard-easily-part-1/388590/1034?u=kaoru
-
-![thermometer]
-
-Popup custom pour mieux suivre les indicateurs du thermomètres 
-
-![thermometer-popup]
-
-### Météo
-
-Popup météo qui donne la prévision des prochains jours `weather-forecast`,`custom:mini-graph-card` de la témpérature et humidité des ces dernières 24h et les images satellites grâce à  [Windy](https://windy.com) contenu dans un `iframe`. Plus d'information via ce [lien](https://www.youtube.com/watch?v=U8j5p-DUdAE)
-
-### Afficher le timer en cours du google home de la cuisne
-
-Affichage du timer du google home avec les badges se trouvant en haut du dashboard
-
-Source de la récupération des timer : [chvancooten](https://github.com/chvancooten/homeassistant-googletokenretriever)
-
-<img src="/images/google-timer.gif" height="100"> <img src="/images/google-timer-no-timer.png" height="100">
-
-Celui-ci clignote chaque seconde grâce au card_mod lorsque le timer est actif.
-
-#### QR-CODE du WiFi
-
-Ajout d'un QR-Code du WiFi accessible facilement depuis la tablette pour les invités. Le SSID et le password est accessible en clair également.
-
-<img src="/images/wifi-qrcode.png" height="500">
-
-### Consomation électrique
-
-La consommation est récupérée avec le module tic Lixee Zlinky qui fonctionne en zigbee. Fonctionnement plus faible que l'API Enedis. 
-
-https://www.gotronic.fr/art-module-zlinky-tic-avec-antenne-38788.htm
-
-### Météo
-
-Météo avec l'api [Météo-France](https://www.home-assistant.io/integrations/meteo_france/) + [Openweathermap](https://www.home-assistant.io/integrations/openweathermap/) en complément.
-
-### Monitoring et gestion des PCs
-
-Utilisation de [HASS Agent](https://github.com/LAB02-Research/HASS.Agent) pour contrôler les PC Windows.
-
-Mise en place du screenshot : 
-
-Source : https://hassagent.readthedocs.io/en/latest/examples/#command-grab-screenshot-using-powershell
-
-* Création d'un script powershell (voir dossier du repo. cf adapter le powe)
-* Mise en place d'un button screenshot dans HASS.agent qui exécute le script powershell
-* Automation qui executer l'entity screenshot disponible via mqtt
-* Création d'une entity camera via fichier 
-
-### Spotify 
-
-Création d'une carte qui combine mushroom-media-player-card et la barre du mini-media-player. La pochette de la musique s'affiche en album. Le concept est repris pour les google home.
-
-![spotify-active]
-
 ## Kaoru Home
 
-Kaoru Home est le front-end sur mesure de cette configuration : un panneau Home Assistant écrit en Lit + TypeScript, compilé avec Vite, pensé pour la tablette murale (Lenovo M10 sous Fully Kiosk), l'application Companion et le PC. Il reprend les fonctionnalités du dashboard Adaptive Mushroom, en plus rapide et plus cohérent. Les pièces viennent des zones de Home Assistant ; `app/src/config.ts` ajoute seulement ce que le registre ne sait pas (noms, ordre des pièces, favoris par personne, confirmations, plan de l'appartement).
+Un panneau Home Assistant écrit en Lit + TypeScript, compilé avec Vite. Les pièces viennent des zones de Home Assistant ; `app/src/config.ts` ajoute seulement ce que le registre ne sait pas : noms, ordre des pièces, favoris par personne, confirmations, plan de l'appartement.
 
 Deux panneaux, déclarés en `panel_custom` dans `configuration.yaml` et servis par le même bundle :
 
@@ -199,35 +25,43 @@ Deux panneaux, déclarés en `panel_custom` dans `configuration.yaml` et servis 
 | Maison (V1) | `/maison` | l'accueil Mushroom refait : colonnes, swipe cards, popups |
 | Maison V2 | `/maison-v2` | la refonte : tuiles « bento », scènes illustrées, plan 2D / 3D |
 
-### Maison V2 : interface
+### Maison V2 : les pages
 
 * **Navigation** : un dock flottant en bas (téléphone, PC), un rail d'icônes à gauche sur la tablette murale ; six thèmes : Accueil, Maison, Médias, Météo, Énergie, Système.
-* **Accueil** : bandeau avec la grenouille météo, l'heure, les personnes et les badges aux couleurs du Lovelace (température, minuteur, lumières, fenêtres, alarme avec son popup et son clavier). Tuiles : lumières (variateur au glissé), lecture en cours (carte Spotify façon Lovelace), Jellyfin, climat par pièce avec courbes, énergie, prévisions, favoris, ordinateurs, bourse, raccourcis. Sur la tablette, tout tient sur un écran : trois colonnes équilibrées selon la hauteur réelle des tuiles.
-* **Maison** : le **plan de l'appartement** (depuis `app/assets/plan/appartement.drawio`), en 2D ou en vraie 3D (three.js, chargé seulement quand on choisit la 3D, rotation au doigt ou à la souris). Puis une carte illustrée par pièce (Tomo, le chat noir de l'app Tomo, y vit).
-  * En direct : pièces allumées, fenêtres ouvertes, présence, température à côté du nom de chaque pièce, TV et PC (badges).
-  * Les fenêtres montrent le vrai ciel (météo et soleil : bleu, orange au lever et au coucher, gris sous la pluie, nuit) ; en 3D la lumière du soleil entre selon sa vraie position (fenêtres orientées à l'ouest, `plan.windowsFacing`).
-  * Mobilier réel en 3D : meuble TV, vitrine, armoires, table de bar, meuble de cuisine avec micro-ondes, setup gaming à deux écrans, tours des PC, lit, salle de bain…
-  * Lumières placées une par une (`plan.lights`) : les spots, la lampe japonaise et le bandeau LED de la chambre William, chacun dans sa couleur ; un appui allume ou éteint celle-là seulement.
-  * Un appui sur une pièce l'ouvre ; sur l'ampoule, toute la pièce ; sur un badge, la TV ou le PC.
-* **Pièce** : sa scène, ses lumières, prises (protégées), médias, ouvertures, présence, climat sur 24 h.
-* **Médias** : lecture en cours, carte Jellyfin (même construction que la carte Spotify), télécommande condensée de la box, affiches des films et séries ajoutés.
-* **Météo** : la grenouille du moment, heures et jours, courbes 24 h, soleil et lune, radar Windy, bourse.
-* **Énergie** : graphe Linky jour / 7 jours, **Sankey « Où part l'électricité »** (de la puissance du Linky vers chaque prise qui mesure : bureau de Kaoru, homelab, trottinette et Shiro quand elles consomment, puis « Reste de la maison », PC de Papa compris ; `energyPage.meters`), ordinateurs, prises, minuterie de la trottinette, ventilateur.
-* **Système** : carte de la famille (carte native de HA), Internet, Home Assistant, mises à jour, tablette, automatisations, batteries, recherche.
-* **Messages** : les notifications (y compris celles de Home Assistant) s'affichent en haut, dans le style du panneau et en français ; une page s'ouvre toujours en haut.
+* **Accueil** : bandeau avec la [grenouille météo de Google](https://github.com/Senexis/Google-Weather-Frog), l'heure, les personnes et les badges (température, minuteur du Google Home, lumières, fenêtres, alarme avec son popup et son clavier). Tuiles : lumières (variateur au glissé), lecture en cours (carte Spotify), Jellyfin, climat par pièce avec courbes, énergie, prévisions, favoris, ordinateurs, bourse, raccourcis. Sur la tablette, tout tient sur un écran : trois colonnes équilibrées selon la hauteur réelle des tuiles.
+* **Maison** : le **plan de l'appartement**, en 2D ou en vraie 3D (three.js, rotation au doigt ou à la souris), puis une carte illustrée par pièce.
+  * En direct : pièces allumées, fenêtres ouvertes, présence, température à côté du nom de chaque pièce, TV et PC.
+  * Les fenêtres montrent le vrai ciel (météo et soleil : bleu, orange au lever et au coucher, gris sous la pluie, nuit) ; en 3D, la lumière du soleil entre selon sa vraie position et projette ses taches sur le sol.
+  * Mobilier réel en 3D : meuble TV, vitrine, armoires, table de bar, cuisine, setup gaming à deux écrans, tours des PC, lits, salle de bain.
+  * Lumières placées une par une (spots, lampe japonaise, bandeau LED), chacune dans sa couleur ; un appui allume ou éteint celle-là seulement.
+  * Un appui sur une pièce l'ouvre ; sur son ampoule, toute la pièce ; sur un badge, la TV ou le PC.
+* **Pièce** : sa scène, ses lumières, prises, médias, ouvertures, présence, climat sur 24 h.
+* **Médias** : lecture en cours, carte Jellyfin (construite comme la carte Spotify), télécommande condensée de la box TV, affiches des films et séries ajoutés.
+* **Météo** : la grenouille du moment, heures et jours, courbes 24 h, soleil et lune, radar [Windy](https://windy.com), bourse.
+* **Énergie** : graphe Linky jour / 7 jours, **Sankey « Où part l'électricité »** (de la puissance du Linky vers chaque prise qui mesure, puis « Reste de la maison »), ordinateurs, prises, minuterie de la trottinette, ventilateur.
+* **Système** : carte de la famille et des objets suivis (carte native de Home Assistant), Internet, Home Assistant, mises à jour, tablette, automatisations, batteries, recherche.
+* **Messages** : les notifications, y compris celles de Home Assistant, s'affichent en haut, dans le style du panneau et en français.
 
-Règles de design :
+### Design
 
-* Une couleur par thème ou par pièce, en dégradés doux ; tuiles à la hauteur de leur contenu, jamais étirées.
-* Scènes en aplats sans contour, dans le style de la grenouille météo de Google ; la nuit, tout s'assombrit, une pièce allumée devient chaude.
-* Animations sobres et utiles (pression, apparition, lumière), coupées si le système demande moins d'animations.
-* Responsive : téléphone (une colonne, favoris en haut), tablette (un écran sans défilement), PC (marges égales autour du rail).
-* Les graphes ne changent jamais la taille de leur carte quand on les parcourt du doigt.
+* **Une couleur par thème et par pièce**, en dégradés doux ; tuiles « bento » à la hauteur de leur contenu, jamais étirées.
+* **Scènes illustrées** en aplats sans contour, dans le style de la grenouille météo : chaque pièce a la sienne, Tomo (un chat noir) y vit ; la nuit, tout s'assombrit, une pièce allumée devient chaude.
+* **Animations utiles** : pression des boutons, apparition des pages, lumière ; l'icône d'une TV allumée clignote, celle d'une musique en lecture bouge, une barre de chargement suit un PC qui démarre ou s'arrête. Elles s'arrêtent si le système demande moins d'animations.
+* **Graphes** lissés, remplis, avec min / max et un curseur à parcourir du doigt, sans jamais changer la taille de leur carte.
+* **Responsive** :
+
+  | Écran | Disposition |
+  |---|---|
+  | Téléphone | une colonne, favoris en haut, swipe cards, menu en bas |
+  | Tablette murale | un seul écran sans défilement, rail à gauche |
+  | PC | marges égales autour du rail, colonnes équilibrées |
+
+* Icônes météo : [Meteocons](https://github.com/basmilius/weather-icons) ; icônes : Material Design Icons.
 
 ### Sécurité des actions
 
-* Les prises Tuya (`switch.smart_plug_*` : homelab, bureau, trottinette, Shiro) et tout ce qui est rattaché à leur appareil demandent une confirmation, dans les deux sens, et ne sont jamais groupées dans un « tout éteindre ».
-* Un PC démarre sur un simple appui ; l'éteindre demande une confirmation (`confirmOffOnly`). Un appui long ou un double appui ouvre ses détails ; une barre de progression s'affiche tant qu'il démarre ou s'arrête.
+* Les prises Tuya (`switch.smart_plug_*`) et tout ce qui est rattaché à leur appareil demandent une confirmation, dans les deux sens, et ne sont jamais groupées dans un « tout éteindre ».
+* Un PC démarre sur un simple appui ; l'éteindre demande une confirmation. Un appui long ou un double appui ouvre ses détails.
 * Chaque commande envoie un `turn_on` / `turn_off` explicite selon l'état vu à l'écran, jamais un `toggle`.
 
 ### Développer
@@ -243,38 +77,168 @@ npm run build   # www/kaoru-home/ : kaoru-home.js (chargeur), manifest.json, app
 
 * `kaoru-home.js` ne change jamais : il lit `manifest.json` (non mis en cache) et charge la version compilée du moment, donc une mise à jour se voit sans vider le cache du navigateur.
 * La V2, les pages et three.js sont des chunks séparés, téléchargés à la première visite.
-* `app/dev/` : déploiement sur l'instance de test (`deploy-dev.sh`), tests dans Chrome avec un faux Home Assistant (`harness.mjs` : prises protégées, actions de pièce, PC), audit de mise en page sur dix tailles d'écran (`layout-audit.mjs`), captures (`screens.mjs`), mesures (`perf.mjs`). Les tests n'actionnent que des entités simulées.
+* `app/dev/` : tests dans Chrome avec un faux Home Assistant (`harness.mjs` : prises protégées, actions de pièce, PC), audit de mise en page sur dix tailles d'écran (`layout-audit.mjs`), captures (`screens.mjs`), mesures (`perf.mjs`). Les tests n'actionnent que des entités simulées.
 * Le plan : `app/assets/plan/appartement.drawio` est la source ; les murs, fenêtres et meubles en sont extraits dans `app/src/v2/plan-data.ts`, les modèles 3D sont dans `plan3d-models.ts`.
 
-### Déployer en production
+### Publier
 
-1. Fusionner la branche dans `master`.
-2. Poser un tag sur `master` (ex. `2026.10.0`) : l'action *Create Config Zip* compile le panneau et publie `homeassistant-config-<tag>.zip` dans la release GitHub.
-3. Dans `ansible-infra`, passer `homeassistant_config_version` à ce tag (`production/group_vars/hass/vars`) par une PR : la CI joue `playbook_hass.yml`, qui télécharge le zip, le décompresse dans `/opt/homeassistant/config` sur hass01 et redémarre Home Assistant.
-4. Les panneaux « Maison » et « Maison V2 » apparaissent dans la barre latérale ; le dashboard Lovelace reste disponible.
+Chaque tag publie une release GitHub : l'action *Create Config Zip* compile le panneau et joint `homeassistant-config-<tag>.zip`, qui contient la configuration et le panneau compilé, prêt à être décompressé dans le dossier de configuration de Home Assistant. Il faut Home Assistant 2026.10 ou plus récent (carte native utilisée par le panneau).
 
-Avant la première mise en production :
+## Equipement
 
-* Home Assistant 2026.10 ou plus récent (la carte native utilisée par le panneau).
-* Ranger dans la zone « Chambre William » les spots (`light.plafond_1`, `light.plafond_2`), la lampe japonaise et l'appareil du bandeau LED (son entité n'accepte pas de zone propre).
+| Icon | Device | Total |
+|------|:--------------:|:------:|
+| 🖥️ |️ Ordinateurs | 2 |
+| 🌡️ | Xiaomi mijia Temperature Humidity 2019 | 5 |
+| 📱 | Smartphone | 2 |
+| 📱 | Lenovo TAB M10+ & Fully Kiosk Browser | 1 |
+| 💡 | Bulb E27 yeelight & yeelight strip | 7 |
+| 🔘 | Switch Xiaomi | 3 |
+| 📺 | Samsung TV | 2 |
+| 📦 | Box TV Bouygues | 1 |
+| ⚡ | Lixee Zlinky TIC | 1 |
+| 🔌 | Tuya Smart Plug Zigbee 3.0 (avec mesure de consommation) | 4 |
+| 🗝️ | Sonoff Zigbee 3.0 USB Dongle Plus | 1 |
+| 👁️ | Zigbee PIR Module TS0202 | 3 |
+| ☀️ | Zigbee Tyua PIR Luminance TS0601 | 1 |
+| 🔛 | Zigbee E1 Wall Switch QBKG38LM | 1 |
+| 🚪 | Zigbee Déctereur Ouverture Porte et Fenêtre eWeLink SNZB-04 | 6 |
+| 🌀 | Ventilateur Xiaomi Mi Smart Pedestal Fan | 1 |
+
+## Fonctionnalités
+
+* Météo : [Météo-France](https://www.home-assistant.io/integrations/meteo_france/) et [OpenWeatherMap](https://www.home-assistant.io/integrations/openweathermap/), radar Windy, grenouille météo
+* Consommation électrique : Linky via le module TIC [Lixee ZLinky](https://www.gotronic.fr/art-module-zlinky-tic-avec-antenne-38788.htm) (zigbee), prises qui mesurent, Sankey de répartition
+* Température et humidité de chaque pièce
+* Suivi des personnes et des objets (traceurs), « trouver mon téléphone »
+* Alarme : état, armement par mode, clavier pour le code
+* Lumières par pièce, variateur, couleurs, automatisations associées
+* Spotify, Google Home, TV Samsung et box TV (télécommande)
+* Jellyfin : derniers ajouts, films et séries
+* Ordinateurs : allumage, veille, redémarrage, statistiques, capture d'écran ([HASS.Agent](https://github.com/LAB02-Research/HASS.Agent))
+* Prises connectées (protégées) et minuterie de la trottinette
+* Ventilateur connecté
+* Bourse ([Yahoo Finance](https://github.com/iprak/yahoofinance))
+* Batteries des appareils, mises à jour, sauvegardes, automatisations
+* Dashboard par personne, QR code du Wi-Fi pour les invités, agenda
+
+### Captures d'écran des PC
+
+Source : https://hassagent.readthedocs.io/en/latest/examples/#command-grab-screenshot-using-powershell
+
+* Script PowerShell (voir le dossier du repo, à adapter)
+* Bouton « screenshot » dans HASS.Agent qui exécute le script
+* Automatisation qui appuie sur ce bouton via MQTT
+* Entité caméra qui lit le fichier
+
+### Minuteur du Google Home de la cuisine
+
+Le minuteur en cours s'affiche dans les badges de l'accueil et clignote tant qu'il tourne. Récupération des minuteurs : [chvancooten](https://github.com/chvancooten/homeassistant-googletokenretriever).
+
+## Dashboard Lovelace (Adaptive Mushroom)
+
+L'ancien dashboard reste disponible. Il s'appuie sur ces cartes et intégrations :
+
+| Dépendance | Usage |
+| --- | --- |
+|Mushroom| Collection de cartes pour home assistant |
+|mini-graph-card| Carte basique pour des graphiques |
+|button-card| Bouton custom |
+|Mini Media Player| Carte pour les appareils de type mediaplayer |
+|browser_mod| Affichage de popup |
+|apexcharts-card| Carte pour les graphiques avancées |
+|card_mod| Modification de l'apparence avec du CSS pour Home assistant |
+|layout-card| Création de layout pour les cartes |
+|Spotcast| Intégration de spotify supplémentaire |
+|Calendar Card Pro| Carte pour calendrier |
+|Horizon Card| Carte pour les événements |
+|Kiosk Mode| Transforme home assistant en kiosk |
+|Xiaomi Mi Smart Pedestal Fan Integration| Integration pour ventilateur xiaomi connecté |
+|Bar Card| Carte pour des barres de progression |
+|Decluterring Card| Template de carte réutilisable |
+|Average Sensor| Capteur pour faire des moyennes de capteur |
+|Hourly Weather Card| Prévision météo en forme de barres |
+|Stack in Card| Carte pour combiner en pile les cartes |
+|Swipe Card| Carte swipable |
+|card-tools| Dépendance pour d'autres modules |
+|search-card| Barre de recherche d'entités |
+|Jellyfin Recently Added| Derniers ajouts de Jellyfin |
+|Yahoo Finance| Cours de la bourse |
+
+Kaoru Home n'utilise aucune de ces cartes ; Average Sensor, Spotcast, Yahoo Finance, l'intégration du ventilateur et browser_mod (tablette) restent utiles à la configuration.
+
+![dashboard]
+![tablette-jour]
+
+<img src="/images/mobile-home.png" height="500"> <img src="/images/mobile-appareil.jpg" height="500"> <img src="/images/mobile-notif.jpg" height="500"> <img src="/images/mobile-automation.jpg" height="500"> <img src="/images/mobile-system.jpg" height="500">
+
+### Animations
+
+Source des inspirations : https://community.home-assistant.io/t/mushroom-cards-build-a-beautiful-dashboard-easily-part-1/388590/3238 (Kaoru Home les reprend).
+
+* Blink de l'icone TV quand la TV est allumée
+
+![](/images/tv-blink.gif)
+
+* Chargement de la barre quand le téléphone se charge
+
+![](/images/smartphone-charging.gif)
+
+* L'icône du media player qui se secoue lorsqu'une musique est jouée
+
+![](/images/audio-boom.gif)
+
+* L'icône des automatisations scintille quand elle est activée
+
+![](/images/automation-enabled-blink.gif)
+
+* Respiration du badge, vert pour la présence, rouge pour l'absence
+
+![](/images/person-live.gif)
+
+* Led du PC qui clignote quand il est allumé
+
+![](/images/computer-led.gif)
+
+* Boucle de chargement quand le PC s'éteint ou s'allume
+
+![](/images/computer-stop.gif)
+
+### Thermomètre
+
+Inspiration des boutons thermomètre : https://community.home-assistant.io/t/mushroom-cards-build-a-beautiful-dashboard-easily-part-1/388590/1034?u=kaoru
+
+![thermometer]
+
+![thermometer-popup]
+
+### Spotify
+
+Carte qui combine mushroom-media-player-card et la barre du mini-media-player, la pochette en fond (Kaoru Home reprend cette construction, et l'applique à Jellyfin).
+
+![spotify-active]
+
+### QR code du Wi-Fi
+
+<img src="/images/wifi-qrcode.png" height="500">
 
 ## TODO et idées..
 
-### Road-map 
-* Vielle smartTV samsung (en cours)
-* Consommation eau et chauffage (Proof of conception dans le premier semestre)
-* Conservation des métriques sur le long terme dans influxdb (projet en cours avec migration sous proxmox)
+### Road-map
+* Vieille smart TV Samsung (en cours)
+* Consommation eau et chauffage
+* Conservation des métriques sur le long terme
+* Kaoru Home : accueil qui s'adapte au moment de la journée (matin, journée, soir, nuit)
 
 ### Problèmes à fix
 
 * TBD
 
 ### Idées
-* Prise en charge par le dashboard de futures caméras.
-* Kaoru Home : placer chaque lumière et chaque capteur sur le plan (positions à ajouter au drawio).
-* Système d'alarme
+* Prise en charge par le dashboard de futures caméras
+* Kaoru Home : placer chaque lumière et chaque capteur sur le plan (positions à ajouter au drawio)
 * Robot aspirateur
-* Vanne thermostatique connecté
+* Vanne thermostatique connectée
 
 <!-- MARKDOWN LINKS & IMAGES -->
 [dashboard]: /images/main_tablet.png
