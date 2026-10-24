@@ -550,6 +550,28 @@ export class KhHomeV2 extends LitElement {
   }
 
   /** Tiles load their content later (Jellyfin, the energy graph): follow their size. */
+  /** The arrangement in use: kept until the tiles change or a new one is clearly better. */
+  private layout?: { keys: string; cols: string[][] };
+
+  /** Height of the tallest column of an arrangement. */
+  private tallest(cols: string[][]): number {
+    return Math.max(...cols.map((c) => c.reduce((sum, k) => sum + (this.heights.get(k) ?? WALL_ESTIMATE[k] ?? 200) + 12, 0)));
+  }
+
+  /**
+   * The wall's columns. A tile that changes column is rebuilt and briefly
+   * changes height, which used to trigger a new arrangement, then the old
+   * one again (the screen flickered). Now an arrangement is replaced only
+   * when the tiles change or the new one is at least 60 px shorter, which
+   * can only happen a few times, then stays.
+   */
+  private wallColumns(keys: string[]): string[][] {
+    const id = keys.join(",");
+    const fresh = this.columns(keys);
+    if (!this.layout || this.layout.keys !== id || this.tallest(fresh) < this.tallest(this.layout.cols) - 60) this.layout = { keys: id, cols: fresh };
+    return this.layout.cols;
+  }
+
   private slotSizes = new ResizeObserver((entries) => {
     let changed = false;
     for (const e of entries) {
@@ -560,7 +582,7 @@ export class KhHomeV2 extends LitElement {
         changed = true;
       }
     }
-    if (changed) this.requestUpdate(); // heights do not depend on the column, so this settles
+    if (changed && this.layout && this.tallest(this.columns(this.layout.keys.split(","))) < this.tallest(this.layout.cols) - 60) this.requestUpdate();
   });
 
   protected updated(): void {
@@ -732,7 +754,7 @@ export class KhHomeV2 extends LitElement {
       return html`
         ${this.hero()}
         <div class="wall">
-          ${this.columns(keys).map(
+          ${this.wallColumns(keys).map(
             (col) => html`<div class="wcol">${col.map((k) => html`<div class="wslot" data-k=${k}>${tiles[k]}</div>`)}</div>`,
           )}
         </div>
