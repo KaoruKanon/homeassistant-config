@@ -22,8 +22,14 @@ Deux panneaux, déclarés en `panel_custom` dans `configuration.yaml` et servis 
 
 | Panneau | URL | Contenu |
 |---|---|---|
-| Maison (V1) | `/maison` | l'accueil Mushroom refait : colonnes, swipe cards, popups |
-| Maison V2 | `/maison-v2` | la refonte : tuiles « bento », scènes illustrées, plan 2D / 3D |
+| Maison V2 | `/maison-v2` | le front-end principal : tuiles « bento », scènes illustrées, plan 2D / 3D |
+| Maison (V1) | `/maison` | l'accueil Mushroom refait, gardé temporairement avant d'être retiré |
+
+<img src="/images/kaoru-home/pc-accueil.jpg" width="100%">
+
+<img src="/images/kaoru-home/mobile-accueil.jpg" height="500"> <img src="/images/kaoru-home/mobile-maison.jpg" height="500"> <img src="/images/kaoru-home/mobile-piece.jpg" height="500"> <img src="/images/kaoru-home/mobile-medias.jpg" height="500"> <img src="/images/kaoru-home/mobile-meteo.jpg" height="500"> <img src="/images/kaoru-home/mobile-energie.jpg" height="500"> <img src="/images/kaoru-home/mobile-systeme.jpg" height="500">
+
+Les zones sensibles (plan de l'appartement, carte des positions, agenda) sont floutées sur les captures.
 
 ### Maison V2 : les pages
 
