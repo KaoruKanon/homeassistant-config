@@ -31,6 +31,22 @@ frontend:
     - /hacsfiles/lovelace-card-mod/card-mod.js
   themes: !include_dir_merge_named themes
 
+panel_custom:
+  - name: kaoru-home
+    sidebar_title: Maison
+    sidebar_icon: mdi:home-variant
+    url_path: maison
+    module_url: /local/kaoru-home/kaoru-home.js?v=0.2.0
+    embed_iframe: false
+    require_admin: false
+  - name: kaoru-home-v2
+    sidebar_title: Maison V2
+    sidebar_icon: mdi:view-dashboard-variant
+    url_path: maison-v2
+    module_url: /local/kaoru-home/kaoru-home.js?v=0.2.0
+    embed_iframe: false
+    require_admin: false
+
 lovelace:
   mode: yaml
   resources:

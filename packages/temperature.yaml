@@ -169,7 +169,8 @@ template:
           {% elif weather_status == "hail" %}
               {% set other_location = ['19-mixed-rain-hail-rain-sleet-busstop-waiting.png','19-mixed-rain-hail-rain-sleet-cafe-entering.png'] | random() %}
           {% endif %}
-          {{ 'https://raw.githubusercontent.com/Senexis/Google-Weather-Frog/master/images/wide/' + dict[weather_status][frog_location] | default(other_location) }}
+          {# WebP copies put in www/frog/ by the deployment (ansible-infra), not GitHub's PNGs #}
+          {{ '/local/frog/' + (dict[weather_status][frog_location] | default(other_location)) | replace('.png', '.webp') }}
         icon: mdi:image
 
 sensor:
