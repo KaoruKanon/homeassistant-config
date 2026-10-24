@@ -31,10 +31,11 @@ import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import { FURNITURE, FURNITURE_3D, ROOMS, WALLS } from "./plan-data.ts";
 import { roomColors } from "./room-art.ts";
+import { computer, flatTv, model } from "./plan3d-models.ts";
 
 // Plan units are ~cm; the scene is centred on the flat, y up.
 const CX = 400, CZ = 722;
-const WALL_H = 46;
+const WALL_H = 80;
 
 /** A box from a plan rectangle (x, y, w, h) standing on the floor, height z. */
 function slab(x: number, y: number, w: number, h: number, z: number, mat: MeshStandardMaterial, lift = 0): Mesh {
@@ -299,7 +300,7 @@ export class KhPlan3d extends LitElement {
       live.floors.set(id, m);
       live.floorBase.set(id, new Color(wall));
       const lamp = new PointLight("#ffbb66", 0, 420, 1.8);
-      lamp.position.set(p.label[0] - CX, 120, p.label[1] - CZ);
+      lamp.position.set(p.label[0] - CX, 190, p.label[1] - CZ);
       s.add(lamp);
       live.lamps.set(id, lamp);
     }
@@ -315,41 +316,58 @@ export class KhPlan3d extends LitElement {
       const list: MeshStandardMaterial[] = [];
       for (const [a, b] of p.windows ?? []) {
         const m = mat("#8ecae6", { roughness: 0.2, transparent: true, opacity: 0.85 });
-        s.add(slab(718, a, 14, b - a, WALL_H + 1, m));
+        s.add(slab(717, a, 16, b - a, 46, m, 30));
         list.push(m);
       }
       live.windows.set(id, list);
     }
 
     for (const [name, x, y, w, h, rot] of FURNITURE) {
+      const g = model(name, w, h);
+      if (g) {
+        g.position.set(x + w / 2 - CX, 0, y + h / 2 - CZ);
+        g.rotation.y = (-rot * Math.PI) / 180;
+        s.add(g);
+        continue;
+      }
       const turned = Math.abs(rot) % 180 === 90;
       const bw = turned ? h : w, bh = turned ? w : h;
       const [z, color] = FURNITURE_3D[name] ?? [20, "#8a5d3f"];
       s.add(slab(x + w / 2 - bw / 2, y + h / 2 - bh / 2, bw, bh, z, mat(color)));
     }
 
+    // Screens: TVs on their chest of drawers, PCs on their desks, facing the room.
+    const place = (g: Group, cx: number, cy: number, top: number, facing: number) => {
+      g.position.set(cx - CX, top, cy - CZ);
+      g.rotation.y = facing;
+      s.add(g);
+    };
+    const pickable = (g: Group, data: Record<string, string>) =>
+      g.traverse((o) => {
+        if (o instanceof Mesh) {
+          o.userData = data;
+          this.picks.push(o);
+        }
+      });
+    const FACING: Record<string, number> = { salon: Math.PI / 2, chambre_papa: -Math.PI / 2, chambre_william: 0 };
     for (const [id, entity] of Object.entries(config.plan?.tvs ?? {})) {
       const p = ROOMS[id]?.tv;
       if (!p) continue;
-      const m = mat("#1d1830", { roughness: 0.3 });
-      const tv = slab(p[0], p[1], p[2], p[3], 52, m, 28);
-      tv.userData = { tv: entity };
-      s.add(tv);
-      this.picks.push(tv);
+      const { group, screen } = flatTv(Math.max(p[2], p[3]) * 0.9);
+      place(group, p[0] + p[2] / 2, p[1] + p[3] / 2, 82, FACING[id] ?? 0);
+      pickable(group, { tv: entity });
       const light = new PointLight("#9b7bff", 0, 260, 1.8);
-      light.position.set(p[0] - CX + (id === "salon" ? 40 : -40), 60, p[1] + p[3] / 2 - CZ);
+      light.position.set(p[0] - CX + (id === "salon" ? 50 : -50), 110, p[1] + p[3] / 2 - CZ);
       s.add(light);
-      live.tvs.set(entity, { m, light });
+      live.tvs.set(entity, { m: screen, light });
     }
     for (const [id, entity] of Object.entries(config.plan?.computers ?? {})) {
       const p = ROOMS[id]?.pc;
       if (!p) continue;
-      const m = mat("#2b2f3a", { roughness: 0.4 });
-      const pc = slab(p[0], p[1], p[2], p[3], 30, m, 22);
-      pc.userData = { pc: entity };
-      s.add(pc);
-      this.picks.push(pc);
-      live.pcs.set(entity, m);
+      const { group, screen } = computer(Math.max(p[2], p[3]));
+      place(group, p[0] + p[2] / 2, p[1] + p[3] / 2, 76, FACING[id] ?? 0);
+      pickable(group, { pc: entity });
+      live.pcs.set(entity, screen);
     }
     this.live = live;
   }
@@ -377,10 +395,15 @@ export class KhPlan3d extends LitElement {
     }
     for (const [entity, { m, light }] of live.tvs) {
       const on = isActive(hass.states[entity]);
-      m.emissive.set(on ? "#6b4cff" : "#000000");
+      m.emissive.set(on ? "#7b5cff" : "#000000");
+      m.emissiveIntensity = on ? 1.4 : 0;
       light.intensity = on ? 4 * 10000 : 0;
     }
-    for (const [entity, m] of live.pcs) m.emissive.set(isActive(hass.states[entity]) ? "#1e88e5" : "#000000");
+    for (const [entity, m] of live.pcs) {
+      const on = isActive(hass.states[entity]);
+      m.emissive.set(on ? "#2196f3" : "#000000");
+      m.emissiveIntensity = on ? 1.3 : 0;
+    }
     this.request();
   }
 
@@ -453,7 +476,7 @@ export class KhPlan3d extends LitElement {
         ${hass && this.renderer
           ? html`${rooms.map((r) => {
               const p = ROOMS[r.id];
-              const pos = p && this.at(p.label[0], p.label[1], 70);
+              const pos = p && this.at(p.label[0], p.label[1], 150);
               if (!pos) return nothing;
               const on = r.lights.some((id) => isActive(hass.states[id]));
               const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
@@ -468,7 +491,7 @@ export class KhPlan3d extends LitElement {
             ${Object.entries(config.plan?.computers ?? {}).map(([id, entity]) => {
               const p = ROOMS[id]?.pc, c = config.home.computers.find((x) => x.entity === entity);
               const [bx, by] = ROOMS[id]?.pcBadge ?? (p ? [p[0] + p[2] / 2, p[1] + p[3] / 2] : [0, 0]);
-              const pos = p && this.at(bx, by, 75);
+              const pos = p && this.at(bx, by, 165);
               if (!pos || !c) return nothing;
               const on = isActive(hass.states[entity]);
               return html`<button class="badge pc ${on ? "on" : ""}" style="left:${pos[0]}px; top:${pos[1]}px" @click=${() => openComputer(c)}>
@@ -477,7 +500,7 @@ export class KhPlan3d extends LitElement {
             ${Object.entries(config.plan?.tvs ?? {}).map(([id, entity]) => {
               const p = ROOMS[id];
               const [bx, by] = p?.tvBadge ?? [0, 0];
-              const pos = p?.tv && this.at(bx, by, 90);
+              const pos = p?.tv && this.at(bx, by, 175);
               if (!pos || !hass.states[entity]) return nothing;
               const on = isActive(hass.states[entity]);
               const name = (rooms.find((r) => r.id === id)?.name ?? id).replace(/^Chambre /, "");
