@@ -357,7 +357,8 @@ export function openAlarm(id: string): void {
               ${format === "number"
                 ? html`<div class="keypad">
                     ${["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0"].map(
-                      (k) => html`<button class="action" style="--rgb: var(--rgb-grey)" aria-label=${k === "⌫" ? "Effacer" : k} @click=${() => key(k)}>${k}</button>`,
+                      (k) => html`<button class="action" style="--rgb: var(--rgb-grey)" aria-label=${k === "⌫" ? "Effacer" : k} @click=${() => key(k)}>
+                        ${k === "⌫" ? html`<ha-icon icon="mdi:backspace-outline"></ha-icon>` : k}</button>`,
                     )}
                   </div>`
                 : html`<input class="code-input" type="password" autocomplete="off" placeholder="Code" .value=${code}

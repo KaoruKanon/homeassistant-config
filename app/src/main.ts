@@ -1,7 +1,8 @@
 import { LitElement, css, html, nothing } from "lit";
 import { config } from "./config.ts";
 import { cancelConfirmation } from "./components/confirm-dialog.ts";
-import { installPressFeedback } from "./components/gestures.ts";
+import { installPressFeedback, scrollToTop } from "./components/gestures.ts";
+import { takeOverHassToasts } from "./components/toast.ts";
 import { closePopup, openPopup } from "./components/popup.ts";
 import { keyed } from "lit/directives/keyed.js";
 import { house } from "./house.ts";
@@ -52,8 +53,14 @@ class KaoruHomePanel extends LitElement {
     adoptEarlyHass(this);
   }
 
+  connectedCallback(): void {
+    super.connectedCallback();
+    takeOverHassToasts(true);
+  }
+
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    takeOverHassToasts(false);
     cancelConfirmation(); // a question left open must not be answered later
   }
 
@@ -255,7 +262,13 @@ class KaoruHomePanel extends LitElement {
     installPressFeedback(this.renderRoot as ShadowRoot);
   }
 
+  private lastPage?: string;
+
   protected updated(): void {
+    // Changing page (not a popup, not a room swipe on the same page): back to the top.
+    const page = this.route?.path ?? "";
+    if (this.lastPage !== undefined && page !== this.lastPage) scrollToTop(this);
+    this.lastPage = page;
     this.toggleAttribute("dark", !!store.hass?.themes.darkMode);
   }
 
@@ -335,6 +348,16 @@ class KaoruHomeV2Panel extends LitElement {
     const first = !store.hass;
     feed(hass);
     if (first) this.requestUpdate(); // the app itself watches the store
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    takeOverHassToasts(true);
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    takeOverHassToasts(false);
   }
 
   get hass(): HomeAssistant | undefined {

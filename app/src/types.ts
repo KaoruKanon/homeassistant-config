@@ -49,7 +49,9 @@ export interface HomeAssistant {
     domain: string,
     service: string,
     serviceData?: Record<string, unknown>,
-    target?: { entity_id: string | string[] },
+    target?: Record<string, unknown>,
+    /** HA's own toast on failure; false: the caller shows it. */
+    notifyOnError?: boolean,
   ): Promise<unknown>;
   formatEntityState?(stateObj: HassEntity, state?: string): string;
   localize?: unknown;

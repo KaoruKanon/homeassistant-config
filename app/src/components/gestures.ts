@@ -142,3 +142,16 @@ export function pcPress(entity: string, onTap: () => void, onHold: () => void): 
   if (!p) pcPresses.set(entity, (p = new Press(onTap, onHold, true)));
   return p;
 }
+
+/**
+ * A new page starts at its top. HA scrolls the window, or an element of its
+ * own (the panel host) depending on the version: reset every scroller found
+ * between the panel and the page.
+ */
+export function scrollToTop(from: HTMLElement): void {
+  window.scrollTo({ top: 0 });
+  document.scrollingElement?.scrollTo({ top: 0 });
+  for (let n: Node | null = from; n; n = (n as Element).assignedSlot ?? n.parentNode ?? (n as ShadowRoot).host ?? null) {
+    if (n instanceof HTMLElement && n.scrollTop > 0) n.scrollTop = 0;
+  }
+}

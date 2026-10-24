@@ -110,9 +110,13 @@ export class KhSparkline extends LitElement {
       width: 100%;
       overflow: visible;
     }
+    /* One line, always the same height: scrubbing the graph must not move the card. */
     .legend {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      overflow: hidden;
+      white-space: nowrap;
+      height: 20px;
       align-items: baseline;
       gap: 4px 16px;
       font-size: 0.8125rem;
@@ -273,7 +277,6 @@ export class KhSparkline extends LitElement {
             return html`<span style="--c:${e.color}"><span class="dot"></span>${e.label}
               <b>${shown !== undefined ? `${formatNumber(shown)} ${e.unit}` : "—"}</b></span>`;
           })}
-          <span class="when">${cur !== undefined ? hourFormat.format(new Date(cur)) : stale ? `relevé à ${hourFormat.format(new Date(t1))}` : ""}</span>
         </div>`;
 
     const first = this.entities[0];
@@ -295,8 +298,9 @@ export class KhSparkline extends LitElement {
           ? svg`
             <line x1="0" x2=${W} y1=${s0.y(s0.hi)} y2=${s0.y(s0.hi)} stroke="var(--kh-line)" stroke-dasharray="3 5" />
             <line x1="0" x2=${W} y1=${s0.y(s0.lo)} y2=${s0.y(s0.lo)} stroke="var(--kh-line)" stroke-dasharray="3 5" />
-            <text x=${W - 2} y=${s0.y(s0.hi) - 4} text-anchor="end">max ${formatNumber(s0.hi)} ${first.unit}</text>
-            <text x=${W - 2} y=${s0.y(s0.lo) + 13} text-anchor="end">min ${formatNumber(s0.lo)} ${first.unit}</text>
+            <text x=${padX + 2} y=${s0.y(s0.hi) - 4}>max ${formatNumber(s0.hi)} ${first.unit}</text>
+            <text x=${padX + 2} y=${s0.y(s0.lo) - 4}>min ${formatNumber(s0.lo)} ${first.unit}</text>
+            ${stale && cur === undefined ? svg`<text x=${W - padX} y="11" text-anchor="end">relevé à ${hourFormat.format(new Date(t1))}</text>` : nothing}
             <text x=${padX} y=${H - 4}>${hourFormat.format(new Date(t0))}</text>
             <text x=${W / 2} y=${H - 4} text-anchor="middle">${hourFormat.format(new Date((t0 + t1) / 2))}</text>
             <text x=${W - padX} y=${H - 4} text-anchor="end">${stale ? hourFormat.format(new Date(t1)) : "maintenant"}</text>`
@@ -321,7 +325,11 @@ export class KhSparkline extends LitElement {
                   <circle cx=${end[0]} cy=${end[1]} r=${i === 0 ? 4 : 3} fill="rgb(${color})" stroke="var(--kh-dialog, #fff)" stroke-width="1.5" />`}`;
           })}
         ${cur !== undefined
-          ? svg`<line x1=${x(cur)} x2=${x(cur)} y1=${top - 6} y2=${H - bottom} stroke="var(--kh-text-2)" stroke-width="1" />
+          ? svg`<line x1=${x(cur)} x2=${x(cur)} y1=${top - 2} y2=${H - bottom} stroke="var(--kh-text-2)" stroke-width="1" />
+            <g transform="translate(${Math.min(W - 26, Math.max(26, x(cur)))} 0)">
+              <rect x="-25" y="-1" width="50" height="15" rx="7.5" fill="var(--kh-dialog, #2a2f33)" stroke="var(--kh-line)" />
+              <text y="10.5" text-anchor="middle" style="fill: var(--kh-text)">${hourFormat.format(new Date(cur))}</text>
+            </g>
             ${smoothed.map((pts, i) => {
               if (pts.length < 2) return nothing;
               const p = at(pts, cur);
