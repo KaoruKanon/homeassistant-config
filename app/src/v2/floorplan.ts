@@ -76,6 +76,8 @@ function shade(hex: string, f: number): string {
   return `#${c((n >> 16) & 255)}${c((n >> 8) & 255)}${c(n & 255)}`;
 }
 
+const MONITOR = "M21,16H3V4H21M21,2H3C1.89,2 1,2.89 1,4V16A2,2 0 0,0 3,18H10V20H8V22H16V20H14V18H21A2,2 0 0,0 23,16V4C23,2.89 22.1,2 21,2Z";
+
 const LAMP = "M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z";
 
 function piece(name: string, w: number, h: number): SVGTemplateResult {
@@ -268,6 +270,29 @@ export class KhFloorplan extends LitElement {
       .bulb.on path {
         fill: #2b2003;
       }
+      .pc-badge {
+        cursor: pointer;
+      }
+      .pc-badge rect {
+        fill: rgb(20 22 30 / 0.8);
+        stroke: rgb(255 255 255 / 0.25);
+        stroke-width: 1.5;
+      }
+      .pc-badge path {
+        fill: #9ea4a9;
+      }
+      .pc-badge text {
+        font: 700 16px var(--kh-font, system-ui);
+        fill: #e9eaeb;
+      }
+      .pc-badge.on rect {
+        fill: rgb(33 150 243 / 0.85);
+        stroke: #4fc3f7;
+      }
+      .pc-badge.on path,
+      .pc-badge.on text {
+        fill: #fff;
+      }
       .bulb,
       .device {
         cursor: pointer;
@@ -317,6 +342,25 @@ export class KhFloorplan extends LitElement {
   private open(id: string): void {
     history.pushState(null, "", `${this.prefix}/pieces/${id}${location.search}`);
     window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+  }
+
+  /** A PC on the plan: screen icon and name, blue while it runs; tap for its popup. */
+  private pcBadges(project: (x: number, y: number) => [number, number]) {
+    const hass = store.hass!;
+    return Object.entries(config.plan?.computers ?? {}).map(([id, entity]) => {
+      const p = ROOMS[id]?.pc;
+      const c = config.home.computers.find((x) => x.entity === entity);
+      if (!p || !c) return nothing;
+      const on = isActive(hass.states[entity]);
+      const [x, y] = project(p[0] + p[2] / 2, p[1] + p[3] / 2);
+      const w = 34 + c.name.length * 10.5;
+      return svg`<g class="pc-badge ${on ? "on" : ""}" transform="translate(${x - w / 2} ${y - 18})" role="button" aria-label="${c.name} : ${on ? "allumé" : "éteint"}"
+        @click=${() => openComputer(c)}>
+        <rect width=${w} height="36" rx="18" />
+        <path d=${MONITOR} transform="translate(8 6)" />
+        <text x="36" y="24">${c.name}</text>
+      </g>`;
+    });
   }
 
   private setMode(m: "2d" | "3d"): void {
@@ -440,11 +484,12 @@ export class KhFloorplan extends LitElement {
         return svg`
           <text class="label ${small ? "small" : ""}" x=${x} y=${y} text-anchor="middle">${r.name}</text>
           ${!isNaN(t) ? svg`<text class="label small" x=${x} y=${y + 28} text-anchor="middle">${formatNumber(t)}°</text>` : nothing}
-          ${r.lights.length && !small
-            ? svg`<g class="bulb ${on ? "on" : ""}" transform="translate(${x - 18} ${y - 62})" role="button" aria-label=${on ? `Éteindre ${r.name}` : `Allumer ${r.name}`}
+          ${r.lights.length
+            ? svg`<g class="bulb ${on ? "on" : ""}" transform="translate(${x - (small ? 13 : 18)} ${y - (small ? 46 : 62)}) scale(${small ? 0.72 : 1})" role="button" aria-label=${on ? `Éteindre ${r.name}` : `Allumer ${r.name}`}
                 @click=${() => setLights(r.lights, !on)}><circle cx="18" cy="18" r="20" /><path d=${LAMP} transform="translate(6 6)" /></g>`
             : nothing}`;
       })}
+      ${this.pcBadges((x, y) => iso(...uv(x, y), 50))}
     </svg>`;
   }
 
@@ -529,11 +574,12 @@ export class KhFloorplan extends LitElement {
           ${presence ? svg`<circle class="presence" cx=${x} cy=${y - 30} r="40" />` : nothing}
           <text class="label ${small ? "small" : ""}" x=${x} y=${y} text-anchor="middle">${r.name}</text>
           ${climate ? svg`<text class="label small" x=${x} y=${y + 22} text-anchor="middle">${climate}</text>` : nothing}
-          ${r.lights.length && !small
-            ? svg`<g class="bulb ${on ? "on" : ""}" transform="translate(${x - 18} ${y - 62})" role="button" aria-label=${on ? `Éteindre ${r.name}` : `Allumer ${r.name}`}
+          ${r.lights.length
+            ? svg`<g class="bulb ${on ? "on" : ""}" transform="translate(${x - (small ? 13 : 18)} ${y - (small ? 46 : 62)}) scale(${small ? 0.72 : 1})" role="button" aria-label=${on ? `Éteindre ${r.name}` : `Allumer ${r.name}`}
                 @click=${() => setLights(r.lights, !on)}><circle cx="18" cy="18" r="20" /><path d=${LAMP} transform="translate(6 6)" /></g>`
             : nothing}`;
       })}
+      ${this.pcBadges(at)}
     </svg>`;
   }
 }
