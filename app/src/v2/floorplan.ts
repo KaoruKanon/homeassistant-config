@@ -371,6 +371,12 @@ export class KhFloorplan extends LitElement {
           ${on ? svg`<line x1=${x} y1=${y} x2=${x2} y2=${y2} stroke=${color} stroke-width="14" opacity="0.35" stroke-linecap="round" />` : nothing}
           <line x1=${x} y1=${y} x2=${x2} y2=${y2} stroke=${color} stroke-width="5" stroke-linecap="round" /><title>${name}</title></g>`;
       }
+      if (l.kind === "spot")
+        return svg`<g class="fixture" role="button" aria-label="${name} : ${on ? "allumé" : "éteint"}" @click=${tap}>
+          ${on ? svg`<circle cx=${x} cy=${y} r="34" fill=${color} opacity="0.22" />` : nothing}
+          <circle cx=${x} cy=${y} r="11" fill="#2b2f3a" stroke="#1c2027" stroke-width="2" />
+          <circle cx=${x} cy=${y} r="6" fill=${color} />
+          <title>${name}</title></g>`;
       const r = l.kind === "ceiling" ? 13 : 10;
       return svg`<g class="fixture" role="button" aria-label="${name} : ${on ? "allumé" : "éteint"}" @click=${tap}>
         ${on ? svg`<circle cx=${x} cy=${y} r=${r * 2.6} fill=${color} opacity="0.28" />` : nothing}

@@ -17,6 +17,7 @@ import {
   Shape,
   ShapeGeometry,
   SphereGeometry,
+  SpotLight,
   SRGBColorSpace,
   Vector2,
   Vector3,
@@ -60,7 +61,7 @@ interface Live {
   tvs: Map<string, { m: MeshStandardMaterial; light: PointLight }>;
   pcs: Map<string, MeshStandardMaterial[]>;
   /** Lights placed one by one: their glowing part and their light(s). */
-  fixtures: Map<string, { glow: MeshStandardMaterial; lights: PointLight[]; base: number }>;
+  fixtures: Map<string, { glow: MeshStandardMaterial; lights: (PointLight | SpotLight)[]; base: number }>;
 }
 
 /**
@@ -399,9 +400,32 @@ export class KhPlan3d extends LitElement {
     for (const list of Object.values(config.plan?.lights ?? {}))
       for (const l of list) {
         const glow = new MeshStandardMaterial({ color: "#f4efe6", roughness: 0.6, emissive: "#ffcf8a", emissiveIntensity: 0 });
-        const lights: PointLight[] = [];
+        const lights: (PointLight | SpotLight)[] = [];
         const [x, y] = l.at;
-        if (l.kind === "ceiling") {
+        if (l.kind === "spot") {
+          // Ceiling spot: a round base and a short can tilted down, a real cone of light.
+          const g = new Group();
+          const baseMat = mat("#2b2f3a", { roughness: 0.4 });
+          const base = new Mesh(new CylinderGeometry(6, 6, 2, 20), baseMat);
+          base.position.set(0, 170, 0);
+          g.add(base);
+          const can = new Mesh(new CylinderGeometry(5, 4.5, 11, 20), baseMat);
+          can.position.set(0, 163, 0);
+          can.rotation.z = 0.25;
+          g.add(can);
+          const lens = new Mesh(new CylinderGeometry(4, 4, 0.8, 20), glow);
+          lens.position.set(1.4, 157.3, 0);
+          lens.rotation.z = 0.25;
+          g.add(lens);
+          g.position.set(x - CX, 0, y - CZ);
+          s.add(g);
+          const spot = new SpotLight("#ffd9a0", 0, 420, Math.PI / 4.5, 0.55, 1.4);
+          spot.position.set(x - CX + 1.5, 157, y - CZ);
+          spot.target.position.set(x - CX + 25, 0, y - CZ);
+          spot.castShadow = false;
+          s.add(spot, spot.target);
+          lights.push(spot);
+        } else if (l.kind === "ceiling") {
           const g = new Group();
           const cord = new Mesh(new CylinderGeometry(0.4, 0.4, 40, 6), mat("#3a3f4b"));
           cord.position.set(0, 140, 0);
@@ -450,7 +474,7 @@ export class KhPlan3d extends LitElement {
             lights.push(pl);
           }
         }
-        live.fixtures.set(l.entity, { glow, lights, base: l.kind === "ceiling" ? 4 : l.kind === "lamp" ? 1.6 : 0.9 });
+        live.fixtures.set(l.entity, { glow, lights, base: l.kind === "spot" ? 9 : l.kind === "ceiling" ? 4 : l.kind === "lamp" ? 1.6 : 0.9 });
       }
     this.live = live;
   }

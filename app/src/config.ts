@@ -137,7 +137,7 @@ export interface KaoruHomeConfig {
      * light or a lamp at a point, a LED strip between two points. They also
      * count as the room's lights for its bulb.
      */
-    lights?: Record<string, { entity: string; kind: "ceiling" | "lamp" | "strip"; at: [number, number]; to?: [number, number] }[]>;
+    lights?: Record<string, { entity: string; kind: "ceiling" | "spot" | "lamp" | "strip"; at: [number, number]; to?: [number, number] }[]>;
   };
   system: {
     trackers: { entity: string; name: string; icon: string }[];
@@ -364,9 +364,10 @@ export const config: KaoruHomeConfig = {
     computers: { salon: "switch.computer_papa", chambre_william: "switch.computer_rig_kaoru" },
     lights: {
       chambre_william: [
-        { entity: "light.plafond_1", kind: "ceiling", at: [410, 835] },
-        { entity: "light.plafond_2", kind: "ceiling", at: [590, 835] },
-        { entity: "light.lampe_japonaise", kind: "lamp", at: [408, 738] },
+        { entity: "light.plafond_1", kind: "spot", at: [420, 835] },
+        { entity: "light.plafond_2", kind: "spot", at: [590, 835] },
+        // on the desk, right of the two screens, before the tower
+        { entity: "light.lampe_japonaise", kind: "lamp", at: [562, 738] },
         { entity: "light.yeelight_stripe", kind: "strip", at: [400, 724], to: [572, 724] },
       ],
     },
