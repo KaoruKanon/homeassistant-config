@@ -65,7 +65,7 @@ for (const [size, device] of Object.entries(SIZES)) for (const sidebar of SIDEBA
       walk(root.shadowRoot ?? root);
       // Cards sticking out of their column or overlapping a neighbour.
       const cards = [];
-      const collect = (n) => { for (const el of n.querySelectorAll("*")) { if (el.tagName.startsWith("KH-") && !el.tagName.endsWith("-VIEW") && !/^KH-(HERO|V2-|HOME-V2)/.test(el.tagName)) cards.push(el); if (el.shadowRoot) collect(el.shadowRoot); } };
+      const collect = (n) => { for (const el of n.querySelectorAll("*")) { if (el.tagName.startsWith("KH-") && !el.tagName.endsWith("-VIEW") && !/^KH-(HERO|V1-|V2-|HOME-V2)/.test(el.tagName)) cards.push(el); if (el.shadowRoot) collect(el.shadowRoot); } };
       collect(document);
       // Visible part only: clip by every scrolling/clipping ancestor (e.g. carousel pages off screen).
       const parentOf = (el) => el.assignedSlot ?? el.parentElement ?? el.getRootNode().host ?? null;
@@ -90,7 +90,7 @@ for (const [size, device] of Object.entries(SIZES)) for (const sidebar of SIDEBA
         const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
         if (ox > 2 && oy > 2) { issues.push(`${boxes[i].el.tagName.toLowerCase()} overlaps ${boxes[j].el.tagName.toLowerCase()}`); }
       }
-      const kh = (function find(n) { for (const el of n.querySelectorAll("*")) { if (el.tagName === "KAORU-HOME" || el.tagName === "KH-V2-APP") return el; if (el.shadowRoot) { const f = find(el.shadowRoot); if (f) return f; } } })(document);
+      const kh = (function find(n) { for (const el of n.querySelectorAll("*")) { if (el.tagName === "KH-V1-APP" || el.tagName === "KH-V2-APP") return el; if (el.shadowRoot) { const f = find(el.shadowRoot); if (f) return f; } } })(document);
       const main = kh?.shadowRoot?.querySelector("main");
       if (main && main.scrollWidth > main.clientWidth + 1) issues.push(`panel content overflows (${main.scrollWidth} > ${main.clientWidth})`);
       return [...new Set(issues)].slice(0, 6);
