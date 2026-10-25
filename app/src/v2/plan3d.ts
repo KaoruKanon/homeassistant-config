@@ -40,7 +40,7 @@ import { base } from "../styles.ts";
 import { FURNITURE, FURNITURE_3D, ROOMS, WALLS, planLights } from "./plan-data.ts";
 import { roomColors } from "./room-art.ts";
 import { currentSky } from "./sky.ts";
-import { computer, flatTv, gamingSetup, model } from "./plan3d-models.ts";
+import { andon, computer, flatTv, gamingSetup, model } from "./plan3d-models.ts";
 
 // Plan units are ~cm; the scene is centred on the flat, y up.
 const CX = 400, CZ = 722;
@@ -72,7 +72,7 @@ interface Live {
   /** Sun patches on the floor, one per window. */
   beams: { mesh: Mesh; a: number; b: number; minX: number }[];
   tvs: Map<string, { m: MeshStandardMaterial; light: PointLight }>;
-  pcs: Map<string, MeshStandardMaterial[]>;
+  pcs: Map<string, { mats: MeshStandardMaterial[]; lights: PointLight[] }>;
   /** Lights placed one by one: their glowing part and their light(s). */
   fixtures: Map<string, { glow: MeshStandardMaterial; lights: (PointLight | SpotLight)[]; base: number }>;
 }
@@ -460,10 +460,10 @@ export class KhPlan3d extends LitElement {
       if (!p) continue;
       // Chambre William: the gaming setup, its tower on the desk extension;
       // elsewhere a monitor with the tower on the floor beside the desk.
-      const { group, screens } = id === "chambre_william" ? gamingSetup([110, 0, -6]) : computer(Math.max(p[2], p[3]), [30, -76, -12]);
+      const { group, screens, lights } = id === "chambre_william" ? gamingSetup([110, 0, -6]) : computer(Math.max(p[2], p[3]), [30, -76, -12]);
       place(group, p[0] + p[2] / 2, p[1] + p[3] / 2, 76, FACING[id] ?? 0);
       pickable(group, { pc: entity });
-      live.pcs.set(entity, screens);
+      live.pcs.set(entity, { mats: screens, lights });
     }
 
     // Lights placed one by one (ceiling lights, lamps, LED strips).
@@ -514,19 +514,12 @@ export class KhPlan3d extends LitElement {
           s.add(pl);
           lights.push(pl);
         } else if (l.kind === "lamp") {
-          // Japanese paper lantern on the desk.
-          const g = new Group();
-          const foot = new Mesh(new CylinderGeometry(6, 7, 2, 16), mat("#2b2f3a"));
-          foot.position.set(0, 77, 0);
-          g.add(foot);
-          const lantern = new Mesh(new SphereGeometry(13, 20, 16), glow);
-          lantern.scale.y = 1.25;
-          lantern.position.set(0, 94, 0);
-          g.add(lantern);
-          g.position.set(x - CX, 0, y - CZ);
+          // Japanese lamp (andon) on the desk.
+          const g = andon(glow);
+          g.position.set(x - CX, 76, y - CZ);
           s.add(g);
           const pl = new PointLight("#ffc98a", 0, 300, 1.8);
-          pl.position.set(x - CX, 96, y - CZ);
+          pl.position.set(x - CX, 94, y - CZ);
           s.add(pl);
           lights.push(pl);
         } else if (l.to) {
@@ -602,9 +595,10 @@ export class KhPlan3d extends LitElement {
       m.emissiveIntensity = on ? 1.15 : 0; // the picture shows only while it plays
       light.intensity = on ? 4 * 10000 : 0;
     }
-    for (const [entity, list] of live.pcs) {
+    for (const [entity, pc] of live.pcs) {
       const on = isActive(hass.states[entity]);
-      for (const m of list) m.emissiveIntensity = on ? 1.3 : 0;
+      for (const m of pc.mats) m.emissiveIntensity = on ? 1.3 : 0;
+      for (const l of pc.lights) l.intensity = on ? 9000 : 0; // RGB through the case's glass
     }
     // Each placed light in its own colour and brightness.
     for (const [entity, f] of live.fixtures) {

@@ -1,4 +1,4 @@
-import { BoxGeometry, CanvasTexture, CylinderGeometry, Group, Mesh, MeshStandardMaterial, SRGBColorSpace, TorusGeometry } from "three";
+import { BoxGeometry, CanvasTexture, CylinderGeometry, Group, Mesh, MeshStandardMaterial, PointLight, SRGBColorSpace, TorusGeometry } from "three";
 
 // Furniture of the 3D plan, built from simple shapes at real-ish sizes
 // (1 unit ≈ 1 cm, y up). Each model fills a w × d footprint centred on its
@@ -339,6 +339,40 @@ function tower(g: Group, x: number, y: number, z: number, glow: MeshStandardMate
   if (rgb) box(g, 16, 1, 0.6, x, y + 3, z + 21.2, glowMat(glow, "#ff3fa4"));
 }
 
+/**
+ * The RIG: a black NZXT H5 Flow-like case, front to +z. Perforated front,
+ * tempered glass on its left side (-x), and behind it the AIO with its
+ * round screen, the radiator fans on top and the graphics card. While
+ * the PC runs, RGB light comes out through the glass (`lights`).
+ */
+function nzxt(g: Group, x: number, y: number, z: number, glow: MeshStandardMaterial[], lights: PointLight[]): void {
+  const W = 23, H = 47, D = 43, white = m("#17181c", 0.45, 0.2), mesh = m("#2a2c31", 0.95), inside = m("#1e2024", 0.6);
+  box(g, W, 2, D, x, y + H - 2, z, white); // top
+  box(g, W, 2, D, x, y, z, white); // bottom
+  box(g, 2, H, D, x + W / 2 - 1, y, z, white); // right side panel (solid)
+  box(g, W, H, 2, x, y, z - D / 2 + 1, inside); // back, seen through the glass
+  box(g, W, H - 4, 1.5, x, y + 2, z + D / 2 - 0.75, mesh); // perforated front
+  box(g, W - 3, 11, D - 4, x + 1, y + 2, z, mesh); // PSU shroud (mesh bottom)
+  // Behind the glass: radiator and fans on top, the card, the pump with its screen.
+  box(g, W - 4, 3, D - 8, x + 1, y + H - 6, z, inside);
+  for (const fz of [-9, 9]) cyl(g, 7, 1, x + 1, y + H - 7.5, z + fz, m("#2b2d33", 0.5), 20);
+  box(g, 6, 12, 30, x - 2, y + 15, z + 2, m("#16171b", 0.35, 0.4)); // graphics card
+  const pump = cyl(g, 4.2, 2, x - 6, y + 31, z + 2, white, 24);
+  pump.rotation.z = Math.PI / 2;
+  const lcd = cyl(g, 3.4, 0.4, x - 7.2, y + 31, z + 2, glowMat(glow, "#b388ff"), 24);
+  lcd.rotation.z = Math.PI / 2;
+  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z + D / 2 - 3, glowMat(glow, "#ff3fa4")); // RGB strip behind the front
+  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z - D / 2 + 3, glowMat(glow, "#7c4dff"));
+  const glass = new MeshStandardMaterial({ color: "#cfd8e3", roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.22 });
+  box(g, 0.6, H, D, x - W / 2 + 0.3, y, z, glass); // tempered glass, left side
+  box(g, 3, 0.6, 1.2, x - 6, y + H, z + D / 2 - 4, glowMat(glow, "#ffffff")); // power button light
+  // RGB through the glass, on the desk and the wall.
+  const rgb = new PointLight("#9b5cff", 0, 140, 2);
+  rgb.position.set(x - W / 2 - 6, y + H / 2, z);
+  g.add(rgb);
+  lights.push(rgb);
+}
+
 /** A material that lights up with the PC (collected so the plan can switch it). */
 function glowMat(list: MeshStandardMaterial[], color: string): MeshStandardMaterial {
   const mt = new MeshStandardMaterial({ color: "#15161b", roughness: 0.3, emissive: color, emissiveIntensity: 0 });
@@ -366,24 +400,25 @@ function monitor(g: Group, x: number, z: number, wide: number, turn: number, scr
  * mouse, the tower on the floor beside the desk (`towerAt`). Returns every
  * material that lights up while it runs.
  */
-export function computer(w: number, towerAt?: [number, number, number]): { group: Group; screens: MeshStandardMaterial[] } {
+export function computer(w: number, towerAt?: [number, number, number]): { group: Group; screens: MeshStandardMaterial[]; lights: PointLight[] } {
   const g = new Group();
   const screens: MeshStandardMaterial[] = [];
   monitor(g, 0, 0, Math.min(56, w * 1.1), 0, screens);
   box(g, 40, 1.5, 13, 0, 0, 14, m("#2b2f3a", 0.5)); // keyboard
   box(g, 5, 1.5, 8, 26, 0, 15, m("#2b2f3a", 0.5)); // mouse
   if (towerAt) tower(g, towerAt[0], towerAt[1], towerAt[2], screens);
-  return { group: g, screens };
+  return { group: g, screens, lights: [] };
 }
 
 /**
  * The gaming setup: two screens side by side, slightly turned in, a wide
- * desk mat, a lit keyboard and a mouse, headphones, and the RGB tower on the
- * desk extension (`towerAt`).
+ * desk mat, a lit keyboard and a mouse, headphones, and the black NZXT tower
+ * on the desk extension (`towerAt`).
  */
-export function gamingSetup(towerAt: [number, number, number]): { group: Group; screens: MeshStandardMaterial[] } {
+export function gamingSetup(towerAt: [number, number, number]): { group: Group; screens: MeshStandardMaterial[]; lights: PointLight[] } {
   const g = new Group();
   const screens: MeshStandardMaterial[] = [];
+  const lights: PointLight[] = [];
   monitor(g, -31, -2, 60, 0.12, screens);
   monitor(g, 31, -2, 60, -0.12, screens);
   box(g, 90, 0.4, 36, 0, 0, 14, m("#1a1c22", 0.95)); // desk mat
@@ -395,6 +430,73 @@ export function gamingSetup(towerAt: [number, number, number]): { group: Group; 
   const head = new Mesh(new TorusGeometry(8, 1.6, 8, 20, Math.PI), m(BLACK, 0.4));
   head.position.set(44, 14, 10);
   g.add(head);
-  tower(g, towerAt[0], towerAt[1], towerAt[2], screens, true);
-  return { group: g, screens };
+  nzxt(g, towerAt[0], towerAt[1], towerAt[2], screens, lights);
+  return { group: g, screens, lights };
+}
+
+/** Painted paper of the Japanese lamp: a red sun and a cherry branch in bloom. */
+let andonPaper: CanvasTexture | undefined;
+function paper(): CanvasTexture {
+  if (andonPaper) return andonPaper;
+  const c = document.createElement("canvas");
+  c.width = 128;
+  c.height = 224;
+  const x = c.getContext("2d")!;
+  x.fillStyle = "#f3e7c9";
+  x.fillRect(0, 0, 128, 224);
+  x.fillStyle = "#d4202a";
+  x.beginPath();
+  x.arc(84, 62, 30, 0, Math.PI * 2);
+  x.fill();
+  x.strokeStyle = "#2a1a14";
+  x.lineCap = "round";
+  const branch = (x0: number, y0: number, x1: number, y1: number, w: number) => {
+    x.lineWidth = w;
+    x.beginPath();
+    x.moveTo(x0, y0);
+    x.quadraticCurveTo((x0 + x1) / 2 + 10, (y0 + y1) / 2, x1, y1);
+    x.stroke();
+  };
+  branch(20, 224, 40, 120, 7);
+  branch(40, 120, 30, 40, 4);
+  branch(40, 130, 100, 100, 3);
+  branch(36, 170, 90, 160, 3);
+  branch(32, 80, 70, 30, 2);
+  x.fillStyle = "#e0405a";
+  for (const [bx, by] of [[30, 45], [70, 30], [58, 108], [100, 100], [88, 158], [45, 140], [24, 95], [76, 120], [52, 70], [96, 140]]) {
+    x.beginPath();
+    x.arc(bx, by, 4.5, 0, Math.PI * 2);
+    x.fill();
+  }
+  andonPaper = new CanvasTexture(c);
+  andonPaper.colorSpace = SRGBColorSpace;
+  return andonPaper;
+}
+
+/**
+ * The Japanese lamp (andon): a square black wooden frame on four short legs,
+ * painted paper panels lit from inside. `glow` is the light's own material
+ * (the plan switches it); the paper picture is laid on it. Stands on y = 0.
+ */
+export function andon(glow: MeshStandardMaterial): Group {
+  const g = new Group();
+  const S = 15, H = 30, foot = 3, wood = m("#141214", 0.7);
+  glow.map = paper();
+  glow.emissiveMap = glow.map;
+  glow.color.set("#ffffff");
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(g, 1.6, H + foot, 1.6, (sx * S) / 2, 0, (sz * S) / 2, wood); // posts and legs
+  for (const yy of [foot, foot + H - 1.4]) {
+    box(g, S + 1.6, 1.4, 1.6, 0, yy, -S / 2, wood);
+    box(g, S + 1.6, 1.4, 1.6, 0, yy, S / 2, wood);
+    box(g, 1.6, 1.4, S + 1.6, -S / 2, yy, 0, wood);
+    box(g, 1.6, 1.4, S + 1.6, S / 2, yy, 0, wood);
+  }
+  for (let i = 0; i < 4; i++) {
+    const panel = new Mesh(new BoxGeometry(S - 1.6, H - 2.8, 0.3), glow);
+    const a = (i * Math.PI) / 2;
+    panel.position.set(Math.sin(a) * (S / 2), foot + 1.4 + (H - 2.8) / 2, Math.cos(a) * (S / 2));
+    panel.rotation.y = a;
+    g.add(panel);
+  }
+  return g;
 }

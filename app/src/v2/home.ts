@@ -331,8 +331,10 @@ export class KhHomeV2 extends LitElement {
         gap: 10px;
         padding: 12px 14px;
       }
-      .wall .pills {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      /* Two per row while each keeps ~150 px, else one per row (narrow tiles). */
+      .wall .pills,
+      .fit2 {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 152px), 1fr));
       }
       .wall .kpis {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -728,7 +730,7 @@ export class KhHomeV2 extends LitElement {
           : nothing,
       computers: html`<section class="tile" style="--tint: var(--rgb-blue); --w: 4; --w6: 3; --w2: 2; --wt: 2">
             ${head("mdi:desktop-tower-monitor", "Ordinateurs", { href: `${p}/energie`, label: "Énergie" })}
-            <div class="row2">
+            <div class="row2 fit2">
               ${h.computers.map((c) => html`<kh-computer entity-id=${c.entity} name=${c.name} busy=${c.busy ?? nothing}></kh-computer>`)}
             </div>
           </section>`,
