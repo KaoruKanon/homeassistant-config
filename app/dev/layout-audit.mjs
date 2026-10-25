@@ -41,7 +41,7 @@ for (const [size, device] of Object.entries(SIZES)) for (const sidebar of SIDEBA
     await page.goto(`${url}${p}?as=kaoru`);
     await page.waitForSelector("kaoru-home, kaoru-home-v2");
     await page.waitForTimeout(p.split("/").length === 2 ? 1800 : 1200);
-    const report = await page.evaluate((MIN) => {
+    const audit = (MIN) => page.evaluate((MIN) => {
       const issues = [];
       const root = document.querySelector("home-assistant");
       if (document.scrollingElement.scrollWidth > innerWidth + 1) {
@@ -95,6 +95,12 @@ for (const [size, device] of Object.entries(SIZES)) for (const sidebar of SIDEBA
       if (main && main.scrollWidth > main.clientWidth + 1) issues.push(`panel content overflows (${main.scrollWidth} > ${main.clientWidth})`);
       return [...new Set(issues)].slice(0, 6);
     }, MIN);
+    // A late navigation (HA redirect) can destroy the page under the audit: say where, then retry once.
+    const report = await audit(MIN).catch(async (e) => {
+      console.log(`retry ${size} ${p}: now at ${page.url()} (${e.message.split("\n")[0]})`);
+      await page.waitForTimeout(1500);
+      return audit(MIN);
+    });
     if (report.length) problems.push(`${size} sidebar=${sidebar} ${p}: ${report.join("; ")}`);
     // A screenshot that times out (software WebGL under load) is not a layout problem.
     if (p.split("/").length === 2)
