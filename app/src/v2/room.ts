@@ -52,13 +52,15 @@ export class KhV2Room extends LitElement {
       }
       /* Phones: smaller furniture at the bottom right, no window under the title. */
       @container v2 (max-width: 679px) {
+    @media (orientation: portrait) {
         .hero .art {
           --scene-max: 54cqw;
         }
         .hero .art .window {
           display: none;
         }
-      }
+        }
+  }
       .hero .art::after {
         content: "";
         position: absolute;

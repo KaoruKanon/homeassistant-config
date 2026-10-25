@@ -267,11 +267,11 @@ export class KhHomeV2 extends LitElement {
         grid-area: graph;
         margin: 6px -12px 0;
       }
-      /* Wall tablet: three columns, tiles at their natural height. */
+      /* Wall tablet: three columns (two when narrower), tiles at their natural height. */
       .wall {
         margin-top: 12px;
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
         gap: 12px;
         align-items: start;
       }
@@ -413,6 +413,7 @@ export class KhHomeV2 extends LitElement {
         }
       }
       @container v2 (max-width: 679px) {
+    @media (orientation: portrait) {
         .scene {
           min-height: 168px;
           padding: 16px 18px;
@@ -420,12 +421,23 @@ export class KhHomeV2 extends LitElement {
         .scene .side {
           gap: 6px;
         }
-      }
+        }
+  }
     `,
   ];
 
+  /** Width of the page, for the number of wall columns (updated when it crosses 960 px). */
+  private wallWidth = 1200;
+  private widthWatch = new ResizeObserver(([e]) => {
+    const before = this.wallWidth < 960;
+    this.wallWidth = e.contentRect.width;
+    if (before !== this.wallWidth < 960) this.requestUpdate();
+  });
+
   connectedCallback(): void {
     super.connectedCallback();
+    this.wallWidth = this.getBoundingClientRect().width || this.wallWidth;
+    this.widthWatch.observe(this);
     const tick = () => {
       this.now = new Date();
       this.timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50);
@@ -435,6 +447,7 @@ export class KhHomeV2 extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.widthWatch.disconnect();
     this.slotSizes.disconnect();
     window.clearTimeout(this.timer);
   }
@@ -542,10 +555,10 @@ export class KhHomeV2 extends LitElement {
    * Balance: the tallest tiles are placed first, each into the shortest of
    * three columns; inside a column the tiles keep their order of importance.
    */
-  private columns(keys: string[]): string[][] {
+  private columns(keys: string[], n: number): string[][] {
     const size = (k: string) => (this.heights.get(k) ?? WALL_ESTIMATE[k] ?? 200) + 12;
-    const cols: string[][] = [[], [], []];
-    const h = [0, 0, 0];
+    const cols: string[][] = Array.from({ length: n }, () => []);
+    const h = Array<number>(n).fill(0);
     for (const k of [...keys].sort((a, b) => size(b) - size(a))) {
       const i = h.indexOf(Math.min(...h));
       cols[i].push(k);
@@ -571,8 +584,10 @@ export class KhHomeV2 extends LitElement {
    * can only happen a few times, then stays.
    */
   private wallColumns(keys: string[]): string[][] {
-    const id = keys.join(",");
-    const fresh = this.columns(keys);
+    // Three columns of at least ~300 px; two below that (a tablet with HA's sidebar open).
+    const n = this.wallWidth < 960 ? 2 : 3;
+    const id = `${n}|${keys.join(",")}`;
+    const fresh = this.columns(keys, n);
     if (!this.layout || this.layout.keys !== id || this.tallest(fresh) < this.tallest(this.layout.cols) - 60) this.layout = { keys: id, cols: fresh };
     return this.layout.cols;
   }
@@ -587,7 +602,7 @@ export class KhHomeV2 extends LitElement {
         changed = true;
       }
     }
-    if (changed && this.layout && this.tallest(this.columns(this.layout.keys.split(","))) < this.tallest(this.layout.cols) - 60) this.requestUpdate();
+    if (changed && this.layout && this.tallest(this.columns(this.layout.keys.split("|")[1].split(","), this.layout.cols.length)) < this.tallest(this.layout.cols) - 60) this.requestUpdate();
   });
 
   protected updated(): void {
@@ -758,7 +773,7 @@ export class KhHomeV2 extends LitElement {
       const keys = WALL_ORDER.filter((k) => tiles[k] !== nothing && tiles[k] !== undefined);
       return html`
         ${this.hero()}
-        <div class="wall">
+        <div class="wall" style="--cols: ${this.wallWidth < 960 ? 2 : 3}">
           ${this.wallColumns(keys).map(
             (col) => html`<div class="wcol">${col.map((k) => html`<div class="wslot" data-k=${k}>${tiles[k]}</div>`)}</div>`,
           )}

@@ -58,10 +58,12 @@ export class KhV2Rooms extends LitElement {
         background: linear-gradient(90deg, rgb(0 0 0 / 0.32), rgb(0 0 0 / 0) 55%);
       }
       @container v2 (max-width: 679px) {
+    @media (orientation: portrait) {
         .hero .art {
           --scene-max: 42cqw;
         }
-      }
+        }
+  }
       /* Each tile is the scene of its room, the text on its left wall. */
       /* The whole card opens the room (the cover link); only the light switch
          takes its own taps. */

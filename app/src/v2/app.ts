@@ -210,7 +210,7 @@ export class KhV2App extends LitElement {
   }
 
   private layout(width: number): void {
-    this.phone = width < 680;
+    this.phone = width < 680 && window.innerHeight >= window.innerWidth; // phones: portrait only
     this.wall = !this.phone && isWall(width);
   }
 

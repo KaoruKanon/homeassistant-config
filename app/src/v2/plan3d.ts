@@ -34,7 +34,7 @@ import { pcPress } from "../components/gestures.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive } from "../format.ts";
 import { openComputer } from "../popups/open.ts";
-import type { Room } from "../rooms.ts";
+import { entityName, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import { FURNITURE, FURNITURE_3D, ROOMS, WALLS, planLights } from "./plan-data.ts";
@@ -45,6 +45,12 @@ import { computer, flatTv, gamingSetup, model } from "./plan3d-models.ts";
 // Plan units are ~cm; the scene is centred on the flat, y up.
 const CX = 400, CZ = 722;
 const WALL_H = 80;
+/** The facade with the windows, and the window's sill and glass heights. */
+const FACADE_X = 720;
+const SILL = 30;
+const GLASS_H = 46;
+/** Height of each kind of placed light, for its button on the overlay. */
+const FIXTURE_Z: Record<string, number> = { spot: 160, ceiling: 128, lamp: 94, strip: 92 };
 
 /** A box from a plan rectangle (x, y, w, h) standing on the floor, height z. */
 function slab(x: number, y: number, w: number, h: number, z: number, mat: MeshStandardMaterial, lift = 0): Mesh {
@@ -177,6 +183,28 @@ export class KhPlan3d extends LitElement {
       }
       .bulb ha-icon {
         --mdc-icon-size: 20px;
+      }
+      .fix {
+        pointer-events: auto;
+        position: absolute;
+        transform: translate(-50%, -50%);
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: rgb(20 22 30 / 0.75);
+        border: 1px solid rgb(255 255 255 / 0.3);
+        color: #e9eaeb;
+      }
+      .fix.on {
+        background: rgb(255 179 71 / 0.92);
+        border-color: #ffd27a;
+        color: #2b2003;
+        box-shadow: 0 0 14px rgb(255 190 90 / 0.7);
+      }
+      .fix ha-icon {
+        --mdc-icon-size: 17px;
       }
       .badge {
         pointer-events: auto;
@@ -350,6 +378,22 @@ export class KhPlan3d extends LitElement {
     const walls = new Group();
     const wallMat = mat("#d9d4cc", { roughness: 0.9 });
     for (const [x, y, w, h] of WALLS) walls.add(slab(x, y, w, h, WALL_H, wallMat));
+    // The facade (x = 720, where the windows are): a wall under each window (the
+    // sill) and above it, and full wall wherever the plan has neither wall nor
+    // window, so a window never floats apart from the rest of the wall.
+    const facade = WALLS.filter(([x, , w]) => x === FACADE_X && w === 10).map(([, y, , h]): [number, number] => [y, y + h]);
+    const glass = Object.values(ROOMS).flatMap((p) => p.windows ?? []);
+    for (const [a, b] of glass) {
+      walls.add(slab(FACADE_X, a, 10, b - a, SILL, wallMat));
+      walls.add(slab(FACADE_X, a, 10, b - a, WALL_H - SILL - GLASS_H, wallMat, SILL + GLASS_H));
+    }
+    const covered = [...facade, ...glass].sort((p, q) => p[0] - q[0]);
+    const ys = Object.values(ROOMS).flatMap((p) => p.points.split(" ").filter((xy) => Number(xy.split(",")[0]) >= FACADE_X).map((xy) => Number(xy.split(",")[1])));
+    let at = Math.min(...ys);
+    for (const [a, b] of covered) {
+      if (a > at) walls.add(slab(FACADE_X, at, 10, a - at, WALL_H, wallMat));
+      at = Math.max(at, b);
+    }
     s.add(walls);
 
     for (const [id, p] of Object.entries(ROOMS)) {
@@ -357,7 +401,7 @@ export class KhPlan3d extends LitElement {
       const minX = Math.min(...p.points.split(" ").map((xy) => Number(xy.split(",")[0])));
       for (const [a, b] of p.windows ?? []) {
         const m = mat("#8ecae6", { roughness: 0.2, transparent: true, opacity: 0.85 });
-        s.add(slab(717, a, 16, b - a, 46, m, 30));
+        s.add(slab(FACADE_X - 3, a, 16, b - a, GLASS_H, m, SILL));
         list.push(m);
         // The patch of sunlight this window casts on the floor (moved in sync()).
         const geo = new BufferGeometry();
@@ -660,6 +704,19 @@ export class KhPlan3d extends LitElement {
                   : nothing}
                 <span class="name">${r.name}${!isNaN(t) ? html`<span class="t">${formatNumber(t)}°</span>` : nothing}</span>
               </div>`;
+            })}
+            ${Object.values(config.plan?.lights ?? {}).flat().map((l) => {
+              // Each placed light, on its own (as in 2D): a tap switches it.
+              const st = hass.states[l.entity];
+              const [x, y] = l.to ? [(l.at[0] + l.to[0]) / 2, (l.at[1] + l.to[1]) / 2] : l.at;
+              const pos = st && this.at(x, y, FIXTURE_Z[l.kind] ?? 100);
+              if (!pos) return nothing;
+              const on = isActive(st);
+              const name = entityName(hass, l.entity, config);
+              return html`<button class="fix ${on ? "on" : ""}" style="left:${pos[0]}px; top:${pos[1]}px"
+                aria-label="${name} : ${on ? "éteindre" : "allumer"}" title=${name} @click=${() => toggle(l.entity, name)}>
+                <ha-icon icon=${l.kind === "strip" ? "mdi:led-strip-variant" : l.kind === "lamp" ? "mdi:lamp" : l.kind === "spot" ? "mdi:spotlight-beam" : "mdi:ceiling-light"}></ha-icon>
+              </button>`;
             })}
             ${Object.entries(config.plan?.computers ?? {}).map(([id, entity]) => {
               const p = ROOMS[id]?.pc, c = config.home.computers.find((x) => x.entity === entity);

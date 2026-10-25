@@ -244,16 +244,39 @@ export const v2 = css`
       gap: 14px;
     }
   }
+  /* 6 columns in portrait up to 1099 px (2 halves in landscape up to 899 px). The phone layout
+     (one stack, bottom dock) is for portrait only: in landscape a tablet keeps
+     columns, like the computer, even with HA's sidebar open. */
   @container v2 (max-width: 1099px) {
-    .bento {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+    @media (orientation: portrait) {
+      .bento {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+      .tile,
+      .col {
+        grid-column: span var(--w6, 3);
+      }
     }
-    .tile,
-    .col {
-      grid-column: span var(--w6, 3);
+  }
+  @container v2 (max-width: 899px) {
+    @media (orientation: landscape) {
+      /* Two halves side by side (a landscape tablet with HA's sidebar open):
+         the wide tiles of the computer layout keep the whole width. */
+      .bento {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .tile,
+      .col {
+        grid-column: span 1;
+      }
+      .tile[style*="--w: 12"],
+      .tile[style*="--w: 8"] {
+        grid-column: 1 / -1;
+      }
     }
   }
   @container v2 (max-width: 679px) {
+    @media (orientation: portrait) {
     .hero {
       padding: 20px;
       min-height: 190px;
@@ -281,6 +304,7 @@ export const v2 = css`
     }
     .pills {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     }
   }
 `;
@@ -329,5 +353,5 @@ export function pagesOf<T>(items: T[], n: number): T[][] {
  * height, so a docked sidebar never squeezes the three columns.
  */
 export function isWall(panelWidth: number): boolean {
-  return panelWidth >= 1000 && window.innerHeight <= 1100 && window.innerWidth > window.innerHeight;
+  return panelWidth >= 900 && window.innerHeight <= 1100 && window.innerWidth > window.innerHeight;
 }
