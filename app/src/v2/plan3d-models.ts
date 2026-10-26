@@ -130,15 +130,17 @@ export function model(name: string, w: number, d: number): Group | undefined {
       return g;
     }
     case "bar_table": {
-      // Bar shelf fixed to the wall (at -z), brackets underneath, two stools in front.
-      const top = m("#b8875a", 0.5);
+      // Grey bar top fixed to the wall (at -z), a steel leg at its free end,
+      // two stools in front (one black, one white).
+      box(g, 3, 100, 3, w / 2 - 6, 0, d * 0.7 - d / 2 - 4, m(STEEL, 0.25, 0.85));
+      const top = m("#5c6168", 0.5);
       box(g, w, 4, d * 0.7, 0, 100, -d / 2 + (d * 0.7) / 2, top);
       for (const sx of [-1, 1]) {
         box(g, 3, 28, 3, sx * (w / 2 - 15), 72, -d / 2 + 2, m(BLACK, 0.4, 0.5)); // wall rail
         const brace = box(g, 3, 3, d * 0.6, sx * (w / 2 - 15), 86, -d / 2 + (d * 0.3), m(BLACK, 0.4, 0.5));
         brace.rotation.x = 0.55;
       }
-      for (const sx of [-0.28, 0.28]) {
+      for (const [sx, seat] of [[-0.28, "#1d1e22"], [0.28, "#f2f2f0"]] as [number, string][]) {
         const x = sx * w, z = d / 2 + 6;
         cyl(g, 16, 2, x, 0, z, m(BLACK, 0.3, 0.6), 20);
         cyl(g, 2.5, 66, x, 2, z, m(STEEL, 0.25, 0.85), 12);
@@ -146,36 +148,44 @@ export function model(name: string, w: number, d: number): Group | undefined {
         ring.rotation.x = Math.PI / 2;
         ring.position.set(x, 30, z);
         g.add(ring);
-        cyl(g, 17, 5, x, 68, z, m("#3c4250", 0.8), 24);
+        cyl(g, 17, 5, x, 68, z, m(seat, 0.7), 24);
+        box(g, 26, 16, 3, x, 73, z - 13, m(seat, 0.7)); // backrest
       }
       return g;
     }
     case "kitchen_cabinet": {
-      // Base unit with drawers and a worktop; the microwave and the kettle on top.
-      const front = m("#e8754f", 0.55);
-      box(g, w, 6, d - 4, 0, 0, -2, m(BLACK, 0.8)); // plinth
-      box(g, w, 80, d - 2, 0, 6, -1, m("#cf6340", 0.6));
-      const cols = Math.max(2, Math.round(w / 60));
-      const cw = w / cols;
-      for (let c = 0; c < cols; c++)
-        for (let r = 0; r < 3; r++) {
-          box(g, cw - 3, 24, 1.2, -w / 2 + cw * (c + 0.5), 8 + r * 26, d / 2, front);
-          box(g, 14, 1.8, 2, -w / 2 + cw * (c + 0.5), 8 + r * 26 + 19, d / 2 + 1, m(STEEL, 0.25, 0.85));
-        }
-      box(g, w + 2, 4, d + 2, 0, 86, 0, m("#3a3f4b", 0.35)); // worktop
-      // Microwave, door window and keypad.
+      // The buffet: cream doors edged with pine, round wooden knobs, a pine
+      // worktop; cream wall cupboards above. On it: the black microwave, the
+      // grey Tefal air fryer and the white kettle.
+      const cream = m("#efe7d3", 0.6), pine = m("#c98a3f", 0.55), knob = m("#a8692e", 0.5);
+      box(g, w, 6, d - 4, 0, 0, -2, m("#c9a06a", 0.8)); // plinth
+      box(g, w, 80, d - 2, 0, 6, -1, pine);
+      const cols = 3, cw = w / cols;
+      for (let c = 0; c < cols; c++) {
+        const cx = -w / 2 + cw * (c + 0.5);
+        box(g, cw - 3, 14, 1.2, cx, 70, d / 2, cream); // drawer
+        box(g, cw - 3, 60, 1.2, cx, 8, d / 2, cream); // door
+        cyl(g, 1.6, 2, cx, 76, d / 2 + 1.6, knob, 12).rotation.x = Math.PI / 2;
+        cyl(g, 1.6, 2, cx + cw / 2 - 8, 44, d / 2 + 1.6, knob, 12).rotation.x = Math.PI / 2;
+      }
+      box(g, w + 2, 3.5, d + 2, 0, 86, 0, pine); // pine worktop
+      // Wall cupboards.
+      box(g, w, 62, 32, 0, 150, -d / 2 + 16, pine);
+      for (let c = 0; c < cols; c++) {
+        const cx = -w / 2 + cw * (c + 0.5);
+        box(g, cw - 3, 58, 1.2, cx, 152, -d / 2 + 32.6, cream);
+        cyl(g, 1.6, 2, cx + (c === 1 ? -cw / 2 + 8 : cw / 2 - 8), 158, -d / 2 + 34, knob, 12).rotation.x = Math.PI / 2;
+      }
+      // Microwave (black, blue clock), air fryer (dark grey), kettle (white).
       const mx = -w / 2 + 34;
-      box(g, 48, 28, 34, mx, 90, -2, m("#2b2f3a", 0.35, 0.3));
-      box(g, 30, 18, 0.6, mx - 6, 95, 15.3, m("#0b0b12", 0.1, 0.3));
-      box(g, 8, 18, 0.6, mx + 17, 95, 15.3, m("#4a5168", 0.4));
-      // Kettle and teapot.
-      const kx = w / 2 - 26;
-      cyl(g, 8, 2, kx, 90, 0, m(BLACK, 0.4), 20);
-      cyl(g, 6.5, 20, kx, 92, 0, m(STEEL, 0.2, 0.9), 20, 5);
-      box(g, 2, 12, 8, kx + 7, 96, 0, m(BLACK, 0.4));
-      const pot = cyl(g, 8, 11, kx - 24, 90, 4, m("#f6efe2", 0.3), 20, 6);
-      pot.scale.set(1, 1, 1);
-      cyl(g, 1.5, 7, kx - 33, 95, 4, m("#f6efe2", 0.3), 10).rotation.z = 0.9;
+      box(g, 50, 29, 36, mx, 89.5, -2, m("#141518", 0.35, 0.2));
+      box(g, 34, 22, 0.6, mx - 6, 93, 16.3, m("#07080a", 0.1, 0.3));
+      box(g, 6, 1.6, 0.6, mx + 17, 112, 16.3, m("#2a9df4", 0.3));
+      const fx = w / 2 - 30;
+      cyl(g, 15, 32, fx, 89.5, 0, m("#3a3c41", 0.4, 0.3), 32);
+      const port = cyl(g, 4, 1, fx, 112, 15, m("#9aa0a6", 0.2, 0.8), 20);
+      port.rotation.x = Math.PI / 2;
+      cyl(g, 7, 18, mx + 28, 89.5 + 29, -8, m("#f4f4f2", 0.35), 20, 5.5); // kettle, on the microwave
       return g;
     }
     case "tv_stand": {
@@ -275,26 +285,60 @@ export function model(name: string, w: number, d: number): Group | undefined {
       return g;
     }
     case "refrigerator": {
-      box(g, w, 112, d, 0, 0, 0, m(WHITE, 0.4));
-      box(g, w - 2, 1, 1, 0, 70, d / 2 + 0.3, m("#c9d3d8"));
-      for (const y of [40, 86]) box(g, 3, 22, 3, w / 2 - 8, y, d / 2 + 1.5, m(STEEL, 0.3, 0.8));
+      // Tall stainless Samsung, the freezer drawer at the bottom.
+      const inox = m("#9fa4aa", 0.3, 0.75);
+      box(g, w, 185, d, 0, 0, 0, inox);
+      box(g, w - 2, 0.8, 1, 0, 62, d / 2 + 0.3, m("#5c6066", 0.4, 0.5)); // freezer line
+      box(g, 1.5, 100, 1, w / 2 - 3, 70, d / 2 + 0.6, m("#3a3d42", 0.4, 0.5)); // handle recess
+      box(g, 1.5, 40, 1, w / 2 - 3, 12, d / 2 + 0.6, m("#3a3d42", 0.4, 0.5));
       return g;
     }
     case "range": {
-      box(g, w, 88, d, 0, 0, 0, m("#58606b", 0.5));
-      box(g, w - 6, 40, 1, 0, 20, d / 2 + 0.3, m(BLACK, 0.2)); // oven door
-      for (const [a, b] of [[-0.25, -0.22], [0.25, -0.22], [-0.25, 0.22], [0.25, 0.22]]) cyl(g, 9, 1.5, w * a, 88, d * b, m(BLACK, 0.4), 20);
+      // Stainless cooker, black ceramic hob, knobs and a dark glass oven door.
+      const inox = m("#a7abb0", 0.3, 0.75);
+      box(g, w, 86, d, 0, 0, 0, inox);
+      box(g, w, 1.5, d, 0, 86, 0, m("#0f1013", 0.08, 0.2)); // ceramic hob
+      for (const [a, b] of [[-0.25, -0.2], [0.25, -0.2], [-0.25, 0.22], [0.25, 0.22]]) {
+        const ring = new Mesh(new TorusGeometry(8, 0.5, 6, 32), m("#3a3d44", 0.5));
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(w * a, 87.6, d * b);
+        g.add(ring);
+      }
+      for (let i = 0; i < 5; i++) cyl(g, 1.8, 2, -w / 2 + 10 + i * ((w - 20) / 4), 76, d / 2 + 1, m("#cfd3d7", 0.3, 0.7), 14).rotation.x = Math.PI / 2;
+      box(g, 8, 3, 0.4, 0, 75, d / 2 + 0.2, m("#ff3030", 0.3)); // clock
+      box(g, w - 6, 44, 1, 0, 16, d / 2 + 0.3, m("#0f1013", 0.1, 0.3)); // oven door
+      box(g, w - 14, 1.5, 3, 0, 62, d / 2 + 2, m("#cfd3d7", 0.3, 0.8)); // handle
       return g;
     }
     case "sink":
     case "sink_double": {
-      const counter = name === "sink_double";
-      box(g, w, counter ? 86 : 78, d, 0, 0, 0, m(counter ? "#e8eef0" : WHITE, 0.4));
-      const top = counter ? 86 : 78;
-      const basins = counter ? [-w / 4, w / 4] : [0];
-      for (const x of basins) box(g, counter ? w / 2 - 18 : w - 10, 1, d - 16, x, top - 0.5, 2, m("#9fb3bf", 0.2, 0.3));
-      cyl(g, 1.5, 22, 0, top, -d / 2 + 6, m(STEEL, 0.2, 0.9), 12); // faucet
-      box(g, 3, 3, 14, 0, top + 19, -d / 2 + 12, m(STEEL, 0.2, 0.9));
+      if (name === "sink_double") {
+        // Stainless double sink on its stainless unit, white tiles behind,
+        // cream wall cupboards above.
+        const inox = m("#b2b6ba", 0.3, 0.75);
+        box(g, w, 84, d - 2, 0, 0, -1, m("#a99e86", 0.5, 0.3)); // unit
+        for (let i = 0; i < 3; i++) box(g, w / 3 - 3, 64, 1, -w / 3 + (i * w) / 3, 6, d / 2, m("#b4aa92", 0.45, 0.35));
+        box(g, w, 2, d, 0, 84, 0, inox); // stainless top
+        for (const x of [w * 0.05, w * 0.3]) box(g, w * 0.22, 0.6, d - 22, x, 85.6, 1, m("#7f858b", 0.25, 0.8)); // basins
+        cyl(g, 1.3, 26, w * 0.18, 86, -d / 2 + 7, m("#d9dcdf", 0.15, 0.95), 12); // tap
+        box(g, 2.2, 2.2, 14, w * 0.18, 110, -d / 2 + 13, m("#d9dcdf", 0.15, 0.95));
+        box(g, w, 58, 1, 0, 86, -d / 2 + 0.5, m("#f4f4f2", 0.4)); // tiles
+        box(g, w, 62, 32, 0, 150, -d / 2 + 16, m("#c98a3f", 0.55)); // wall cupboards
+        for (let i = 0; i < 3; i++) box(g, w / 3 - 3, 58, 1.2, -w / 3 + (i * w) / 3, 152, -d / 2 + 32.6, m("#efe7d3", 0.6));
+        return g;
+      }
+      box(g, w, 78, d, 0, 0, 0, m(WHITE, 0.4));
+      box(g, w - 10, 1, d - 16, 0, 77.5, 2, m("#9fb3bf", 0.2, 0.3));
+      cyl(g, 1.5, 22, 0, 78, -d / 2 + 6, m(STEEL, 0.2, 0.9), 12); // faucet
+      box(g, 3, 3, 14, 0, 97, -d / 2 + 12, m(STEEL, 0.2, 0.9));
+      return g;
+    }
+    case "bins": {
+      // Two kitchen bins, green and blue lids.
+      for (const [sx, lid] of [[-1, "#2e9c4f"], [1, "#2f8fd9"]] as [number, string][]) {
+        box(g, w / 2 - 2, 52, d - 4, (sx * w) / 4, 0, 0, m("#1c1d21", 0.6));
+        box(g, w / 2 - 1, 3, d - 2, (sx * w) / 4, 52, 0, m(lid, 0.5));
+      }
       return g;
     }
     case "washing_machine": {

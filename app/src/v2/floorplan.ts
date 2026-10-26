@@ -73,6 +73,8 @@ function piece(name: string, w: number, h: number): SVGTemplateResult {
       return svg`<rect width=${w} height=${h} rx="3" fill="#b4602e" />`;
     case "office_chair":
       return svg`<circle cx=${w / 2} cy=${h / 2} r=${Math.min(w, h) / 2 - 2} fill="#e85d75" />`;
+    case "bins":
+      return svg`<rect width=${w / 2 - 2} height=${h} rx="3" fill="#2e9c4f" /><rect x=${w / 2 + 2} width=${w / 2 - 2} height=${h} rx="3" fill="#2f8fd9" />`;
     case "gaming_chair":
       return svg`<circle cx=${w / 2} cy=${h / 2} r=${Math.min(w, h) / 2 - 2} fill="#1f2024" /><rect x="4" y="2" width=${w - 8} height="12" rx="5" fill="#2e3036" />`;
     case "refrigerator":
