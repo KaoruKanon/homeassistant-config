@@ -465,9 +465,10 @@ function nzxt(g: Group, x: number, y: number, z: number, glow: MeshStandardMater
   // Four RAM sticks right of the pump (towards the front), glowing white-violet.
   for (let i = 0; i < 4; i++) box(g, 3, 13, 0.8, mb - 2, y + 23, z + 4.5 + i * 2, glowMat(glow, "#e6d4ff"));
   box(g, 0.4, 2.6, 2.6, mb - 0.6, y + 29.5, z - 11, glowMat(glow, "#39ff88")); // the board's green logo
-  box(g, 0.4, 1, 2, mb - 0.6, y + 13.5, z - 6, glowMat(glow, "#ff3030")); // the red debug display
+  box(g, 0.4, 1, 2, mb - 0.6, y + 19.5, z + 8, glowMat(glow, "#ff3030")); // the red debug display
   // RTX 3070 Founders Edition, horizontal: from the motherboard towards the glass.
-  const card = { x: mb - 5.6, y: y + 17.5, z: z + 1 };
+  // Its bracket on the rear panel, the card resting low over the PSU shroud.
+  const card = { x: mb - 5.6, y: y + 13.5, z: z - D / 2 + 1.5 + 12 };
   box(g, 11, 4, 24, card.x, card.y, card.z, m("#9ea3a9", 0.35, 0.8)); // silver shroud
   for (const t of [0.43, -0.43]) {
     const bar = box(g, 1.2, 0.2, 26, card.x, card.y - 0.2, card.z, m("#1a1b1f", 0.4)); // the black X, on the fans' side (below)
@@ -493,12 +494,134 @@ function glowMat(list: MeshStandardMaterial[], color: string): MeshStandardMater
   return mt;
 }
 
-function monitor(g: Group, x: number, z: number, wide: number, turn: number, screens: MeshStandardMaterial[]): void {
+type Wallpaper = "synthwave" | "tomo" | "lake";
+const wallpapers = new Map<Wallpaper, CanvasTexture>();
+
+/** Desktop wallpapers of the PCs' screens, drawn once. */
+function wallpaper(name: Wallpaper): CanvasTexture {
+  let t = wallpapers.get(name);
+  if (t) return t;
+  const c = document.createElement("canvas");
+  c.width = 320;
+  c.height = 180;
+  const x = c.getContext("2d")!;
+  const sky = (stops: string[]) => {
+    const gr = x.createLinearGradient(0, 0, 0, 180);
+    stops.forEach((s, i) => gr.addColorStop(i / (stops.length - 1), s));
+    x.fillStyle = gr;
+    x.fillRect(0, 0, 320, 180);
+  };
+  let seed = 3;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  if (name === "synthwave") {
+    // Violet sunset, a striped sun, a neon grid.
+    sky(["#1a0b3d", "#5a1e8c", "#d53a9d", "#ff9a5c"]);
+    const sun = x.createLinearGradient(0, 40, 0, 120);
+    sun.addColorStop(0, "#ffe66d");
+    sun.addColorStop(1, "#ff4f9a");
+    x.fillStyle = sun;
+    x.beginPath();
+    x.arc(160, 100, 46, Math.PI, 0);
+    x.fill();
+    x.fillStyle = "#5a1e8c";
+    for (let i = 0; i < 5; i++) x.fillRect(110, 66 + i * 8, 100, 1.5 + i * 0.8);
+    x.fillStyle = "#170a33";
+    x.fillRect(0, 100, 320, 80);
+    x.strokeStyle = "#c86bff";
+    x.lineWidth = 1;
+    for (let i = 0; i < 7; i++) {
+      const yy = 100 + Math.pow(i / 6, 2) * 80;
+      x.beginPath();
+      x.moveTo(0, yy);
+      x.lineTo(320, yy);
+      x.stroke();
+    }
+    for (let i = -8; i <= 8; i++) {
+      x.beginPath();
+      x.moveTo(160 + i * 6, 100);
+      x.lineTo(160 + i * 40, 180);
+      x.stroke();
+    }
+  } else if (name === "tomo") {
+    // Tomo, the black cat, sitting on the moon in a starry night.
+    sky(["#070b24", "#1b1f5c", "#3a2a7a"]);
+    for (let i = 0; i < 90; i++) {
+      x.fillStyle = `rgba(255,255,255,${0.4 + rnd() * 0.6})`;
+      x.fillRect(rnd() * 320, rnd() * 180, 1.2, 1.2);
+    }
+    x.fillStyle = "#f6efd2";
+    x.beginPath();
+    x.arc(200, 150, 70, 0, Math.PI * 2);
+    x.fill();
+    x.fillStyle = "#e3dab8";
+    for (const [cx, cy, r] of [[175, 125, 9], [225, 150, 12], [195, 175, 7]]) {
+      x.beginPath();
+      x.arc(cx, cy, r, 0, Math.PI * 2);
+      x.fill();
+    }
+    x.fillStyle = "#111117";
+    x.beginPath();
+    x.ellipse(200, 72, 17, 21, 0, 0, Math.PI * 2); // body
+    x.fill();
+    x.beginPath();
+    x.arc(200, 46, 13, 0, Math.PI * 2); // head
+    x.fill();
+    for (const s of [-1, 1]) {
+      x.beginPath(); // ears
+      x.moveTo(200 + s * 4, 36);
+      x.lineTo(200 + s * 12, 26);
+      x.lineTo(200 + s * 13, 40);
+      x.fill();
+    }
+    x.strokeStyle = "#111117";
+    x.lineWidth = 5;
+    x.lineCap = "round";
+    x.beginPath(); // tail
+    x.moveTo(214, 86);
+    x.quadraticCurveTo(240, 88, 236, 64);
+    x.stroke();
+    x.fillStyle = "#ffd54a";
+    for (const s of [-1, 1]) {
+      x.beginPath(); // eyes
+      x.ellipse(200 + s * 5, 46, 2.4, 3.2, 0, 0, Math.PI * 2);
+      x.fill();
+    }
+  } else {
+    // Calm lake between green hills.
+    sky(["#7cc6ff", "#bfe6ff", "#fff1c9"]);
+    x.fillStyle = "#6fae5a";
+    x.beginPath();
+    x.moveTo(0, 120);
+    x.quadraticCurveTo(80, 70, 170, 112);
+    x.quadraticCurveTo(250, 80, 320, 110);
+    x.lineTo(320, 180);
+    x.lineTo(0, 180);
+    x.fill();
+    x.fillStyle = "#4f8f45";
+    x.beginPath();
+    x.moveTo(0, 140);
+    x.quadraticCurveTo(120, 110, 320, 138);
+    x.lineTo(320, 180);
+    x.lineTo(0, 180);
+    x.fill();
+    x.fillStyle = "#5aa9e6";
+    x.beginPath();
+    x.ellipse(170, 160, 120, 16, 0, 0, Math.PI * 2);
+    x.fill();
+  }
+  t = new CanvasTexture(c);
+  t.colorSpace = SRGBColorSpace;
+  wallpapers.set(name, t);
+  return t;
+}
+
+function monitor(g: Group, x: number, z: number, wide: number, turn: number, screens: MeshStandardMaterial[], picture: Wallpaper = "lake"): void {
   const mg = new Group();
   box(mg, 18, 1.5, 14, 0, 0, -4, m(BLACK, 0.4));
   box(mg, 4, 14, 3, 0, 1.5, -6, m(BLACK, 0.4));
   box(mg, wide, wide * 0.5, 2.5, 0, 14, -6, m(BLACK, 0.3));
-  const screen = new MeshStandardMaterial({ color: "#0b0b12", roughness: 0.15, metalness: 0.2, emissive: "#2196f3", emissiveIntensity: 0 });
+  // Black and glossy while off, its wallpaper while the PC runs.
+  const screen = new MeshStandardMaterial({ color: "#0b0b12", roughness: 0.15, metalness: 0.2, emissive: "#ffffff", emissiveMap: wallpaper(picture), emissiveIntensity: 0 });
   const s = new Mesh(new BoxGeometry(wide - 2.5, wide * 0.5 - 2.5, 0.5), screen);
   s.position.set(0, 14 + (wide * 0.5) / 2, -4.6);
   mg.add(s);
@@ -533,11 +656,11 @@ export function gamingSetup(towerAt: [number, number, number]): { group: Group; 
   const g = new Group();
   const screens: MeshStandardMaterial[] = [];
   const lights: PointLight[] = [];
-  monitor(g, 0, -4, 60, 0, screens); // the main screen, facing the chair
+  monitor(g, 0, -4, 60, 0, screens, "synthwave"); // the main screen, facing the chair
   // The second one on the left, turned towards the chair, its right edge
   // against the main screen's left edge (panel 6 behind the stand's pivot).
   const turn = 0.5, half = 30;
-  monitor(g, -half - half * Math.cos(turn) + 6 * Math.sin(turn) - 0.6, -10 + half * Math.sin(turn) + 6 * Math.cos(turn), 60, turn, screens);
+  monitor(g, -half - half * Math.cos(turn) + 6 * Math.sin(turn) - 0.6, -10 + half * Math.sin(turn) + 6 * Math.cos(turn), 60, turn, screens, "tomo");
   box(g, 90, 0.4, 36, 0, 0, 14, m("#1a1c22", 0.95)); // desk mat
   box(g, 44, 2, 14, 0, 0.4, 13, m("#23262e", 0.5));
   box(g, 42, 0.4, 12, 0, 2.4, 13, glowMat(screens, "#ff3fa4")); // keyboard backlight
