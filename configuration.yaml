@@ -27,83 +27,24 @@ default_config:
 automation: !include automations.yaml
 
 frontend:
-  extra_module_url:
-    - /hacsfiles/lovelace-card-mod/card-mod.js
   themes: !include_dir_merge_named themes
 
+# Kaoru Home: Maison (V2) is the front-end; Maison V1 stays during the transition.
 panel_custom:
-  - name: kaoru-home
+  - name: kaoru-home-v2
     sidebar_title: Maison
     sidebar_icon: mdi:home-variant
-    url_path: maison
-    module_url: /local/kaoru-home/kaoru-home.js?v=0.2.0
-    embed_iframe: false
-    require_admin: false
-  - name: kaoru-home-v2
-    sidebar_title: Maison V2
-    sidebar_icon: mdi:view-dashboard-variant
     url_path: maison-v2
     module_url: /local/kaoru-home/kaoru-home.js?v=0.2.0
     embed_iframe: false
     require_admin: false
-
-lovelace:
-  mode: yaml
-  resources:
-    [
-      { url: /hacsfiles/apexcharts-card/apexcharts-card.js, type: module },
-      { url: /hacsfiles/bar-card/bar-card.js, type: module },
-      { url: /hacsfiles/button-card/button-card.js, type: module },
-      { url: /hacsfiles/custom-icons/custom-icons.js, type: module },
-      { url: /hacsfiles/kiosk-mode/kiosk-mode.js, type: module },
-      { url: /hacsfiles/lovelace-layout-card/layout-card.js, type: module },
-      {
-        url: /hacsfiles/lovelace-more-info-card/more-info-card.js,
-        type: module,
-      },
-      { url: /hacsfiles/lovelace-mushroom/mushroom.js, type: module },
-      {
-        url: /hacsfiles/lovelace-slider-entity-row/slider-entity-row.js,
-        type: module,
-      },
-      {
-        url: /hacsfiles/lovelace-xiaomi-vacuum-map-card/xiaomi-vacuum-map-card.js,
-        type: module,
-      },
-      { url: /hacsfiles/swipe-card/swipe-card.js, type: module },
-      { url: /hacsfiles/tabbed-card/tabbed-card.js, type: module },
-      {
-        url: /hacsfiles/mini-graph-card/mini-graph-card-bundle.js,
-        type: module,
-      },
-      {
-        url: /hacsfiles/vertical-stack-in-card/vertical-stack-in-card.js,
-        type: module,
-      },
-      { url: /hacsfiles/stack-in-card/stack-in-card.js, type: module },
-      { url: /hacsfiles/decluttering-card/decluttering-card.js, type: module },
-      {
-        url: /hacsfiles/lovelace-hourly-weather/hourly-weather.js,
-        type: module,
-      },
-      { url: /hacsfiles/lovelace-card-tools/card-tools.js, type: module },
-      { url: /hacsfiles/search-card/search-card.js, type: module },
-      {
-        url: /hacsfiles/mini-media-player/mini-media-player-bundle.js,
-        type: module,
-      },
-      {
-        url: /hacsfiles/lovelace-horizon-card/lovelace-horizon-card.js,
-        type: module,
-      },
-      { url: /hacsfiles/calendar-card-pro/calendar-card-pro.js, type: module },
-      { url: "/local/custom_icons.js?v=1.0", type: module },
-      { url: "/local/marked.min.js?v=4.3.0", type: module },
-      { url: "/local/vanilla-tilt.min.js?v=1.8.0", type: module },
-      { url: "/local/browser_mod_icon.js?v=0.5", type: module },
-      { url: "/local/fonts.css?v=2.1", type: css },
-      { url: "/local/scrollbar.css?v=1.0", type: css },
-    ]
+  - name: kaoru-home
+    sidebar_title: Maison V1
+    sidebar_icon: mdi:home-outline
+    url_path: maison
+    module_url: /local/kaoru-home/kaoru-home.js?v=0.2.0
+    embed_iframe: false
+    require_admin: false
 
 # recorder:
 #   db_url: !secret recorder_db_url
