@@ -147,8 +147,8 @@ export interface KaoruHomeConfig {
     lights?: Record<string, { entity: string; kind: "ceiling" | "spot" | "lamp" | "strip"; at: [number, number]; to?: [number, number] }[]>;
     /** Smart speakers (plan units, height z in cm); `wall`: hung on a wall facing +y. */
     speakers?: { entity: string; at: [number, number]; z: number; wall?: boolean }[];
-    /** Standing fans, their blades turn while on. */
-    fans?: { entity: string; at: [number, number] }[];
+    /** Standing fans, their blades turn while on; `face`: the point they blow at. */
+    fans?: { entity: string; at: [number, number]; face?: [number, number] }[];
   };
   system: {
     trackers: { entity: string; name: string; icon: string }[];
@@ -396,8 +396,8 @@ export const config: KaoruHomeConfig = {
       // bedroom: on the desk, under the right screen, left of the Japanese lamp
       { entity: "media_player.google_home_chambre", at: [541, 735], z: 76 },
     ],
-    // bedroom: at the foot of the bookcase, left of the desk
-    fans: [{ entity: "fan.xiaomi_smart_fan_2", at: [318, 790] }],
+    // bedroom: beside the desk, blowing at the chair
+    fans: [{ entity: "fan.xiaomi_smart_fan_2", at: [372, 800], face: [487, 817] }],
   },
   system: {
     trackers: [

@@ -24,7 +24,7 @@ export const FURNITURE: F[] = [
   ["bathtub", 20, 1190, 180, 60, 90], ["bed_double", 280, 1120, 200, 180, -90], ["range", 468, 647, 75, 62, -180], ["tv_stand", 60, 260, 100, 40, -90],
   ["toilet", 110, 1043, 50, 67, -180], ["sink", 140, 1134, 40, 35, 0], ["sink_double", 290, 640, 160, 70, -180], ["wardrobe", 290, 885, 130, 65, -180], ["wardrobe", 420, 885, 100, 65, -180],
   ["wardrobe", 380, 960, 260, 65, 0], ["washing_machine", 560, 645, 60, 60, -180], ["bookcase_tall", 295, 721, 100, 30, 0], ["wall_shelf", 395, 721, 222, 28, 0], ["glass_cabinet", 80, 372.5, 100, 65, -180],
-  ["office_chair", 465, 795, 40, 43, -180], ["desk_black", 395, 721, 180, 70, -180], ["low_bookcase", 565, 730, 50, 30, -90], ["desk_extension_black", 575, 721, 42, 70, 0], ["bar_table", 630, 490, 130, 50, 90],
+  ["gaming_chair", 460, 790, 55, 55, -180], ["desk_black", 395, 721, 180, 70, -180], ["low_bookcase", 565, 730, 50, 30, -90], ["desk_extension_black", 575, 721, 42, 70, 0], ["bar_table", 630, 490, 130, 50, 90],
   ["kitchen_cabinet", 305, 450, 180, 52, 0], ["office_chair", 140, 147, 40, 43, 30], ["desk", 75, 155, 80, 50, 90], ["dresser", 295, 385.5, 240, 52, -180],
   ["dresser", 670, 388, 50, 52, -180], ["dresser", 630, 1220, 120, 40, 90],
 ];
@@ -65,7 +65,7 @@ export const FURNITURE_3D: Record<string, [number, string]> = {
   refrigerator: [52, "#e8eef0"], range: [28, "#58606b"], sink: [26, "#e8eef0"], sink_double: [28, "#e8eef0"], washing_machine: [28, "#f6efe2"],
   bathtub: [18, "#ffffff"], toilet: [14, "#ffffff"], wardrobe: [60, "#6a4a35"], glass_cabinet: [40, "#8a5d3f"],
   bar_table: [30, "#b8875a"], kitchen_cabinet: [30, "#e8754f"], tv_stand: [24, "#2b2f3a"], low_bookcase: [30, "#6a4a35"],
-  desk_extension: [22, "#8a5d3f"], desk_black: [22, "#232428"], desk_extension_black: [22, "#232428"], bookcase_tall: [80, "#b4602e"],
+  desk_extension: [22, "#8a5d3f"], desk_black: [22, "#232428"], desk_extension_black: [22, "#232428"], gaming_chair: [16, "#16171a"], bookcase_tall: [80, "#b4602e"],
 };
 
 /** A room's lights for its bulb: its own, plus those placed on the plan. */

@@ -256,6 +256,24 @@ export function model(name: string, w: number, d: number): Group | undefined {
       box(g, w * 0.75, 38, 6, 0, 52, -d / 2 + 4, m("#e85d75", 0.9));
       return g;
     }
+    case "gaming_chair": {
+      // DXRacer-style gaming chair, all black: five-star base, bucket seat,
+      // tall backrest with side bolsters, headrest and lumbar cushions, armrests.
+      const black = m("#16171a", 0.6), seat = m("#1f2024", 0.85);
+      cyl(g, 24, 3, 0, 4, 0, black, 5); // star base
+      cyl(g, 2.8, 38, 0, 7, 0, m(STEEL, 0.3, 0.8), 12);
+      box(g, 50, 8, 48, 0, 45, 2, seat); // seat
+      for (const sx of [-1, 1]) box(g, 6, 6, 44, sx * 24, 50, 2, seat); // seat bolsters
+      box(g, 46, 82, 9, 0, 50, -21, seat); // backrest
+      for (const sx of [-1, 1]) box(g, 7, 70, 12, sx * 22, 56, -19, seat); // back bolsters
+      box(g, 26, 9, 5, 0, 113, -15, black); // headrest cushion
+      box(g, 30, 10, 5, 0, 66, -15, black); // lumbar cushion
+      for (const sx of [-1, 1]) {
+        box(g, 3, 20, 3, sx * 29, 50, 0, black); // armrest posts
+        box(g, 7, 2.5, 24, sx * 29, 70, 2, black); // armrest pads
+      }
+      return g;
+    }
     case "refrigerator": {
       box(g, w, 112, d, 0, 0, 0, m(WHITE, 0.4));
       box(g, w - 2, 1, 1, 0, 70, d / 2 + 0.3, m("#c9d3d8"));

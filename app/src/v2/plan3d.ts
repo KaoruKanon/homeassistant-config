@@ -587,6 +587,7 @@ export class KhPlan3d extends LitElement {
     for (const f of config.plan?.fans ?? []) {
       const { group, blades } = standingFan();
       group.position.set(f.at[0] - CX, 0, f.at[1] - CZ);
+      if (f.face) group.rotation.y = Math.atan2(f.face[0] - f.at[0], f.face[1] - f.at[1]); // its head (+z) towards that point
       s.add(group);
       pickable(group, { fan: f.entity });
       live.fans.set(f.entity, blades);
