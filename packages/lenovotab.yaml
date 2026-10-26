@@ -70,85 +70,49 @@ automation:
 
   - alias: back_home_tablet
     id: "345538118831"
-    description: ""
+    description: "Après 5 min sur une autre page, la tablette revient à l'accueil de Maison (V2)."
     triggers:
       - trigger: state
         entity_id:
           - sensor.tablet_browser_path
         for:
-          hours: 0
           minutes: 5
-          seconds: 0
     conditions:
-      - condition: and
-        conditions:
-          - condition: not
-            conditions:
-              - condition: state
-                entity_id: sensor.tablet_browser_path
-                state: /lovelace/home
-          - condition: not
-            conditions:
-              - condition: state
-                entity_id: sensor.tablet_browser_path
-                state: /lovelace/default_view
+      - condition: template
+        value_template: "{{ states('sensor.tablet_browser_path') not in ['/maison-v2', '/maison-v2/', 'unavailable', 'unknown'] }}"
     actions:
       - action: browser_mod.navigate
-        metadata: {}
         data:
           browser_id:
             - 6c1e502969ee705227e70afe410e1349
-          path: /lovelace/default_view?kiosk
+          path: /maison-v2
+    mode: single
 
-  - alias: tablet_turn_on_screen
-    id: '1745838569322'
-    description: "turn on tab screen if pir detect human"
+  - alias: tablet_screen_motion
+    id: kh_tablet_screen_motion
+    description: >-
+      Écran allumé dès qu'un des deux détecteurs du couloir voit quelqu'un ;
+      éteint 3 min après que les deux sont redevenus calmes. Chaque nouveau
+      passage relance le compte à rebours (mode restart) : plus de clignotement.
+    mode: restart
     triggers:
       - trigger: state
         entity_id:
           - binary_sensor.pir_couloir1
-        to: "on"
-      - trigger: state
-        entity_id:
           - binary_sensor.pir_couloir2
         to: "on"
-    conditions:
-      - condition: state
-        entity_id: switch.lenovotab_screen
-        state: "off"
     actions:
-      - action: switch.turn_on
-        metadata: {}
-        data: {}
-        target:
-          entity_id: switch.lenovotab_screen
-    mode: single
-    
-  - alias: tablet_turn_off_screen
-    id: '1745838644904'
-    description: "turn off tab screen if pir detect no one"
-    triggers:
-      - trigger: state
-        entity_id:
-          - binary_sensor.pir_couloir1
-        to: "off"
-      - trigger: state
-        entity_id:
-          - binary_sensor.pir_couloir2
-        to: "off"
-    conditions:
-      - condition: and
-        conditions:
+      - if:
           - condition: state
-            entity_id: binary_sensor.pir_couloir1
+            entity_id: switch.lenovotab_screen
             state: "off"
-          - condition: state
-            entity_id: binary_sensor.pir_couloir2
-            state: "off"
-    actions:
+        then:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.lenovotab_screen
+      - wait_template: "{{ is_state('binary_sensor.pir_couloir1', 'off') and is_state('binary_sensor.pir_couloir2', 'off') }}"
+      - delay:
+          minutes: 3
       - action: switch.turn_off
-        metadata: {}
-        data: {}
         target:
           entity_id: switch.lenovotab_screen
-    mode: single

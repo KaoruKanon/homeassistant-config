@@ -7,22 +7,6 @@ notify:
 
 automation:
 
-  - alias: dismiss_lovelace_updated
-    id: '1309195316329'
-    mode: restart
-    trigger:
-      platform: event
-      event_type: lovelace_updated
-    action:
-      repeat:
-        count: 5
-        sequence:
-          - delay: 0.5
-          - service: browser_mod.notification
-            data:
-              duration: 1
-              message: ' '
-
   - alias: notify_hass_update
     id: '7958228563778'
     trigger:

@@ -1,0 +1,29 @@
+# Guest mode: someone stays at home while Kaoru and Papa are out.
+# While on, the departure automations (everything switched off, alarm armed
+# when both leave) are disabled; switching it off enables them again.
+# Re-applied at start-up, since automations are forced on at start
+# (customize_domain: automation: initial_state: true).
+
+input_boolean:
+  guest_mode:
+    name: Mode invité
+    icon: mdi:account-group
+
+automation:
+  - alias: guest_mode
+    id: kh_guest_mode
+    description: "Mode invité : coupe ou rétablit les automatisations de départ."
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: input_boolean.guest_mode
+      - trigger: homeassistant
+        event: start
+    actions:
+      - action: "automation.turn_{{ 'off' if is_state('input_boolean.guest_mode', 'on') else 'on' }}"
+        target:
+          entity_id:
+            - automation.turn_off_gps_home_absence
+            - automation.turn_off_gps_papa_absence
+            - automation.turn_off_gps_william_absence
+            - automation.armed_away_alarm_when_people_away

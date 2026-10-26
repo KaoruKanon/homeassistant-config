@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing } from "lit";
-import { openMoreInfo, runScript } from "../actions.ts";
+import { openMoreInfo, runScript, toggle } from "../actions.ts";
 import "../components/energy-card.ts";
 import "../components/light-pill.ts";
 import { isPlayerActive } from "../components/media-card.ts";
@@ -62,7 +62,7 @@ export class KhHomeV2 extends LitElement {
     new EntitiesController(this, () => {
       const h = config.home;
       return [
-        h.spotify, ...h.tvs, h.frog?.status, h.frog?.image, h.frog?.location, h.outdoorTemperature, h.nextRain,
+        h.spotify, ...h.tvs, h.frog?.status, h.frog?.image, h.frog?.location, h.outdoorTemperature, h.nextRain, h.guestMode,
         ...Object.values(h.chips), ...config.weather, h.energy?.today, h.energy?.power,
         ...Object.keys(config.people).map((p) => `person.${p}`),
         ...this.batteries().map((b) => b.entity), ...this.rooms().flatMap((r) => [r.temperature, r.humidity]),
@@ -400,6 +400,11 @@ export class KhHomeV2 extends LitElement {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
         gap: 10px;
+      }
+      /* A shortcut that is a switch (guest mode), while on. */
+      .shortcuts .action.on {
+        background: rgba(var(--c), 0.3);
+        box-shadow: inset 0 0 0 2px rgba(var(--c), 0.8);
       }
       .favs {
         display: grid;
@@ -755,6 +760,11 @@ export class KhHomeV2 extends LitElement {
             ${h.leave
               ? html`<button class="action" style="--c: var(--rgb-indigo)" @click=${() => runScript(h.leave!)}>
                   <ha-icon icon="mdi:hand-wave"></ha-icon>Partir<span class="secondary">${isActive(hass.states[h.leave]) ? "En cours…" : "Tout éteindre"}</span></button>`
+              : nothing}
+            ${h.guestMode && hass.states[h.guestMode]
+              ? html`<button class="action ${isActive(hass.states[h.guestMode]) ? "on" : ""}" style="--c: var(--rgb-amber)" aria-pressed=${String(isActive(hass.states[h.guestMode]))}
+                  @click=${() => toggle(h.guestMode!, "le mode invité")}>
+                  <ha-icon icon="mdi:account-group"></ha-icon>Mode invité<span class="secondary">${isActive(hass.states[h.guestMode]) ? "Activé : départs sans effet" : "Désactivé"}</span></button>`
               : nothing}
             ${h.wifiQr
               ? html`<button class="action" style="--c: var(--rgb-teal)" @click=${() => openWifiQr()}>

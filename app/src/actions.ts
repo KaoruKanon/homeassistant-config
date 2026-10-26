@@ -229,6 +229,12 @@ export async function setNumber(entityId: string, value: number): Promise<void> 
   await call("number", "set_value", { value }, { entity_id: entityId });
 }
 
+/** Sets a helper number (input_number), e.g. the fan's off-timer in minutes. */
+export async function setInputNumber(entityId: string, value: number): Promise<void> {
+  if (!store.hass || !entityId.startsWith("input_number.")) return;
+  await call("input_number", "set_value", { value }, { entity_id: entityId });
+}
+
 /** Restarts Home Assistant, after an explicit confirmation. */
 export async function restartHomeAssistant(): Promise<boolean> {
   const hass = store.hass;
