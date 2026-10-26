@@ -469,7 +469,8 @@ export function computer(w: number, towerAt?: [number, number, number]): { group
 }
 
 /**
- * The gaming setup: two screens side by side, slightly turned in, a wide
+ * The gaming setup: the main screen facing the chair, the second one on its
+ * left turned in, a wide
  * desk mat, a lit keyboard and a mouse, a mug, and the black NZXT H510 tower
  * on the desk extension (`towerAt`).
  */
@@ -477,13 +478,13 @@ export function gamingSetup(towerAt: [number, number, number]): { group: Group; 
   const g = new Group();
   const screens: MeshStandardMaterial[] = [];
   const lights: PointLight[] = [];
-  monitor(g, -31, -2, 60, 0.12, screens);
-  monitor(g, 31, -2, 60, -0.12, screens);
+  monitor(g, 0, -4, 60, 0, screens); // the main screen, facing the chair
+  monitor(g, -58, 4, 60, 0.5, screens); // the second one on the left, turned towards the chair
   box(g, 90, 0.4, 36, 0, 0, 14, m("#1a1c22", 0.95)); // desk mat
-  box(g, 44, 2, 14, -6, 0.4, 13, m("#23262e", 0.5));
-  box(g, 42, 0.4, 12, -6, 2.4, 13, glowMat(screens, "#ff3fa4")); // keyboard backlight
+  box(g, 44, 2, 14, 0, 0.4, 13, m("#23262e", 0.5));
+  box(g, 42, 0.4, 12, 0, 2.4, 13, glowMat(screens, "#ff3fa4")); // keyboard backlight
   box(g, 6, 2.5, 10, 26, 0.4, 15, m("#23262e", 0.5));
-  const cup = cyl(g, 4.5, 9, -44, 0, 16, m("#f6efe2", 0.4), 16); // a mug
+  const cup = cyl(g, 4.5, 9, 40, 0, 2, m("#f6efe2", 0.4), 16); // a mug
   cup.castShadow = true;
   nzxt(g, towerAt[0], towerAt[1], towerAt[2], screens, lights);
   return { group: g, screens, lights };
