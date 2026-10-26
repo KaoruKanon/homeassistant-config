@@ -1,0 +1,96 @@
+import { config } from "../config.ts";
+import type { Room } from "../rooms.ts";
+
+// The flat, from the user's drawio plan (app/assets/plan/appartement.drawio):
+// walls, windows, doors and furniture in plan units (about 1 unit = 1 cm),
+// the rooms keyed by the HA area they belong to. Shared by the 2D and 3D views.
+
+export type R = [number, number, number, number];
+export type F = [string, number, number, number, number, number];
+
+export const WALLS: R[] = [
+  [70, 120, 160, 10], [70, 120, 10, 240], [230, 120, 500, 10], [720, 120, 10, 70], [640, 440, 90, 10], [720, 360, 10, 90],
+  [260, 440, 300, 10], [280, 450, 10, 90], [280, 620, 10, 100], [280, 710, 350, 10], [70, 450, 10, 80], [70, 1315, 560, 10],
+  [70, 610, 10, 715], [620, 710, 110, 10], [720, 680, 10, 40], [720, 450, 10, 130], [720, 720, 10, 30], [630, 950, 100, 10],
+  [720, 840, 10, 120], [530, 950, 100, 10], [280, 950, 260, 10], [280, 870, 10, 90], [280, 720, 10, 70], [280, 960, 10, 40],
+  [630, 1315, 100, 10], [720, 1290, 10, 35], [720, 960, 10, 150], [280, 1078, 10, 242], [70, 440, 110, 10], [70, 360, 10, 90],
+  [80, 1120, 120, 10], [190, 1080, 10, 50], [80, 980, 120, 10], [190, 980, 10, 20], [80, 629, 120, 10], [190, 629, 10, 62],
+  [190, 930, 10, 100],
+];
+
+export const FURNITURE: F[] = [
+  ["bed_single", 620, 770, 100, 180, -180], ["chair", 545, 190, 40, 52, 0], ["chair", 545, 278, 40, 52, 180], ["chair", 501, 234, 40, 52, -90],
+  ["chair", 589, 234, 40, 52, 90], ["round_table", 515, 210, 100, 100, 0], ["couch", 237.5, 176, 170, 80, 90], ["refrigerator", 500, 450, 60, 62, 0],
+  ["bathtub", 20, 1190, 180, 60, 90], ["bed_double", 280, 1120, 200, 180, -90], ["range", 468, 647, 75, 62, -180], ["tv_stand", 60, 260, 100, 40, -90],
+  ["toilet", 110, 1043, 50, 67, -180], ["sink", 140, 1134, 40, 35, 0], ["sink_double", 290, 640, 160, 70, -180], ["wardrobe", 290, 885, 130, 65, -180], ["wardrobe", 420, 885, 100, 65, -180],
+  ["wardrobe", 380, 960, 260, 65, 0], ["washing_machine", 560, 645, 60, 60, -180], ["bookcase_tall", 295, 721, 100, 30, 0], ["wall_shelf", 395, 721, 222, 28, 0], ["glass_cabinet", 80, 372.5, 100, 65, -180],
+  ["gaming_chair", 460, 790, 55, 55, -180], ["desk_black", 395, 721, 180, 70, -180], ["low_bookcase", 565, 730, 50, 30, -90], ["desk_extension_black", 575, 721, 42, 70, 0], ["bar_table", 630, 490, 130, 50, 90], ["bins", 668, 622, 48, 40, 90],
+  ["kitchen_cabinet", 305, 450, 180, 52, 0], ["office_chair", 140, 147, 40, 43, 30], ["desk", 75, 155, 80, 50, 90], ["dresser", 295, 385.5, 240, 52, -180],
+  ["dresser", 670, 388, 50, 52, -180], ["dresser", 630, 1220, 120, 40, 90],
+];
+
+/** Rooms: floor outline, where the label sits, and the plan's TVs and desks in it. */
+export interface PlanRoom {
+  points: string;
+  label: [number, number];
+  windows?: [number, number][];
+  tv?: R;
+  /** Where the TV's badge sits (beside the TV, clear of the PC's). */
+  tvBadge?: [number, number];
+  pc?: R;
+  /** Where the PC's badge sits, when not on the desk itself. */
+  pcBadge?: [number, number];
+}
+
+export const ROOMS: Record<string, PlanRoom> = {
+  salon: { points: "80,130 720,130 720,440 80,440", label: [430, 180], windows: [[190, 360]], tv: [100, 230, 10, 100], tvBadge: [105, 280], pcBadge: [115, 155], pc: [90, 160, 50, 40] },
+  cuisine: { points: "290,450 720,450 720,710 290,710", label: [505, 624], windows: [[580, 690]] },
+  chambre_william: { points: "290,720 720,720 720,950 290,950", label: [430, 860], windows: [[750, 840]], pc: [460, 731, 50, 40] },
+  chambre_papa: { points: "290,960 720,960 720,1315 290,1315", label: [505, 1181], windows: [[1142, 1252]], tv: [672, 1190, 8, 100], tvBadge: [652, 1240] },
+  couloir: { points: "80,450 280,450 280,1120 200,1120 200,630 80,630", label: [180, 540] },
+  toilette: { points: "80,990 190,990 190,1120 80,1120", label: [135, 1088] },
+  salle_de_bain: { points: "80,1130 280,1130 280,1315 80,1315", label: [180, 1266] },
+};
+
+/** Doors: hinge, then the leaf's closed and open angles (degrees, 0 = +x, 90 = down). */
+export const DOORS: [number, number, number, number][] = [
+  [180, 445, 0, -90], [640, 445, 180, 270], [75, 530, 90, 0], [285, 540, 90, 0], [285, 870, -90, 0],
+  [285, 1080, -90, 0], [195, 1000, 90, 0], [280, 1125, 180, 90],
+];
+
+/** Height and colour of each piece of furniture in the 3D view. */
+export const FURNITURE_3D: Record<string, [number, string]> = {
+  couch: [26, "#4a90c8"], bed_single: [18, "#f2b84b"], bed_double: [18, "#f2b84b"], chair: [14, "#8a5d3f"], round_table: [22, "#c58a45"],
+  table: [22, "#c58a45"], desk: [22, "#8a5d3f"], dresser: [28, "#a77a55"], bookcase: [44, "#6a4a35"], office_chair: [14, "#e85d75"],
+  refrigerator: [52, "#e8eef0"], range: [28, "#58606b"], sink: [26, "#e8eef0"], sink_double: [28, "#e8eef0"], washing_machine: [28, "#f6efe2"],
+  bathtub: [18, "#ffffff"], toilet: [14, "#ffffff"], wardrobe: [60, "#6a4a35"], glass_cabinet: [40, "#8a5d3f"],
+  bar_table: [30, "#b8875a"], kitchen_cabinet: [30, "#e8754f"], tv_stand: [24, "#2b2f3a"], low_bookcase: [30, "#6a4a35"],
+  desk_extension: [22, "#8a5d3f"], desk_black: [22, "#232428"], desk_extension_black: [22, "#232428"], gaming_chair: [16, "#16171a"], bins: [26, "#1c1d21"], bookcase_tall: [80, "#b4602e"],
+};
+
+/** A room's lights for its bulb: its own, plus those placed on the plan. */
+export function planLights(r: Pick<Room, "id" | "lights">): string[] {
+  return [...new Set([...r.lights, ...(config.plan?.lights?.[r.id] ?? []).map((l) => l.entity)])];
+}
+
+/** A rectangle by its centre and size, in the units of the view (plan or screen). */
+export interface Spot {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const NEAR: [number, number][] = [[0, 0], [0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1], [0, -2], [0, 2], [-2, 0], [2, 0], [0, -3], [0, 3]];
+
+/**
+ * Where to put a room's label so it covers no light, device badge or other
+ * label: its own place if free, else the nearest free one around it (steps
+ * of `step`). Returns the offset to apply.
+ */
+export function freeSpot(label: Spot, taken: Spot[], step: number): [number, number] {
+  const clear = (dx: number, dy: number) =>
+    taken.every((t) => Math.abs(label.x + dx - t.x) * 2 >= label.w + t.w || Math.abs(label.y + dy - t.y) * 2 >= label.h + t.h);
+  for (const [i, j] of NEAR) if (clear(i * step, j * step)) return [i * step, j * step];
+  return [0, 0];
+}
