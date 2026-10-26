@@ -389,43 +389,98 @@ function tower(g: Group, x: number, y: number, z: number, glow: MeshStandardMate
   if (rgb) box(g, 16, 1, 0.6, x, y + 3, z + 21.2, glowMat(glow, "#ff3fa4"));
 }
 
+/** The Kraken pump's round screen: CPU and GPU temperatures, as it shows them. */
+let krakenScreen: CanvasTexture | undefined;
+function kraken(): CanvasTexture {
+  if (krakenScreen) return krakenScreen;
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const x = c.getContext("2d")!;
+  x.fillStyle = "#0d2a4a";
+  x.fillRect(0, 0, 128, 128);
+  x.strokeStyle = "#e9eef5";
+  x.lineWidth = 7;
+  x.beginPath();
+  x.arc(64, 64, 52, Math.PI * 0.6, Math.PI * 1.4);
+  x.stroke();
+  x.beginPath();
+  x.arc(64, 64, 52, Math.PI * 1.6, Math.PI * 2.4);
+  x.stroke();
+  x.fillStyle = "#ffffff";
+  x.font = "bold 22px sans-serif";
+  x.textAlign = "center";
+  x.fillText("65°  37°", 64, 70);
+  x.font = "bold 11px sans-serif";
+  x.fillText("NZXT", 64, 40);
+  x.fillText("CPU      GPU", 64, 88);
+  krakenScreen = new CanvasTexture(c);
+  krakenScreen.colorSpace = SRGBColorSpace;
+  krakenScreen.center.set(0.5, 0.5);
+  krakenScreen.rotation = Math.PI / 2; // upright on the pump's face
+  return krakenScreen;
+}
+
 /**
- * The RIG: a black NZXT H510, front to +z. Smooth steel front, tempered glass
- * on its left side (-x), the PSU shroud at the bottom, the cable bar and the
- * rear fan; the RTX 3070 Founders Edition mounted horizontally (silver, its
- * black X), seen through the glass. While the PC runs, RGB light comes out
+ * The RIG: a black NZXT H510, front to +z, tempered glass on its left side
+ * (-x). Inside, as it is: the Kraken pump with its round screen, four lit RAM
+ * sticks, the radiator and its fans on top, the rear fan, the board's green
+ * logo, the RTX 3070 Founders Edition mounted horizontally, the PSU shroud.
+ * While the PC runs, everything lights up in violet and the light comes out
  * through the glass (`lights`).
  */
 function nzxt(g: Group, x: number, y: number, z: number, glow: MeshStandardMaterial[], lights: PointLight[]): void {
   const W = 21, H = 46, D = 43, steel = m("#141518", 0.35, 0.35), inside = m("#1b1d21", 0.7);
+  const mb = x + W / 2 - 1.5; // the motherboard, against the right side
   box(g, W, 1.5, D, x, y + H - 1.5, z, steel); // top
   box(g, W, 1.5, D, x, y, z, steel); // bottom
   box(g, 1.5, H, D, x + W / 2 - 0.75, y, z, steel); // right side panel
-  box(g, W, H, 1.5, x, y, z - D / 2 + 0.75, inside); // back, seen through the glass
+  box(g, W, H, 1.5, x, y, z - D / 2 + 0.75, inside); // back
   box(g, W, H, 1.6, x, y, z + D / 2 - 0.8, steel); // smooth front panel
-  box(g, 0.4, H - 6, 0.4, x - W / 2 + 0.6, y + 3, z + D / 2 + 0.05, m("#2c2f35", 0.4, 0.4)); // its side vent line
-  box(g, W - 2, 12, D - 4, x + 0.5, y + 1.5, z, steel); // PSU shroud
-  box(g, 6, 1.6, 0.3, x - 4, y + 7, z + D / 2 - 2.1, m("#e8e8e8", 0.5)); // NZXT on the shroud
-  box(g, 1.5, H - 16, 7, x + 2, y + 13.5, z + 8, steel); // cable management bar
-  const fan = cyl(g, 5.8, 2.5, x, y + H - 12, z - D / 2 + 3, m("#2b2d33", 0.5), 20); // rear exhaust fan
-  fan.rotation.x = Math.PI / 2;
-  // RTX 3070 Founders Edition, horizontal: from the motherboard (+x) towards the glass.
-  const card = { x: x + W / 2 - 1.5 - 5.6, y: y + 21, z: z + 1 };
-  box(g, 11, 4, 24, card.x, card.y, card.z, m("#b9bdc2", 0.35, 0.8)); // silver shroud
-  for (const t of [0.5, -0.5]) {
-    const bar = box(g, 0.2, 1.2, 26, card.x - 5.6, card.y + 1.4, card.z, m("#1a1b1f", 0.4)); // the black X, on the side
-    bar.rotation.x = t;
-  }
-  box(g, 3, 0.6, 1, card.x - 3.5, card.y + 4, card.z + 8, glowMat(glow, "#ffffff")); // GEFORCE RTX light
-  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z + D / 2 - 3, glowMat(glow, "#3fd2ff")); // RGB strips
-  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z - D / 2 + 3, glowMat(glow, "#2fa8ff"));
-  box(g, 3, 3, 0.4, x + 2, y + 28, z - D / 2 + 1.8, glowMat(glow, "#5ff0ff")); // the glowing logo on the board
   box(g, W - 2, 0.3, 4, x, y + H, z + D / 2 - 3, m("#0d0e10", 0.95)); // perforated strip along the top front
+  box(g, W - 2, 11, D - 4, x + 0.5, y + 1.5, z, steel); // PSU shroud
+  box(g, 1.5, H - 16, 7, x + 2, y + 12.5, z + 12, steel); // cable management bar
+  // Radiator and its two fans under the top, lit violet.
+  box(g, W - 6, 3, D - 10, x + 1, y + H - 5.5, z + 1, inside);
+  for (const fz of [-9, 10]) {
+    const ring = new Mesh(new TorusGeometry(6.2, 0.7, 8, 32), glowMat(glow, "#b26bff"));
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(x + 1, y + H - 6.2, z + fz);
+    g.add(ring);
+  }
+  // Rear exhaust fan, lit violet too.
+  const rear = new Mesh(new TorusGeometry(5.6, 0.7, 8, 32), glowMat(glow, "#9d5cff"));
+  rear.position.set(x - 1, y + H - 15, z - D / 2 + 2.5);
+  g.add(rear);
+  // Kraken pump on the CPU, its round screen facing the glass.
+  const pump = cyl(g, 4.6, 3, mb - 4, y + 27.5, z - 3, m("#202227", 0.4), 32);
+  pump.rotation.z = Math.PI / 2;
+  pump.position.set(mb - 4, y + 29, z - 3);
+  const screen = new MeshStandardMaterial({ color: "#000000", roughness: 0.2, emissive: "#ffffff", emissiveMap: kraken(), emissiveIntensity: 0 });
+  glow.push(screen);
+  const lcd = new Mesh(new CylinderGeometry(4, 4, 0.3, 32), screen);
+  lcd.rotation.z = Math.PI / 2;
+  lcd.rotation.x = Math.PI / 2;
+  lcd.position.set(mb - 5.6, y + 29, z - 3);
+  g.add(lcd);
+  // Four RAM sticks right of the pump (towards the front), glowing white-violet.
+  for (let i = 0; i < 4; i++) box(g, 3, 13, 0.8, mb - 2, y + 23, z + 4.5 + i * 2, glowMat(glow, "#e6d4ff"));
+  box(g, 0.4, 2.6, 2.6, mb - 0.6, y + 29.5, z - 11, glowMat(glow, "#39ff88")); // the board's green logo
+  box(g, 0.4, 1, 2, mb - 0.6, y + 13.5, z - 6, glowMat(glow, "#ff3030")); // the red debug display
+  // RTX 3070 Founders Edition, horizontal: from the motherboard towards the glass.
+  const card = { x: mb - 5.6, y: y + 17.5, z: z + 1 };
+  box(g, 11, 4, 24, card.x, card.y, card.z, m("#9ea3a9", 0.35, 0.8)); // silver shroud
+  for (const t of [0.43, -0.43]) {
+    const bar = box(g, 1.2, 0.2, 26, card.x, card.y - 0.2, card.z, m("#1a1b1f", 0.4)); // the black X, on the fans' side (below)
+    bar.rotation.y = t;
+  }
+  box(g, 0.2, 2.4, 22, card.x - 5.6, card.y + 0.8, card.z, m("#2b2d33", 0.4)); // dark fins along the side
+  box(g, 0.3, 0.8, 8, card.x - 5.7, card.y + 2.8, card.z + 4, glowMat(glow, "#ffffff")); // GEFORCE RTX
+  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z + D / 2 - 3, glowMat(glow, "#9d5cff")); // violet strip behind the front
   const glass = new MeshStandardMaterial({ color: "#cfd8e3", roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.22 });
   box(g, 0.6, H - 1, D - 2, x - W / 2 + 0.3, y + 0.5, z, glass); // tempered glass, left side
   box(g, 1.4, 0.4, 1.4, x + 5, y + H, z + D / 2 - 5, glowMat(glow, "#ffffff")); // power button on top
-  // RGB through the glass, on the desk and the wall.
-  const rgb = new PointLight("#3fd2ff", 0, 140, 2);
+  // Violet light through the glass, on the desk and the wall.
+  const rgb = new PointLight("#8f55ff", 0, 160, 2);
   rgb.position.set(x - W / 2 - 6, y + H / 2, z);
   g.add(rgb);
   lights.push(rgb);
@@ -479,7 +534,10 @@ export function gamingSetup(towerAt: [number, number, number]): { group: Group; 
   const screens: MeshStandardMaterial[] = [];
   const lights: PointLight[] = [];
   monitor(g, 0, -4, 60, 0, screens); // the main screen, facing the chair
-  monitor(g, -58, 4, 60, 0.5, screens); // the second one on the left, turned towards the chair
+  // The second one on the left, turned towards the chair, its right edge
+  // against the main screen's left edge (panel 6 behind the stand's pivot).
+  const turn = 0.5, half = 30;
+  monitor(g, -half - half * Math.cos(turn) + 6 * Math.sin(turn) - 0.6, -10 + half * Math.sin(turn) + 6 * Math.cos(turn), 60, turn, screens);
   box(g, 90, 0.4, 36, 0, 0, 14, m("#1a1c22", 0.95)); // desk mat
   box(g, 44, 2, 14, 0, 0.4, 13, m("#23262e", 0.5));
   box(g, 42, 0.4, 12, 0, 2.4, 13, glowMat(screens, "#ff3fa4")); // keyboard backlight
