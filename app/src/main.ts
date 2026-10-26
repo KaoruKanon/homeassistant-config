@@ -5,15 +5,11 @@ import { applyKiosk } from "./kiosk.ts";
 import { store } from "./store.ts";
 import type { HomeAssistant, PanelRoute } from "./types.ts";
 
-// Where the bundle is served from (fonts/ sits next to kaoru-home.js); this
-// module may be built into chunks/.
-(window as { __khAssets?: string }).__khAssets = new URL(import.meta.url.includes("/chunks/") ? "../" : "./", import.meta.url).href;
-
 const TRANSLATED_DOMAINS = ["weather", "light", "switch", "fan", "media_player", "binary_sensor", "person", "automation"];
 
 /**
  * The panel elements Home Assistant creates for `panel_custom` (kaoru-home,
- * kaoru-home-v2, kaoru-home-v3). They only hand `hass` to the store and download their app
+ * kaoru-home-v2). They only hand `hass` to the store and download their app
  * the first time they are opened, so V1 and V2 never pay for each other.
  */
 abstract class Panel extends LitElement {
@@ -83,18 +79,6 @@ class KaoruHomeV2Panel extends Panel {
   }
 }
 customElements.define("kaoru-home-v2", KaoruHomeV2Panel);
-
-/** Maison V3 (`panel_custom: name: kaoru-home-v3`), under src/v3. */
-class KaoruHomeV3Panel extends Panel {
-  protected load() {
-    return import("./v3/app.ts");
-  }
-
-  render() {
-    return this.ready && store.hass ? html`<kh3-app .narrow=${this.narrow} .route=${this.route}></kh3-app>` : nothing;
-  }
-}
-customElements.define("kaoru-home-v3", KaoruHomeV3Panel);
 
 /** Every new `hass` goes to the store; only the affected components re-render. */
 function feed(hass: HomeAssistant): void {
