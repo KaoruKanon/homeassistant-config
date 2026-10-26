@@ -149,7 +149,7 @@ export function model(name: string, w: number, d: number): Group | undefined {
         ring.position.set(x, 30, z);
         g.add(ring);
         cyl(g, 17, 5, x, 68, z, m(seat, 0.7), 24);
-        box(g, 26, 16, 3, x, 73, z - 13, m(seat, 0.7)); // backrest
+        box(g, 26, 16, 3, x, 73, z + 13, m(seat, 0.7)); // backrest, away from the bar (you sit facing it)
       }
       return g;
     }

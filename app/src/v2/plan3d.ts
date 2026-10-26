@@ -497,20 +497,47 @@ export class KhPlan3d extends LitElement {
     }
     s.add(walls);
 
+    const pvc = mat("#f4f4f1", { roughness: 0.4 }), stone = mat("#e3e0da", { roughness: 0.5 }), handle = mat("#e9e9e6", { roughness: 0.3 });
     for (const [id, p] of Object.entries(ROOMS)) {
       const list: MeshStandardMaterial[] = [];
       const sashes: Group[] = [];
       const minX = Math.min(...p.points.split(" ").map((xy) => Number(xy.split(",")[0])));
       for (const [a, b] of p.windows ?? []) {
-        const m = mat("#8ecae6", { roughness: 0.2, transparent: true, opacity: 0.85 });
-        // The sash, hinged at its end a: it swings into the room when open.
+        const m = mat("#8ecae6", { roughness: 0.05, transparent: true, opacity: 0.45 });
+        const L = b - a, cx = FACADE_X + 5 - CX, cz = (a + b) / 2 - CZ;
+        // White PVC frame in the thickness of the wall, and the stone sill inside.
+        const frame = new Group();
+        const bar = (w: number, h: number, d: number, x: number, y: number, z: number, material = pvc) => {
+          const o = new Mesh(new BoxGeometry(w, h, d), material);
+          o.position.set(x, y, z);
+          o.castShadow = true;
+          frame.add(o);
+        };
+        bar(8, 4, L, 0, SILL + GLASS_H - 2, 0); // head
+        bar(8, 4, L, 0, SILL + 2, 0); // bottom rail
+        bar(8, GLASS_H, 4, 0, SILL + GLASS_H / 2, -L / 2 + 2); // jambs
+        bar(8, GLASS_H, 4, 0, SILL + GLASS_H / 2, L / 2 - 2);
+        bar(14, 2, L + 8, -9, SILL - 1, 0, stone); // interior sill
+        frame.position.set(cx, 0, cz);
+        s.add(frame);
+        live.cut.push({ o: frame, cx, cz, h: GLASS_H, lift: SILL, hide: true });
+        // The sash (white frame, glass, handle), hinged at its end a: it swings into the room when open.
         const sash = new Group();
-        sash.position.set(FACADE_X + 5 - CX, SILL, a - CZ);
-        const pane = new Mesh(new BoxGeometry(4, GLASS_H, b - a), m);
-        pane.position.set(0, GLASS_H / 2, (b - a) / 2);
-        sash.add(pane);
+        sash.position.set(cx - 2, SILL + 4, a + 4 - CZ);
+        const sl = L - 8, sh = GLASS_H - 8;
+        const part = (w: number, h: number, d: number, x: number, y: number, z: number, material: MeshStandardMaterial) => {
+          const o = new Mesh(new BoxGeometry(w, h, d), material);
+          o.position.set(x, y, z);
+          sash.add(o);
+        };
+        part(4, 3, sl, 0, sh - 1.5, sl / 2, pvc);
+        part(4, 3, sl, 0, 1.5, sl / 2, pvc);
+        part(4, sh, 3, 0, sh / 2, 1.5, pvc);
+        part(4, sh, 3, 0, sh / 2, sl - 1.5, pvc);
+        part(0.6, sh - 6, sl - 6, 0, sh / 2, sl / 2, m); // glass
+        part(2.5, 1.2, 5, -3, sh / 2, sl - 4, handle); // handle, room side
         s.add(sash);
-        live.cut.push({ o: sash, cx: FACADE_X + 5 - CX, cz: (a + b) / 2 - CZ, h: GLASS_H, lift: SILL, hide: true });
+        live.cut.push({ o: sash, cx, cz, h: GLASS_H, lift: SILL, hide: true });
         sashes.push(sash);
         list.push(m);
         // The patch of sunlight this window casts on the floor (moved in sync()).
