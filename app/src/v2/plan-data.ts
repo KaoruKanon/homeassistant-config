@@ -72,3 +72,25 @@ export const FURNITURE_3D: Record<string, [number, string]> = {
 export function planLights(r: Pick<Room, "id" | "lights">): string[] {
   return [...new Set([...r.lights, ...(config.plan?.lights?.[r.id] ?? []).map((l) => l.entity)])];
 }
+
+/** A rectangle by its centre and size, in the units of the view (plan or screen). */
+export interface Spot {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const NEAR: [number, number][] = [[0, 0], [0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1], [0, -2], [0, 2], [-2, 0], [2, 0], [0, -3], [0, 3]];
+
+/**
+ * Where to put a room's label so it covers no light, device badge or other
+ * label: its own place if free, else the nearest free one around it (steps
+ * of `step`). Returns the offset to apply.
+ */
+export function freeSpot(label: Spot, taken: Spot[], step: number): [number, number] {
+  const clear = (dx: number, dy: number) =>
+    taken.every((t) => Math.abs(label.x + dx - t.x) * 2 >= label.w + t.w || Math.abs(label.y + dy - t.y) * 2 >= label.h + t.h);
+  for (const [i, j] of NEAR) if (clear(i * step, j * step)) return [i * step, j * step];
+  return [0, 0];
+}

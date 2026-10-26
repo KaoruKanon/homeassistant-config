@@ -7,7 +7,7 @@ import { openComputer } from "../popups/open.ts";
 import { entityName, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
-import { DOORS, FURNITURE, ROOMS, WALLS, planLights } from "./plan-data.ts";
+import { DOORS, FURNITURE, ROOMS, WALLS, freeSpot, planLights, type Spot } from "./plan-data.ts";
 import { roomColors, roomSceneStyles } from "./room-art.ts";
 import { currentSky } from "./sky.ts";
 
@@ -444,6 +444,27 @@ export class KhFloorplan extends LitElement {
     const pcs = config.plan?.computers ?? {};
     const lit = (r?: Room) => !!r && planLights(r).some((id) => isActive(hass.states[id]));
 
+    // What a room's label must not cover: the placed lights and the PC / TV badges.
+    const taken: Spot[] = [
+      ...Object.values(config.plan?.lights ?? {}).flat().map((l): Spot => {
+        const [x1, y1] = at(...l.at);
+        const [x2, y2] = l.to ? at(...l.to) : [x1, y1];
+        return { x: (x1 + x2) / 2, y: (y1 + y2) / 2, w: Math.abs(x2 - x1) + 44, h: Math.abs(y2 - y1) + 44 };
+      }),
+      ...Object.entries(config.plan?.computers ?? {}).flatMap(([id, entity]): Spot[] => {
+        const p = ROOMS[id]?.pc, c = config.home.computers.find((x) => x.entity === entity);
+        if (!p || !c) return [];
+        const [x, y] = at(...(ROOMS[id].pcBadge ?? [p[0] + p[2] / 2, p[1] + p[3] / 2]));
+        return [{ x, y, w: 34 + c.name.length * 10.5, h: 36 }];
+      }),
+      ...Object.entries(config.plan?.tvs ?? {}).flatMap(([id]): Spot[] => {
+        const p = ROOMS[id];
+        if (!p?.tv) return [];
+        const [x, y] = at(...(p.tvBadge ?? [p.tv[0] + p.tv[2] / 2, p.tv[1] + p.tv[3] / 2]));
+        return [{ x, y, w: 34 + (id.length + 3) * 10.5, h: 36 }];
+      }),
+    ];
+
     return html`<svg class="plan" viewBox=${view} role="img" aria-label="Plan de l'appartement">
       <defs>
         <radialGradient id="kh-glow"><stop offset="0" stop-color="#ffd27a" stop-opacity="0.75" /><stop offset="0.5" stop-color="#ffc35a" stop-opacity="0.3" /><stop offset="1" stop-color="#ffb347" stop-opacity="0" /></radialGradient>
@@ -501,7 +522,13 @@ export class KhFloorplan extends LitElement {
       ${Object.entries(ROOMS).map(([id, p]) => {
         const r = byId.get(id);
         if (!r) return nothing;
-        const [x, y] = at(...p.label);
+        // The label (bulb, name, humidity) moves aside from the lights and badges it would cover.
+        const [lx, ly] = at(...p.label);
+        const tt = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
+        const box: Spot = { x: lx, y: ly - 17, w: Math.max(80, r.name.length * 14 + (isNaN(tt) ? 0 : 56)), h: 96 };
+        const [dx, dy] = freeSpot(box, taken, 34);
+        taken.push({ ...box, x: box.x + dx, y: box.y + dy });
+        const [x, y] = [lx + dx, ly + dy];
         const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
         const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
         const on = lit(r);

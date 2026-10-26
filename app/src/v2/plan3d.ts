@@ -38,7 +38,7 @@ import { openComputer } from "../popups/open.ts";
 import { entityName, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
-import { FURNITURE, FURNITURE_3D, ROOMS, WALLS, planLights } from "./plan-data.ts";
+import { FURNITURE, FURNITURE_3D, ROOMS, WALLS, freeSpot, planLights, type Spot } from "./plan-data.ts";
 import { currentSky } from "./sky.ts";
 import { andon, computer, flatTv, gamingSetup, lino, model, speaker, standingFan } from "./plan3d-models.ts";
 
@@ -922,9 +922,35 @@ export class KhPlan3d extends LitElement {
     else this.sync();
   }
 
+  /** Screen boxes of the lights' and devices' buttons, which never move. */
+  private fixedButtons(): Spot[] {
+    const hass = store.hass;
+    if (!hass || !this.renderer) return [];
+    const out: Spot[] = [];
+    for (const l of Object.values(config.plan?.lights ?? {}).flat()) {
+      const [x, y] = l.to ? [(l.at[0] + l.to[0]) / 2, (l.at[1] + l.to[1]) / 2] : l.at;
+      const pos = hass.states[l.entity] && this.at(x, y, FIXTURE_Z[l.kind] ?? 100);
+      if (pos) out.push({ x: pos[0], y: pos[1], w: 34, h: 34 });
+    }
+    if (this.narrow) return out; // badges are hidden on phones
+    for (const [id, entity] of Object.entries(config.plan?.computers ?? {})) {
+      const p = ROOMS[id]?.pc, c = config.home.computers.find((x) => x.entity === entity);
+      const [bx, by] = ROOMS[id]?.pcBadge ?? (p ? [p[0] + p[2] / 2, p[1] + p[3] / 2] : [0, 0]);
+      const pos = p && c && this.at(bx, by, 165);
+      if (pos) out.push({ x: pos[0], y: pos[1], w: 50 + c!.name.length * 7.5, h: 32 });
+    }
+    for (const [id] of Object.entries(config.plan?.tvs ?? {})) {
+      const p = ROOMS[id];
+      const pos = p?.tv && this.at(...(p.tvBadge ?? [0, 0]), 175);
+      if (pos) out.push({ x: pos[0], y: pos[1], w: 50 + (id.length + 3) * 7.5, h: 32 });
+    }
+    return out;
+  }
+
   render() {
     const hass = store.hass;
     const rooms = this.rooms ?? [];
+    const taken = this.fixedButtons();
     return html`<canvas aria-label="Vue 3D de l'appartement : glisser pour tourner, pincer pour zoomer"></canvas>
       <div class="tools" role="toolbar" aria-label="Vue du plan 3D">
         <button aria-pressed=${String(this.view === "overview" && !this.focused)} @click=${() => this.setView("overview")}><ha-icon icon="mdi:axis-arrow"></ha-icon><span>Ensemble</span></button>
@@ -939,8 +965,14 @@ export class KhPlan3d extends LitElement {
         ${hass && this.renderer
           ? html`${rooms.map((r) => {
               const p = ROOMS[r.id];
-              const pos = p && this.at(p.label[0], p.label[1], 150);
-              if (!pos) return nothing;
+              const at0 = p && this.at(p.label[0], p.label[1], 150);
+              if (!at0) return nothing;
+              // Moved aside from the lights' and devices' buttons (and the other labels).
+              const t0 = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
+              const box: Spot = { x: at0[0], y: at0[1], w: 50 + r.name.length * 7.5 + (isNaN(t0) ? 0 : 40), h: 38 };
+              const [dx, dy] = freeSpot(box, taken, 26);
+              taken.push({ ...box, x: box.x + dx, y: box.y + dy });
+              const pos = [at0[0] + dx, at0[1] + dy];
               const lights = planLights(r);
               const on = lights.some((id) => isActive(hass.states[id]));
               const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
