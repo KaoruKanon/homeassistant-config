@@ -24,8 +24,10 @@ Deux panneaux, déclarés en `panel_custom` dans `configuration.yaml` et servis 
 
 | Panneau | URL | Contenu |
 |---|---|---|
-| Maison V2 | `/maison-v2` | le front-end principal : tuiles « bento », scènes illustrées, plan 2D / 3D |
-| Maison (V1) | `/maison` | l'accueil Mushroom refait, gardé temporairement avant d'être retiré |
+| Maison | `/maison-v2` | le front-end principal (V2) : tuiles « bento », scènes illustrées, plan 2D / 3D |
+| Maison V1 | `/maison` | l'accueil Mushroom refait, gardé temporairement avant d'être retiré |
+
+Il n'y a plus de dashboard Lovelace en YAML ni de carte HACS : Lovelace reste disponible en mode stockage (« Aperçu » de Home Assistant).
 
 <img src="/images/kaoru-home/pc-accueil.jpg" width="100%">
 
