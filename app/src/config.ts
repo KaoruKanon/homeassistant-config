@@ -145,6 +145,10 @@ export interface KaoruHomeConfig {
      * count as the room's lights for its bulb.
      */
     lights?: Record<string, { entity: string; kind: "ceiling" | "spot" | "lamp" | "strip"; at: [number, number]; to?: [number, number] }[]>;
+    /** Smart speakers (plan units, height z in cm); `wall`: hung on a wall facing +y. */
+    speakers?: { entity: string; at: [number, number]; z: number; wall?: boolean }[];
+    /** Standing fans, their blades turn while on. */
+    fans?: { entity: string; at: [number, number] }[];
   };
   system: {
     trackers: { entity: string; name: string; icon: string }[];
@@ -386,6 +390,14 @@ export const config: KaoruHomeConfig = {
         { entity: "light.yeelight_stripe", kind: "strip", at: [400, 724], to: [572, 724] },
       ],
     },
+    speakers: [
+      // kitchen: on the wall, right of the fridge
+      { entity: "media_player.google_home_cuisine", at: [576, 452], z: 150, wall: true },
+      // bedroom: on the desk, under the right screen, left of the Japanese lamp
+      { entity: "media_player.google_home_chambre", at: [541, 735], z: 76 },
+    ],
+    // bedroom: at the foot of the bookcase, left of the desk
+    fans: [{ entity: "fan.xiaomi_smart_fan_2", at: [318, 790] }],
   },
   system: {
     trackers: [

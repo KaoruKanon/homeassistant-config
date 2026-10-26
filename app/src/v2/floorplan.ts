@@ -64,8 +64,13 @@ function piece(name: string, w: number, h: number): SVGTemplateResult {
       return svg`<rect width=${w} height=${h} rx="3" fill="#6a4a35" /><path d="M6 ${h / 2}H${w - 6}" stroke="#4a3428" stroke-width="2" />`;
     case "desk_extension":
       return svg`<rect width=${w} height=${h} rx="4" fill="#8a5d3f" opacity="0.92" />`;
+    case "desk_black":
+    case "desk_extension_black":
+      return svg`<rect width=${w} height=${h} rx="4" fill="#2a2b30" />`;
     case "bookcase":
       return svg`<rect width=${w} height=${h} rx="3" fill="#6a4a35" />`;
+    case "bookcase_tall":
+      return svg`<rect width=${w} height=${h} rx="3" fill="#b4602e" />`;
     case "office_chair":
       return svg`<circle cx=${w / 2} cy=${h / 2} r=${Math.min(w, h) / 2 - 2} fill="#e85d75" />`;
     case "refrigerator":

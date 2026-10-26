@@ -17,6 +17,7 @@ import {
   PerspectiveCamera,
   PointLight,
   Raycaster,
+  RingGeometry,
   Scene,
   Shape,
   ShapeGeometry,
@@ -38,9 +39,8 @@ import { entityName, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 import { FURNITURE, FURNITURE_3D, ROOMS, WALLS, planLights } from "./plan-data.ts";
-import { roomColors } from "./room-art.ts";
 import { currentSky } from "./sky.ts";
-import { andon, computer, flatTv, gamingSetup, model } from "./plan3d-models.ts";
+import { andon, computer, flatTv, gamingSetup, lino, model, speaker, standingFan } from "./plan3d-models.ts";
 
 // Plan units are ~cm; the scene is centred on the flat, y up.
 const CX = 400, CZ = 722;
@@ -75,7 +75,26 @@ interface Live {
   pcs: Map<string, { mats: MeshStandardMaterial[]; lights: PointLight[] }>;
   /** Lights placed one by one: their glowing part and their light(s). */
   fixtures: Map<string, { glow: MeshStandardMaterial; lights: (PointLight | SpotLight)[]; base: number }>;
+  /** Window sashes, by room: they swing in when the window is open. */
+  sashes: Map<string, Group[]>;
+  /** A soft ring on the floor of a room while its motion sensor sees someone. */
+  motion: Map<string, Mesh>;
+  speakers: Map<string, MeshStandardMaterial>;
+  fans: Map<string, Group>;
+  /** What the cutaway lowers (walls) or hides (windows, lintels) on the camera's side. */
+  cut: { o: Object3D; cx: number; cz: number; h: number; lift: number; hide: boolean }[];
 }
+
+/** Floor tint of the temperature layer: blue (cool) to red (warm). */
+const TEMP_SCALE: [number, string][] = [[16, "#4fc3f7"], [19, "#81c784"], [22, "#ffd54f"], [25, "#ff8a65"], [28, "#e53935"]];
+function tempColor(t: number): Color {
+  const i = TEMP_SCALE.findIndex(([v]) => t < v);
+  if (i <= 0) return new Color(TEMP_SCALE[i === 0 ? 0 : TEMP_SCALE.length - 1][1]);
+  const [a, ca] = TEMP_SCALE[i - 1], [b, cb] = TEMP_SCALE[i];
+  return new Color(ca).lerp(new Color(cb), (t - a) / (b - a));
+}
+
+type View = "overview" | "top";
 
 /**
  * The flat in real 3D (three.js): orbit with a finger or the mouse, the
@@ -103,6 +122,14 @@ export class KhPlan3d extends LitElement {
   private labelsOnly = false;
   /** Until the user turns the view, it follows the screen's shape. */
   private moved = false;
+  /** The room the camera came close to (a second tap opens it). */
+  private focused?: string;
+  /** A camera move in progress (room focus, preset views). */
+  private tween?: { p0: Vector3; p1: Vector3; t0: Vector3; t1: Vector3; start: number };
+  private view: View = "overview";
+  /** "temp": floors tinted by each room's temperature. */
+  private layer: "none" | "temp" = "none";
+  private spin = 0;
   private narrow = false;
 
   constructor() {
@@ -111,7 +138,9 @@ export class KhPlan3d extends LitElement {
     new EntitiesController(this, () => {
       const p = config.plan;
       return [
-        ...(this.rooms ?? []).flatMap((r) => [...planLights(r), ...r.openings, ...[r.temperature].filter((x): x is string => !!x)]),
+        ...(this.rooms ?? []).flatMap((r) => [...planLights(r), ...r.openings, ...r.motion, ...[r.temperature].filter((x): x is string => !!x)]),
+        ...(p?.speakers ?? []).map((x) => x.entity),
+        ...(p?.fans ?? []).map((x) => x.entity),
         ...Object.values(p?.tvs ?? {}),
         ...Object.values(p?.computers ?? {}),
         "sun.sun",
@@ -183,6 +212,60 @@ export class KhPlan3d extends LitElement {
       }
       .bulb ha-icon {
         --mdc-icon-size: 20px;
+      }
+      .tools {
+        position: absolute;
+        z-index: 1;
+        top: 8px;
+        left: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-width: calc(100% - 120px);
+      }
+      .tools button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 11px;
+        border-radius: 11px;
+        background: rgb(0 0 0 / 0.45);
+        color: rgb(255 255 255 / 0.8);
+        font-weight: 800;
+        font-size: 0.8125rem;
+      }
+      .tools button[aria-pressed="true"] {
+        background: rgb(255 255 255 / 0.9);
+        color: #1c2027;
+      }
+      .tools button.open {
+        background: rgb(255 179 71 / 0.92);
+        color: #2b2003;
+      }
+      .tools ha-icon {
+        --mdc-icon-size: 17px;
+      }
+      :host([narrow]) .tools button:not(.open) span {
+        display: none;
+      }
+      .legend {
+        position: absolute;
+        z-index: 1;
+        right: 12px;
+        bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: rgb(255 255 255 / 0.75);
+      }
+      .legend i {
+        width: 90px;
+        height: 8px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #4fc3f7, #81c784, #ffd54f, #ff8a65, #e53935);
       }
       .fix {
         pointer-events: auto;
@@ -284,6 +367,8 @@ export class KhPlan3d extends LitElement {
     this.resize.disconnect();
     window.removeEventListener("kh-pending", this.onPending);
     cancelAnimationFrame(this.frame);
+    cancelAnimationFrame(this.spin);
+    this.spin = 0;
     this.controls?.dispose();
     this.scene.traverse((o) => {
       if (o instanceof Mesh) {
@@ -305,7 +390,7 @@ export class KhPlan3d extends LitElement {
       return;
     }
     const r = this.renderer;
-    r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    r.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // sharp enough, lighter on tablets
     r.outputColorSpace = SRGBColorSpace;
     r.shadowMap.enabled = true;
     r.shadowMap.type = PCFSoftShadowMap;
@@ -321,7 +406,13 @@ export class KhPlan3d extends LitElement {
     c.maxDistance = 3200;
     c.enablePan = false;
     c.addEventListener("change", () => this.request());
-    c.addEventListener("start", () => (this.moved = true));
+    c.addEventListener("start", () => ((this.moved = true), (this.tween = undefined)));
+    try {
+      this.view = localStorage.getItem("kh-plan3d-view") === "top" ? "top" : "overview";
+      this.layer = localStorage.getItem("kh-plan3d-layer") === "temp" ? "temp" : "none";
+    } catch {
+      /* not kept */
+    }
     this.controls = c;
     canvas.addEventListener("pointerdown", (e) => (this.down = { x: e.clientX, y: e.clientY }));
     canvas.addEventListener("pointerup", (e) => this.pick(e));
@@ -342,8 +433,7 @@ export class KhPlan3d extends LitElement {
     sc.far = 3000;
     s.add(this.sun);
 
-    const live: Live = { floors: new Map(), floorBase: new Map(), lamps: new Map(), windows: new Map(), beams: [], tvs: new Map(), pcs: new Map(), fixtures: new Map() };
-    const byId = new Map((this.rooms ?? []).map((r) => [r.id, r]));
+    const live: Live = { floors: new Map(), floorBase: new Map(), lamps: new Map(), windows: new Map(), beams: [], tvs: new Map(), pcs: new Map(), fixtures: new Map(), sashes: new Map(), motion: new Map(), speakers: new Map(), fans: new Map(), cut: [] };
 
     // Ground slab under the flat.
     const ground = slab(55, 105, 690, 1235, 6, mat("#1c2027"), -6);
@@ -354,8 +444,8 @@ export class KhPlan3d extends LitElement {
       const pts = p.points.split(" ").map((xy) => xy.split(",").map(Number));
       const shape = new Shape();
       pts.forEach(([x, y], i) => (i ? shape.lineTo(x - CX, -(y - CZ)) : shape.moveTo(x - CX, -(y - CZ))));
-      const [wall] = roomColors(byId.get(id) ?? { id, name: id, icon: "" });
-      const m = mat(wall, { roughness: 0.95 });
+      // The same orange lino in every room; the temperature layer tints it.
+      const m = new MeshStandardMaterial({ color: "#ffffff", map: lino(), roughness: 0.8 });
       const floor = new Mesh(new ShapeGeometry(shape), m);
       floor.rotation.x = -Math.PI / 2;
       floor.position.y = 0.5;
@@ -364,7 +454,14 @@ export class KhPlan3d extends LitElement {
       s.add(floor);
       this.picks.push(floor);
       live.floors.set(id, m);
-      live.floorBase.set(id, new Color(wall));
+      live.floorBase.set(id, new Color("#ffffff"));
+      // Motion: a soft ring around the room's label.
+      const ring = new Mesh(new RingGeometry(45, 75, 48), new MeshBasicMaterial({ color: "#64b5f6", transparent: true, opacity: 0.45, depthWrite: false, blending: AdditiveBlending }));
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(p.label[0] - CX, 1.5, p.label[1] - CZ);
+      ring.visible = false;
+      s.add(ring);
+      live.motion.set(id, ring);
       if (!config.plan?.lights?.[id]?.length) {
         const lamp = new PointLight("#ffbb66", 0, 420, 1.8);
         lamp.position.set(p.label[0] - CX, 190, p.label[1] - CZ);
@@ -377,31 +474,44 @@ export class KhPlan3d extends LitElement {
 
     const walls = new Group();
     const wallMat = mat("#d9d4cc", { roughness: 0.9 });
-    for (const [x, y, w, h] of WALLS) walls.add(slab(x, y, w, h, WALL_H, wallMat));
+    const cutaway = (o: Mesh, x: number, y: number, w: number, h: number, height: number, lift = 0, hide = false) => {
+      walls.add(o);
+      live.cut.push({ o, cx: x + w / 2 - CX, cz: y + h / 2 - CZ, h: height, lift, hide: hide || lift > 0 });
+    };
+    for (const [x, y, w, h] of WALLS) cutaway(slab(x, y, w, h, WALL_H, wallMat), x, y, w, h, WALL_H);
     // The facade (x = 720, where the windows are): a wall under each window (the
     // sill) and above it, and full wall wherever the plan has neither wall nor
     // window, so a window never floats apart from the rest of the wall.
     const facade = WALLS.filter(([x, , w]) => x === FACADE_X && w === 10).map(([, y, , h]): [number, number] => [y, y + h]);
     const glass = Object.values(ROOMS).flatMap((p) => p.windows ?? []);
     for (const [a, b] of glass) {
-      walls.add(slab(FACADE_X, a, 10, b - a, SILL, wallMat));
-      walls.add(slab(FACADE_X, a, 10, b - a, WALL_H - SILL - GLASS_H, wallMat, SILL + GLASS_H));
+      cutaway(slab(FACADE_X, a, 10, b - a, SILL, wallMat), FACADE_X, a, 10, b - a, SILL);
+      cutaway(slab(FACADE_X, a, 10, b - a, WALL_H - SILL - GLASS_H, wallMat, SILL + GLASS_H), FACADE_X, a, 10, b - a, WALL_H - SILL - GLASS_H, SILL + GLASS_H);
     }
     const covered = [...facade, ...glass].sort((p, q) => p[0] - q[0]);
     const ys = Object.values(ROOMS).flatMap((p) => p.points.split(" ").filter((xy) => Number(xy.split(",")[0]) >= FACADE_X).map((xy) => Number(xy.split(",")[1])));
     let at = Math.min(...ys);
     for (const [a, b] of covered) {
-      if (a > at) walls.add(slab(FACADE_X, at, 10, a - at, WALL_H, wallMat));
+      if (a > at) cutaway(slab(FACADE_X, at, 10, a - at, WALL_H, wallMat), FACADE_X, at, 10, a - at, WALL_H);
       at = Math.max(at, b);
     }
     s.add(walls);
 
     for (const [id, p] of Object.entries(ROOMS)) {
       const list: MeshStandardMaterial[] = [];
+      const sashes: Group[] = [];
       const minX = Math.min(...p.points.split(" ").map((xy) => Number(xy.split(",")[0])));
       for (const [a, b] of p.windows ?? []) {
         const m = mat("#8ecae6", { roughness: 0.2, transparent: true, opacity: 0.85 });
-        s.add(slab(FACADE_X - 3, a, 16, b - a, GLASS_H, m, SILL));
+        // The sash, hinged at its end a: it swings into the room when open.
+        const sash = new Group();
+        sash.position.set(FACADE_X + 5 - CX, SILL, a - CZ);
+        const pane = new Mesh(new BoxGeometry(4, GLASS_H, b - a), m);
+        pane.position.set(0, GLASS_H / 2, (b - a) / 2);
+        sash.add(pane);
+        s.add(sash);
+        live.cut.push({ o: sash, cx: FACADE_X + 5 - CX, cz: (a + b) / 2 - CZ, h: GLASS_H, lift: SILL, hide: true });
+        sashes.push(sash);
         list.push(m);
         // The patch of sunlight this window casts on the floor (moved in sync()).
         const geo = new BufferGeometry();
@@ -414,6 +524,7 @@ export class KhPlan3d extends LitElement {
         live.beams.push({ mesh: beam, a, b, minX });
       }
       live.windows.set(id, list);
+      live.sashes.set(id, sashes);
     }
 
     for (const [name, x, y, w, h, rot] of FURNITURE) {
@@ -464,6 +575,21 @@ export class KhPlan3d extends LitElement {
       place(group, p[0] + p[2] / 2, p[1] + p[3] / 2, 76, FACING[id] ?? 0);
       pickable(group, { pc: entity });
       live.pcs.set(entity, { mats: screens, lights });
+    }
+
+    for (const sp of config.plan?.speakers ?? []) {
+      const { group, leds } = speaker(!!sp.wall);
+      group.position.set(sp.at[0] - CX, sp.z, sp.at[1] - CZ);
+      s.add(group);
+      pickable(group, { speaker: sp.entity });
+      live.speakers.set(sp.entity, leds);
+    }
+    for (const f of config.plan?.fans ?? []) {
+      const { group, blades } = standingFan();
+      group.position.set(f.at[0] - CX, 0, f.at[1] - CZ);
+      s.add(group);
+      pickable(group, { fan: f.entity });
+      live.fans.set(f.entity, blades);
     }
 
     // Lights placed one by one (ceiling lights, lamps, LED strips).
@@ -582,8 +708,15 @@ export class KhPlan3d extends LitElement {
       const lamp = live.lamps.get(r.id);
       if (lamp) lamp.intensity = on ? (night ? 4.5 : 3) * 10000 : 0;
       const floor = live.floors.get(r.id), baseColor = live.floorBase.get(r.id);
-      if (floor && baseColor) floor.emissive.set(on ? "#3a2400" : "#000000");
+      if (floor && baseColor) {
+        floor.emissive.set(on ? "#3a2400" : "#000000");
+        const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
+        floor.color.copy(this.layer === "temp" && !isNaN(t) ? tempColor(t) : baseColor);
+      }
+      const ring = live.motion.get(r.id);
+      if (ring) ring.visible = r.motion.some((m) => isActive(hass.states[m]));
       const open = r.openings.some((o) => isActive(hass.states[o]));
+      for (const sash of live.sashes.get(r.id) ?? []) sash.rotation.y = open ? -0.9 : 0;
       for (const w of live.windows.get(r.id) ?? []) {
         w.color.set(open ? "#ff6b5e" : sky.window);
         w.emissive.set(open ? "#7a1408" : sky.window);
@@ -600,6 +733,8 @@ export class KhPlan3d extends LitElement {
       for (const m of pc.mats) m.emissiveIntensity = on ? 1.3 : 0;
       for (const l of pc.lights) l.intensity = on ? 9000 : 0; // RGB through the case's glass
     }
+    for (const [entity, leds] of live.speakers) leds.emissiveIntensity = hass.states[entity]?.state === "playing" ? 1.6 : 0;
+    this.spinFans();
     // Each placed light in its own colour and brightness.
     for (const [entity, f] of live.fixtures) {
       const st = hass.states[entity];
@@ -625,7 +760,7 @@ export class KhPlan3d extends LitElement {
     // Phones: a tall view along the length of the flat; wide screens: from the salon's corner.
     const h = Math.round(this.narrow ? Math.min(w * 1.25, window.innerHeight * 0.62) : Math.min(w * 0.6, window.innerHeight * 0.62));
     r.setSize(w, h, false);
-    if (!this.moved) this.camera.position.set(...((this.narrow ? [0, 1550, 1150] : [-1050, 1500, 1050]) as [number, number, number]));
+    if (!this.moved) this.camera.position.copy(this.home()[0]);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.request();
@@ -637,7 +772,9 @@ export class KhPlan3d extends LitElement {
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
       if (!this.renderer) return;
-      const moving = this.controls?.update() ?? false;
+      let moving = this.controls?.update() ?? false;
+      if (this.tween) moving = this.step() || moving;
+      this.cutaway();
       this.renderer.render(this.scene, this.camera);
       this.labelsOnly = true;
       this.requestUpdate(); // labels follow the camera
@@ -653,13 +790,120 @@ export class KhPlan3d extends LitElement {
     const hit = ray.intersectObjects(this.picks, false)[0]?.object.userData;
     if (!hit) return;
     if (hit.tv) openMoreInfo(this, hit.tv);
+    else if (hit.speaker) openMoreInfo(this, hit.speaker);
+    else if (hit.fan) openMoreInfo(this, hit.fan);
     else if (hit.pc) {
       const c = config.home.computers.find((x) => x.entity === hit.pc);
       if (c) openComputer(c);
     } else if (hit.room && this.rooms?.some((r) => r.id === hit.room)) {
-      history.pushState(null, "", `${this.prefix}/pieces/${hit.room}${location.search}`);
-      window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+      if (this.focused === hit.room) this.openRoom(hit.room);
+      else this.focusRoom(hit.room);
     }
+  }
+
+  private openRoom(id: string): void {
+    history.pushState(null, "", `${this.prefix}/pieces/${id}${location.search}`);
+    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+  }
+
+  /** The camera glides to a room, keeping its angle; a second tap opens the room. */
+  private focusRoom(id: string): void {
+    const p = ROOMS[id];
+    if (!p || !this.controls) return;
+    const target = new Vector3(p.label[0] - CX, 0, p.label[1] - CZ);
+    const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+    if (dir.y < 0.45) dir.setY(0.45).normalize();
+    this.focused = id;
+    this.moveTo(target.clone().add(dir.multiplyScalar(820)), target);
+  }
+
+  /** Preset views: the whole flat from the salon's corner, or from above. */
+  private setView(v: View): void {
+    this.view = v;
+    this.focused = undefined;
+    try {
+      localStorage.setItem("kh-plan3d-view", v);
+    } catch {
+      /* not kept */
+    }
+    const [pos] = this.home();
+    this.moveTo(pos, new Vector3(0, 0, 0));
+  }
+
+  private home(): [Vector3] {
+    if (this.view === "top") return [new Vector3(0, this.narrow ? 3100 : 2700, 1)];
+    return [new Vector3(...((this.narrow ? [0, 1550, 1150] : [-1050, 1500, 1050]) as [number, number, number]))];
+  }
+
+  private setLayer(l: "none" | "temp"): void {
+    this.layer = l;
+    try {
+      localStorage.setItem("kh-plan3d-layer", l);
+    } catch {
+      /* not kept */
+    }
+    this.sync();
+  }
+
+  private moveTo(pos: Vector3, target: Vector3): void {
+    if (!this.controls) return;
+    this.moved = true;
+    this.tween = { p0: this.camera.position.clone(), p1: pos, t0: this.controls.target.clone(), t1: target, start: performance.now() };
+    this.request();
+  }
+
+  /** One step of the camera move; true while it goes on. */
+  private step(): boolean {
+    const t = this.tween!, c = this.controls!;
+    const k = Math.min(1, (performance.now() - t.start) / 650);
+    const e = 1 - Math.pow(1 - k, 3);
+    this.camera.position.lerpVectors(t.p0, t.p1, e);
+    c.target.lerpVectors(t.t0, t.t1, e);
+    if (k >= 1) this.tween = undefined;
+    return k < 1;
+  }
+
+  /**
+   * Dollhouse cut: walls between the camera and the middle of the view are
+   * lowered (windows and lintels on that side hidden), so rooms are seen
+   * inside. From above, nothing is cut.
+   */
+  private cutaway(): void {
+    const live = this.live, c = this.controls;
+    if (!live || !c) return;
+    const dx = this.camera.position.x - c.target.x, dz = this.camera.position.z - c.target.z;
+    const len = Math.hypot(dx, dz);
+    const flat = len / Math.max(1, this.camera.position.y - c.target.y);
+    for (const w of live.cut) {
+      const ahead = flat > 0.35 && ((w.cx - c.target.x) * dx + (w.cz - c.target.z) * dz) / len > 60;
+      if (w.hide) w.o.visible = !ahead;
+      else {
+        const k = ahead ? Math.min(1, 22 / w.h) : 1;
+        w.o.scale.y = k;
+        w.o.position.y = w.lift + (w.h * k) / 2;
+      }
+    }
+  }
+
+  /** Fan blades turn while the fan runs (frames only while one does). */
+  private spinFans(): void {
+    const live = this.live, hass = store.hass;
+    if (!live || !hass) return;
+    const running = [...live.fans].filter(([e]) => isActive(hass.states[e]));
+    if (!running.length || this.spin) return;
+    let last = performance.now();
+    const turn = (now: number) => {
+      this.spin = 0;
+      if (!this.live || !this.renderer) return;
+      const on = [...this.live.fans].filter(([e]) => isActive(store.hass?.states[e]));
+      if (!on.length) return;
+      const dt = (now - last) / 1000;
+      last = now;
+      for (const [e, blades] of on) blades.rotation.z -= dt * (4 + (Number(store.hass?.states[e]?.attributes.percentage ?? 50) / 100) * 14);
+      this.renderer.render(this.scene, this.camera);
+      this.spin = requestAnimationFrame(turn);
+    };
+    this.spin = requestAnimationFrame(turn);
   }
 
   /** Screen position (px, in the canvas) of a plan point at height z; undefined when behind the camera. */
@@ -682,6 +926,15 @@ export class KhPlan3d extends LitElement {
     const hass = store.hass;
     const rooms = this.rooms ?? [];
     return html`<canvas aria-label="Vue 3D de l'appartement : glisser pour tourner, pincer pour zoomer"></canvas>
+      <div class="tools" role="toolbar" aria-label="Vue du plan 3D">
+        <button aria-pressed=${String(this.view === "overview" && !this.focused)} @click=${() => this.setView("overview")}><ha-icon icon="mdi:axis-arrow"></ha-icon><span>Ensemble</span></button>
+        <button aria-pressed=${String(this.view === "top" && !this.focused)} @click=${() => this.setView("top")}><ha-icon icon="mdi:arrow-collapse-down"></ha-icon><span>Dessus</span></button>
+        <button aria-pressed=${String(this.layer === "temp")} @click=${() => this.setLayer(this.layer === "temp" ? "none" : "temp")}><ha-icon icon="mdi:thermometer"></ha-icon><span>Températures</span></button>
+        ${this.focused
+          ? html`<button class="open" @click=${() => this.openRoom(this.focused!)}><ha-icon icon="mdi:door-open"></ha-icon><span>Ouvrir ${rooms.find((r) => r.id === this.focused)?.name ?? ""}</span></button>`
+          : nothing}
+      </div>
+      ${this.layer === "temp" ? html`<div class="legend" aria-hidden="true"><span>16°</span><i></i><span>28°</span></div>` : nothing}
       <div class="overlay">
         ${hass && this.renderer
           ? html`${rooms.map((r) => {
@@ -738,7 +991,7 @@ export class KhPlan3d extends LitElement {
             })}`
           : nothing}
       </div>
-      <div class="hint">Glisser pour tourner, pincer ou molette pour zoomer</div>`;
+      <div class="hint">Glisser pour tourner, pincer ou molette pour zoomer ; toucher une pièce pour s'en approcher</div>`;
   }
 }
 customElements.define("kh-plan3d", KhPlan3d);

@@ -1,4 +1,4 @@
-import { BoxGeometry, CanvasTexture, CylinderGeometry, Group, Mesh, MeshStandardMaterial, PointLight, SRGBColorSpace, TorusGeometry } from "three";
+import { BoxGeometry, CanvasTexture, CylinderGeometry, Group, Mesh, MeshStandardMaterial, PointLight, RepeatWrapping, SRGBColorSpace, TorusGeometry } from "three";
 
 // Furniture of the 3D plan, built from simple shapes at real-ish sizes
 // (1 unit ≈ 1 cm, y up). Each model fills a w × d footprint centred on its
@@ -201,6 +201,38 @@ export function model(name: string, w: number, d: number): Group | undefined {
       for (let i = 0; i < 2; i++) for (let k = 0; k < Math.floor((w - 8) / 7); k++) box(g, 5, 20 + ((k * 5 + i) % 7), d - 6, -w / 2 + 6 + k * 7, (h - 2.5) * (i / 2) + 2.5, 0, m(colors[(k + i) % 4], 0.9));
       return g;
     }
+    case "desk_black":
+    case "desk_extension_black": {
+      // Kaoru's desk: black top on black legs (the extension carries the tower).
+      const black = m("#232428", 0.55);
+      box(g, w, 4, d, 0, 72, 0, black);
+      legs(g, w, d, 72, 4, m("#16171a", 0.5), 2);
+      return g;
+    }
+    case "bookcase_tall": {
+      // Tall bookcase in orange wood, full of manga, figures and boxes.
+      const h = 200, wood = m("#b4602e", 0.7);
+      for (const sx of [-1, 1]) box(g, 2.5, h, d, sx * (w / 2 - 1.25), 0, 0, wood);
+      box(g, w, h, 1, 0, 0, -d / 2 + 0.5, wood);
+      const shelves = 6;
+      for (let i = 0; i <= shelves; i++) box(g, w, 2.5, d, 0, (h - 2.5) * (i / shelves), 0, wood);
+      const colors = ["#f4f1ea", "#e85d75", "#4a90c8", "#f2c14e", "#5aa469", "#9f92c0", "#2b2f3a"];
+      for (let i = 0; i < shelves; i++) {
+        const y0 = (h - 2.5) * (i / shelves) + 2.5;
+        for (let k = 0; k < Math.floor((w - 8) / 5); k++)
+          if ((k * 3 + i) % 7 !== 6) box(g, 3.6, 17 + ((k * 5 + i * 3) % 7), d - 8, -w / 2 + 5 + k * 5, y0, 0, m(colors[(k + i * 2) % colors.length], 0.9));
+      }
+      return g;
+    }
+    case "wall_shelf": {
+      // Black shelf on the wall above the desk, with boxes on it.
+      const black = m("#1d1e22", 0.6);
+      box(g, w, 2.5, d, 0, 150, 0, black);
+      box(g, 40, 30, d - 4, -w / 2 + 30, 152.5, 0, m("#2b2f3a", 0.8));
+      box(g, 28, 24, d - 6, -w / 2 + 70, 152.5, 0, m("#5aa469", 0.8));
+      box(g, 30, 34, d - 4, w / 2 - 40, 152.5, 0, m("#2b2f3a", 0.8));
+      return g;
+    }
     case "desk_extension": {
       // The desk carries on over the low bookcase.
       box(g, w, 4, d, 0, 72, 0, m(WOOD, 0.6));
@@ -367,13 +399,15 @@ function nzxt(g: Group, x: number, y: number, z: number, glow: MeshStandardMater
     bar.rotation.x = t;
   }
   box(g, 3, 0.6, 1, card.x - 3.5, card.y + 4, card.z + 8, glowMat(glow, "#ffffff")); // GEFORCE RTX light
-  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z + D / 2 - 3, glowMat(glow, "#ff3fa4")); // RGB strips
-  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z - D / 2 + 3, glowMat(glow, "#7c4dff"));
+  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z + D / 2 - 3, glowMat(glow, "#3fd2ff")); // RGB strips
+  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z - D / 2 + 3, glowMat(glow, "#2fa8ff"));
+  box(g, 3, 3, 0.4, x + 2, y + 28, z - D / 2 + 1.8, glowMat(glow, "#5ff0ff")); // the glowing logo on the board
+  box(g, W - 2, 0.3, 4, x, y + H, z + D / 2 - 3, m("#0d0e10", 0.95)); // perforated strip along the top front
   const glass = new MeshStandardMaterial({ color: "#cfd8e3", roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.22 });
   box(g, 0.6, H - 1, D - 2, x - W / 2 + 0.3, y + 0.5, z, glass); // tempered glass, left side
   box(g, 1.4, 0.4, 1.4, x + 5, y + H, z + D / 2 - 5, glowMat(glow, "#ffffff")); // power button on top
   // RGB through the glass, on the desk and the wall.
-  const rgb = new PointLight("#9b5cff", 0, 140, 2);
+  const rgb = new PointLight("#3fd2ff", 0, 140, 2);
   rgb.position.set(x - W / 2 - 6, y + H / 2, z);
   g.add(rgb);
   lights.push(rgb);
@@ -437,69 +471,145 @@ export function gamingSetup(towerAt: [number, number, number]): { group: Group; 
   return { group: g, screens, lights };
 }
 
-/** Painted paper of the Japanese lamp: a red sun and a cherry branch in bloom. */
+/** Painted paper of the Japanese lamp: a brown cherry branch in pink bloom on cream paper. */
 let andonPaper: CanvasTexture | undefined;
 function paper(): CanvasTexture {
   if (andonPaper) return andonPaper;
   const c = document.createElement("canvas");
-  c.width = 128;
-  c.height = 224;
+  c.width = 120;
+  c.height = 320;
   const x = c.getContext("2d")!;
-  x.fillStyle = "#f3e7c9";
-  x.fillRect(0, 0, 128, 224);
-  x.fillStyle = "#d4202a";
-  x.beginPath();
-  x.arc(84, 62, 30, 0, Math.PI * 2);
-  x.fill();
-  x.strokeStyle = "#2a1a14";
+  x.fillStyle = "#f6ecd6";
+  x.fillRect(0, 0, 120, 320);
+  x.strokeStyle = "#7a4b3a";
   x.lineCap = "round";
-  const branch = (x0: number, y0: number, x1: number, y1: number, w: number) => {
+  const branch = (x0: number, y0: number, cx: number, cy: number, x1: number, y1: number, w: number) => {
     x.lineWidth = w;
     x.beginPath();
     x.moveTo(x0, y0);
-    x.quadraticCurveTo((x0 + x1) / 2 + 10, (y0 + y1) / 2, x1, y1);
+    x.quadraticCurveTo(cx, cy, x1, y1);
     x.stroke();
   };
-  branch(20, 224, 40, 120, 7);
-  branch(40, 120, 30, 40, 4);
-  branch(40, 130, 100, 100, 3);
-  branch(36, 170, 90, 160, 3);
-  branch(32, 80, 70, 30, 2);
-  x.fillStyle = "#e0405a";
-  for (const [bx, by] of [[30, 45], [70, 30], [58, 108], [100, 100], [88, 158], [45, 140], [24, 95], [76, 120], [52, 70], [96, 140]]) {
-    x.beginPath();
-    x.arc(bx, by, 4.5, 0, Math.PI * 2);
-    x.fill();
-  }
+  branch(0, 250, 70, 230, 80, 170, 9); // the trunk comes in from the left, low
+  branch(80, 170, 60, 120, 90, 60, 5);
+  branch(80, 175, 110, 150, 118, 130, 4);
+  branch(70, 120, 40, 90, 20, 70, 3);
+  branch(88, 70, 100, 40, 110, 20, 2.5);
+  branch(40, 240, 30, 280, 10, 300, 3);
+  x.fillStyle = "#f2a7b4";
+  const blossoms = [[90, 55], [105, 25], [70, 85], [30, 75], [20, 95], [55, 110], [95, 120], [112, 140], [100, 160], [65, 150], [85, 195], [55, 205], [30, 225], [15, 260], [45, 270], [25, 295], [110, 95], [75, 40], [45, 130], [100, 190]];
+  for (const [bx, by] of blossoms)
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * Math.PI * 2;
+      x.beginPath();
+      x.arc(bx + Math.cos(a) * 4, by + Math.sin(a) * 4, 3.2, 0, Math.PI * 2);
+      x.fill();
+    }
+  x.fillStyle = "#d9606f";
+  for (const [bx, by] of blossoms) x.fillRect(bx - 1, by - 1, 2, 2);
   andonPaper = new CanvasTexture(c);
   andonPaper.colorSpace = SRGBColorSpace;
   return andonPaper;
 }
 
 /**
- * The Japanese lamp (andon): a square black wooden frame on four short legs,
- * painted paper panels lit from inside. `glow` is the light's own material
- * (the plan switches it); the paper picture is laid on it. Stands on y = 0.
+ * The Japanese lamp (andon): a tall dark wooden frame with a stepped cap,
+ * one painted paper panel per side, lit from inside. `glow` is the light's
+ * own material (the plan switches it); the paper is laid on it. Stands on y = 0.
  */
 export function andon(glow: MeshStandardMaterial): Group {
   const g = new Group();
-  const S = 15, H = 30, foot = 3, wood = m("#141214", 0.7);
+  const S = 14, H = 38, wood = m("#2a1d17", 0.7);
   glow.map = paper();
   glow.emissiveMap = glow.map;
   glow.color.set("#ffffff");
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(g, 1.6, H + foot, 1.6, (sx * S) / 2, 0, (sz * S) / 2, wood); // posts and legs
-  for (const yy of [foot, foot + H - 1.4]) {
-    box(g, S + 1.6, 1.4, 1.6, 0, yy, -S / 2, wood);
-    box(g, S + 1.6, 1.4, 1.6, 0, yy, S / 2, wood);
-    box(g, 1.6, 1.4, S + 1.6, -S / 2, yy, 0, wood);
-    box(g, 1.6, 1.4, S + 1.6, S / 2, yy, 0, wood);
-  }
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(g, 2, H, 2, (sx * S) / 2, 0, (sz * S) / 2, wood); // corner posts
+  box(g, S + 2, 2, S + 2, 0, 0, 0, wood); // base
+  box(g, S + 3, 1.5, S + 3, 0, H, 0, wood); // stepped cap
+  box(g, S + 5, 1.5, S + 5, 0, H + 1.5, 0, wood);
   for (let i = 0; i < 4; i++) {
-    const panel = new Mesh(new BoxGeometry(S - 1.6, H - 2.8, 0.3), glow);
+    const panel = new Mesh(new BoxGeometry(S - 2, H - 6, 0.3), glow);
     const a = (i * Math.PI) / 2;
-    panel.position.set(Math.sin(a) * (S / 2), foot + 1.4 + (H - 2.8) / 2, Math.cos(a) * (S / 2));
+    panel.position.set(Math.sin(a) * (S / 2), 3 + (H - 6) / 2, Math.cos(a) * (S / 2));
     panel.rotation.y = a;
     g.add(panel);
   }
   return g;
+}
+
+/**
+ * A smart speaker (Nest Mini-like puck): grey fabric, four dots that light
+ * while it plays. Flat on y = 0, or upright facing +z when `wall`.
+ */
+export function speaker(wall: boolean): { group: Group; leds: MeshStandardMaterial } {
+  const g = new Group();
+  const leds = new MeshStandardMaterial({ color: "#3a3d44", roughness: 0.4, emissive: "#ffffff", emissiveIntensity: 0 });
+  const puck = new Group();
+  cyl(puck, 5, 3.5, 0, 0, 0, m("#c9ccd1", 0.95), 32);
+  for (let i = 0; i < 4; i++) box(puck, 0.8, 0.3, 0.8, -2.4 + i * 1.6, 3.5, 0, leds);
+  if (wall) {
+    puck.rotation.x = Math.PI / 2; // upright, its top facing the room
+    puck.position.set(0, 0, 0);
+  }
+  g.add(puck);
+  return { group: g, leds };
+}
+
+/**
+ * The Xiaomi standing fan: round white base, pole, grilled head facing +z.
+ * `blades` turns while it runs.
+ */
+export function standingFan(): { group: Group; blades: Group } {
+  const g = new Group();
+  const white = m("#f2f3f4", 0.5);
+  cyl(g, 15, 3, 0, 0, 0, white, 32);
+  cyl(g, 1.6, 85, 0, 3, 0, white, 12);
+  const head = new Group();
+  head.position.set(0, 92, 2);
+  const grill = new Mesh(new TorusGeometry(17, 1, 8, 40), white);
+  head.add(grill);
+  const back = new Mesh(new CylinderGeometry(17, 17, 0.4, 40), m("#e4e6e8", 0.6));
+  back.rotation.x = Math.PI / 2;
+  back.position.z = -3;
+  head.add(back);
+  const motor = new Mesh(new CylinderGeometry(6, 6, 9, 24), white);
+  motor.rotation.x = Math.PI / 2;
+  motor.position.z = -8;
+  head.add(motor);
+  const blades = new Group();
+  for (let i = 0; i < 5; i++) {
+    const blade = new Mesh(new BoxGeometry(5, 14, 0.4), m("#dfe3e8", 0.4));
+    blade.position.set(0, 8, 0);
+    const arm = new Group();
+    arm.add(blade);
+    arm.rotation.z = (i / 5) * Math.PI * 2;
+    blades.add(arm);
+  }
+  head.add(blades);
+  g.add(head);
+  return { group: g, blades };
+}
+
+/** The orange lino of the whole flat, with its small brown specks. */
+let linoTexture: CanvasTexture | undefined;
+export function lino(): CanvasTexture {
+  if (linoTexture) return linoTexture;
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const x = c.getContext("2d")!;
+  x.fillStyle = "#d9894a";
+  x.fillRect(0, 0, 256, 256);
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 900; i++) {
+    x.fillStyle = rnd() < 0.7 ? "#9c5a2e" : "#b8703c";
+    x.beginPath();
+    x.ellipse(rnd() * 256, rnd() * 256, 0.6 + rnd() * 1.6, 0.5 + rnd() * 1.2, rnd() * Math.PI, 0, Math.PI * 2);
+    x.fill();
+  }
+  linoTexture = new CanvasTexture(c);
+  linoTexture.colorSpace = SRGBColorSpace;
+  linoTexture.wrapS = linoTexture.wrapT = RepeatWrapping;
+  linoTexture.repeat.set(1 / 90, 1 / 90); // the floor's UVs are in cm: one tile every 90 cm
+  return linoTexture;
 }
