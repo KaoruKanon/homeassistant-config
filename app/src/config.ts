@@ -91,6 +91,10 @@ export interface KaoruHomeConfig {
     /** `home: true` = also on the home view (the rest on Météo). */
     stocks: { entity: string; name: string; home?: boolean }[];
     leave?: string;
+    /** Guest mode: while on, the departure automations (lights off, alarm armed…) are disabled. */
+    guestMode?: string;
+    /** Fan → its off-timer (input_number, minutes), applied by an automation. */
+    fanTimers?: Record<string, string>;
     wifiQr?: string;
   };
   media: {
@@ -326,6 +330,8 @@ export const config: KaoruHomeConfig = {
       { entity: "sensor.yahoofinance_btc_eur", name: "Bitcoin" },
     ],
     leave: "script.home_leave",
+    guestMode: "input_boolean.guest_mode",
+    fanTimers: { "fan.xiaomi_smart_fan_2": "input_number.fan_timer" },
     wifiQr: "/local/qr_wifi.jpg",
   },
   media: {

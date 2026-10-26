@@ -1,0 +1,94 @@
+# Lights driven by the PIR sensors (salle de bain, toilettes).
+# The countdown before switching off starts once the sensor sees nobody and is
+# restarted by every new detection; its length is set below (minutes).
+
+input_number:
+  motion_delay_salle_de_bain:
+    name: Extinction salle de bain
+    icon: mdi:timer-outline
+    min: 1
+    max: 30
+    step: 1
+    unit_of_measurement: min
+    initial: 10
+  motion_delay_toilette:
+    name: Extinction toilettes
+    icon: mdi:timer-outline
+    min: 1
+    max: 30
+    step: 1
+    unit_of_measurement: min
+    initial: 5
+
+automation:
+  - alias: salle_de_bain_motion_light
+    id: kh_salle_de_bain_motion_light
+    description: >-
+      Salle de bain : allumée à chaque détection, éteinte quand le détecteur ne voit
+      plus personne depuis input_number.motion_delay_salle_de_bain minutes. Le
+      détecteur ne renvoie « on » qu'après sa pause (1 à 2 min) : chaque
+      nouvelle détection relance le compte à rebours (mode restart).
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.pir_salle_de_bain
+        to: "on"
+      # Allumée à la main : même extinction automatique.
+      - trigger: state
+        entity_id: light.switch_wall_salle_de_bain
+        from: "off"
+        to: "on"
+    actions:
+      - if:
+          - condition: state
+            entity_id: light.switch_wall_salle_de_bain
+            state: "off"
+        then:
+          - action: light.turn_on
+            target:
+              entity_id: light.switch_wall_salle_de_bain
+      - wait_template: "{{ is_state('binary_sensor.pir_salle_de_bain', 'off') }}"
+      - delay:
+          minutes: "{{ states('input_number.motion_delay_salle_de_bain') | int(10) }}"
+      - condition: state
+        entity_id: binary_sensor.pir_salle_de_bain
+        state: "off"
+      - action: light.turn_off
+        target:
+          entity_id: light.switch_wall_salle_de_bain
+
+  - alias: toilette_motion_light
+    id: kh_toilette_motion_light
+    description: >-
+      Toilettes : allumée à chaque détection, éteinte quand le détecteur ne voit
+      plus personne depuis input_number.motion_delay_toilette minutes. Le
+      détecteur ne renvoie « on » qu'après sa pause (1 à 2 min) : chaque
+      nouvelle détection relance le compte à rebours (mode restart).
+    mode: restart
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.pir_wc
+        to: "on"
+      # Allumée à la main : même extinction automatique.
+      - trigger: state
+        entity_id: light.switch_wall_toilette
+        from: "off"
+        to: "on"
+    actions:
+      - if:
+          - condition: state
+            entity_id: light.switch_wall_toilette
+            state: "off"
+        then:
+          - action: light.turn_on
+            target:
+              entity_id: light.switch_wall_toilette
+      - wait_template: "{{ is_state('binary_sensor.pir_wc', 'off') }}"
+      - delay:
+          minutes: "{{ states('input_number.motion_delay_toilette') | int(5) }}"
+      - condition: state
+        entity_id: binary_sensor.pir_wc
+        state: "off"
+      - action: light.turn_off
+        target:
+          entity_id: light.switch_wall_toilette

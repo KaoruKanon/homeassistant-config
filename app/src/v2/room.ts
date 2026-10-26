@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo, setLights } from "../actions.ts";
 import "../components/light-pill.ts";
 import "../components/sparkline.ts";
+import "../components/energy-devices.ts";
 import "../components/tile.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive, stateIcon, stateLabel } from "../format.ts";
@@ -141,7 +142,7 @@ export class KhV2Room extends LitElement {
     const on = r.lights.filter((id) => isActive(hass.states[id]));
     const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
     const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
-    const devices = [...r.switches, ...r.fans];
+    const devices = r.switches; // fans get their own card (speed, oscillation, timer)
     const tiles = (ids: string[]) => html`<div class="tiles">
       ${ids.map((id) => html`<kh-tile entity-id=${id} name=${entityName(hass, id, config, r.name)} power-id=${this.model?.power[id] ?? nothing}></kh-tile>`)}
     </div>`;
@@ -193,6 +194,11 @@ export class KhV2Room extends LitElement {
         ${devices.length
           ? html`<section class="tile" style="--tint: var(--rgb-light-blue); --w: 6; --w6: 6; --w2: 2">
               ${head("mdi:power-plug", "Prises et appareils")}${tiles(devices)}
+            </section>`
+          : nothing}
+        ${r.fans.length
+          ? html`<section class="tile" style="--tint: var(--rgb-teal); --w: 6; --w6: 6; --w2: 2">
+              ${head("mdi:fan", "Ventilation")}${r.fans.map((id) => html`<kh-fan entity-id=${id}></kh-fan>`)}
             </section>`
           : nothing}
         ${r.media.length

@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing } from "lit";
-import { runScript, setAutomation, setFanOscillation, setFanSpeed, toggle } from "../actions.ts";
+import { runScript, setAutomation, setFanOscillation, setFanSpeed, setInputNumber, toggle } from "../actions.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive, isUnavailable, stateLabel } from "../format.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
@@ -118,7 +118,7 @@ export class KhFan extends LitElement {
   constructor() {
     super();
     new RegistryController(this);
-    new EntitiesController(this, () => [this.entityId]);
+    new EntitiesController(this, () => [this.entityId, config.home.fanTimers?.[this.entityId]].filter((x): x is string => !!x));
   }
   static styles = [
     base,
@@ -126,6 +126,30 @@ export class KhFan extends LitElement {
     css`
       .card.on .shape ha-icon {
         animation: spin 1.2s linear infinite;
+      }
+      .timers {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        color: var(--kh-text-2);
+      }
+      .timers ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .timers .chip {
+        height: 30px;
+        padding: 0 11px;
+        border-radius: 15px;
+        background: var(--kh-card-2);
+        color: var(--kh-text);
+        font-weight: 700;
+        font-size: 0.8125rem;
+      }
+      .timers .chip.active {
+        background: rgba(var(--rgb-teal), 0.85);
+        color: #fff;
       }
       @keyframes spin {
         to {
@@ -141,6 +165,10 @@ export class KhFan extends LitElement {
     const on = isActive(s);
     const pct = Number(s.attributes.percentage ?? 0);
     const osc = !!s.attributes.oscillating;
+    // Off-timer: through the input_number the fan's automation applies.
+    const timerId = config.home.fanTimers?.[this.entityId];
+    const timer = timerId ? Number(hass.states[timerId]?.state) : NaN;
+    const TIMERS: [number, string][] = [[0, "Arrêt"], [30, "30 min"], [60, "1 h"], [120, "2 h"], [240, "4 h"]];
     return html`<div class="card ${on ? "on" : ""}" style="--rgb: var(--rgb-teal)">
       <button class="head" aria-pressed=${String(on)} @click=${() => toggle(this.entityId, "le ventilateur")}>
         <span class="shape ${on ? "" : "off"}"><ha-icon icon="mdi:fan"></ha-icon></span>
@@ -156,7 +184,14 @@ export class KhFan extends LitElement {
             <button class="btn ${osc ? "active" : ""}" aria-pressed=${String(osc)} aria-label="Oscillation" @click=${() => setFanOscillation(this.entityId, !osc)}>
               <ha-icon icon="mdi:arrow-oscillating"></ha-icon>
             </button>
-          </div>`
+          </div>
+          ${timerId && hass.states[timerId]
+            ? html`<div class="timers" role="group" aria-label="Minuterie">
+                <ha-icon icon="mdi:timer-outline"></ha-icon>
+                ${TIMERS.map(([min, label]) => html`<button class="chip ${timer === min ? "active" : ""}" aria-pressed=${String(timer === min)}
+                  @click=${() => setInputNumber(timerId, min)}>${label}</button>`)}
+              </div>`
+            : nothing}`
         : nothing}
     </div>`;
   }
