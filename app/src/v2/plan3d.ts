@@ -44,13 +44,13 @@ import { andon, computer, flatTv, gamingSetup, lino, model, speaker, standingFan
 
 // Plan units are ~cm; the scene is centred on the flat, y up.
 const CX = 400, CZ = 722;
-const WALL_H = 80;
+const WALL_H = 240; // real height (cm), like the furniture
 /** The facade with the windows, and the window's sill and glass heights. */
 const FACADE_X = 720;
-const SILL = 30;
-const GLASS_H = 46;
+const SILL = 95;
+const GLASS_H = 120;
 /** Height of each kind of placed light, for its button on the overlay. */
-const FIXTURE_Z: Record<string, number> = { spot: 160, ceiling: 128, lamp: 94, strip: 92 };
+const FIXTURE_Z: Record<string, number> = { spot: 228, ceiling: 200, lamp: 94, strip: 92 };
 
 /** A box from a plan rectangle (x, y, w, h) standing on the floor, height z. */
 function slab(x: number, y: number, w: number, h: number, z: number, mat: MeshStandardMaterial, lift = 0): Mesh {
@@ -464,7 +464,7 @@ export class KhPlan3d extends LitElement {
       live.motion.set(id, ring);
       if (!config.plan?.lights?.[id]?.length) {
         const lamp = new PointLight("#ffbb66", 0, 420, 1.8);
-        lamp.position.set(p.label[0] - CX, 190, p.label[1] - CZ);
+        lamp.position.set(p.label[0] - CX, 215, p.label[1] - CZ);
         s.add(lamp);
         live.lamps.set(id, lamp);
       }
@@ -631,20 +631,20 @@ export class KhPlan3d extends LitElement {
           const g = new Group();
           const baseMat = mat("#2b2f3a", { roughness: 0.4 });
           const base = new Mesh(new CylinderGeometry(6, 6, 2, 20), baseMat);
-          base.position.set(0, 170, 0);
+          base.position.set(0, WALL_H - 1, 0); // on the ceiling
           g.add(base);
           const can = new Mesh(new CylinderGeometry(5, 4.5, 11, 20), baseMat);
-          can.position.set(0, 163, 0);
+          can.position.set(0, WALL_H - 8, 0);
           can.rotation.z = 0.25;
           g.add(can);
           const lens = new Mesh(new CylinderGeometry(4, 4, 0.8, 20), glow);
-          lens.position.set(1.4, 157.3, 0);
+          lens.position.set(1.4, WALL_H - 13.7, 0);
           lens.rotation.z = 0.25;
           g.add(lens);
           g.position.set(x - CX, 0, y - CZ);
           s.add(g);
           const spot = new SpotLight("#ffd9a0", 0, 420, Math.PI / 4.5, 0.55, 1.4);
-          spot.position.set(x - CX + 1.5, 157, y - CZ);
+          spot.position.set(x - CX + 1.5, WALL_H - 14, y - CZ);
           spot.target.position.set(x - CX + 25, 0, y - CZ);
           spot.castShadow = false;
           s.add(spot, spot.target);
@@ -652,18 +652,18 @@ export class KhPlan3d extends LitElement {
         } else if (l.kind === "ceiling") {
           const g = new Group();
           const cord = new Mesh(new CylinderGeometry(0.4, 0.4, 40, 6), mat("#3a3f4b"));
-          cord.position.set(0, 140, 0);
+          cord.position.set(0, WALL_H - 20, 0); // hanging from the ceiling
           g.add(cord);
           const shade = new Mesh(new CylinderGeometry(5, 15, 11, 24, 1, true), mat("#e8e2d6", { roughness: 0.7 }));
-          shade.position.set(0, 133, 0);
+          shade.position.set(0, WALL_H - 47, 0);
           g.add(shade);
           const bulb = new Mesh(new SphereGeometry(7, 16, 12), glow);
-          bulb.position.set(0, 128, 0);
+          bulb.position.set(0, WALL_H - 52, 0);
           g.add(bulb);
           g.position.set(x - CX, 0, y - CZ);
           s.add(g);
           const pl = new PointLight("#ffd9a0", 0, 520, 1.6);
-          pl.position.set(x - CX, 120, y - CZ);
+          pl.position.set(x - CX, WALL_H - 60, y - CZ);
           pl.castShadow = false;
           s.add(pl);
           lights.push(pl);
@@ -722,7 +722,7 @@ export class KhPlan3d extends LitElement {
       mat.color.set(sky.sunColor);
       if (!lit) continue;
       const pos = mesh.geometry.getAttribute("position") as Float32BufferAttribute;
-      const corners: [number, number][] = [[a, 30], [b, 30], [b, 76], [a, 76]];
+      const corners: [number, number][] = [[a, SILL], [b, SILL], [b, SILL + GLASS_H], [a, SILL + GLASS_H]];
       corners.forEach(([z, y], i) => {
         const t = (y - 1) / -into.y;
         const fx = Math.max(minX + 10 - CX, 717 - CX + into.x * t);
@@ -906,7 +906,7 @@ export class KhPlan3d extends LitElement {
       const ahead = flat > 0.35 && ((w.cx - c.target.x) * dx + (w.cz - c.target.z) * dz) / len > 60;
       if (w.hide) w.o.visible = !ahead;
       else {
-        const k = ahead ? Math.min(1, 22 / w.h) : 1;
+        const k = ahead ? Math.min(1, 30 / w.h) : 1;
         w.o.scale.y = k;
         w.o.position.y = w.lift + (w.h * k) / 2;
       }
