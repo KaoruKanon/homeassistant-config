@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { cancelConfirmation } from "./components/confirm-dialog.ts";
 import { takeOverHassToasts } from "./components/toast.ts";
+import { applyKiosk } from "./kiosk.ts";
 import { store } from "./store.ts";
 import type { HomeAssistant, PanelRoute } from "./types.ts";
 
@@ -39,6 +40,7 @@ abstract class Panel extends LitElement {
   connectedCallback(): void {
     super.connectedCallback();
     takeOverHassToasts(true);
+    applyKiosk();
   }
 
   disconnectedCallback(): void {
