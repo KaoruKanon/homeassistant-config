@@ -340,32 +340,38 @@ function tower(g: Group, x: number, y: number, z: number, glow: MeshStandardMate
 }
 
 /**
- * The RIG: a black NZXT H5 Flow-like case, front to +z. Perforated front,
- * tempered glass on its left side (-x), and behind it the AIO with its
- * round screen, the radiator fans on top and the graphics card. While
- * the PC runs, RGB light comes out through the glass (`lights`).
+ * The RIG: a black NZXT H510, front to +z. Smooth steel front, tempered glass
+ * on its left side (-x), the PSU shroud at the bottom, the cable bar and the
+ * rear fan; the RTX 3070 Founders Edition mounted horizontally (silver, its
+ * black X), seen through the glass. While the PC runs, RGB light comes out
+ * through the glass (`lights`).
  */
 function nzxt(g: Group, x: number, y: number, z: number, glow: MeshStandardMaterial[], lights: PointLight[]): void {
-  const W = 23, H = 47, D = 43, white = m("#17181c", 0.45, 0.2), mesh = m("#2a2c31", 0.95), inside = m("#1e2024", 0.6);
-  box(g, W, 2, D, x, y + H - 2, z, white); // top
-  box(g, W, 2, D, x, y, z, white); // bottom
-  box(g, 2, H, D, x + W / 2 - 1, y, z, white); // right side panel (solid)
-  box(g, W, H, 2, x, y, z - D / 2 + 1, inside); // back, seen through the glass
-  box(g, W, H - 4, 1.5, x, y + 2, z + D / 2 - 0.75, mesh); // perforated front
-  box(g, W - 3, 11, D - 4, x + 1, y + 2, z, mesh); // PSU shroud (mesh bottom)
-  // Behind the glass: radiator and fans on top, the card, the pump with its screen.
-  box(g, W - 4, 3, D - 8, x + 1, y + H - 6, z, inside);
-  for (const fz of [-9, 9]) cyl(g, 7, 1, x + 1, y + H - 7.5, z + fz, m("#2b2d33", 0.5), 20);
-  box(g, 6, 12, 30, x - 2, y + 15, z + 2, m("#16171b", 0.35, 0.4)); // graphics card
-  const pump = cyl(g, 4.2, 2, x - 6, y + 31, z + 2, white, 24);
-  pump.rotation.z = Math.PI / 2;
-  const lcd = cyl(g, 3.4, 0.4, x - 7.2, y + 31, z + 2, glowMat(glow, "#b388ff"), 24);
-  lcd.rotation.z = Math.PI / 2;
-  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z + D / 2 - 3, glowMat(glow, "#ff3fa4")); // RGB strip behind the front
+  const W = 21, H = 46, D = 43, steel = m("#141518", 0.35, 0.35), inside = m("#1b1d21", 0.7);
+  box(g, W, 1.5, D, x, y + H - 1.5, z, steel); // top
+  box(g, W, 1.5, D, x, y, z, steel); // bottom
+  box(g, 1.5, H, D, x + W / 2 - 0.75, y, z, steel); // right side panel
+  box(g, W, H, 1.5, x, y, z - D / 2 + 0.75, inside); // back, seen through the glass
+  box(g, W, H, 1.6, x, y, z + D / 2 - 0.8, steel); // smooth front panel
+  box(g, 0.4, H - 6, 0.4, x - W / 2 + 0.6, y + 3, z + D / 2 + 0.05, m("#2c2f35", 0.4, 0.4)); // its side vent line
+  box(g, W - 2, 12, D - 4, x + 0.5, y + 1.5, z, steel); // PSU shroud
+  box(g, 6, 1.6, 0.3, x - 4, y + 7, z + D / 2 - 2.1, m("#e8e8e8", 0.5)); // NZXT on the shroud
+  box(g, 1.5, H - 16, 7, x + 2, y + 13.5, z + 8, steel); // cable management bar
+  const fan = cyl(g, 5.8, 2.5, x, y + H - 12, z - D / 2 + 3, m("#2b2d33", 0.5), 20); // rear exhaust fan
+  fan.rotation.x = Math.PI / 2;
+  // RTX 3070 Founders Edition, horizontal: from the motherboard (+x) towards the glass.
+  const card = { x: x + W / 2 - 1.5 - 5.6, y: y + 21, z: z + 1 };
+  box(g, 11, 4, 24, card.x, card.y, card.z, m("#b9bdc2", 0.35, 0.8)); // silver shroud
+  for (const t of [0.5, -0.5]) {
+    const bar = box(g, 0.2, 1.2, 26, card.x - 5.6, card.y + 1.4, card.z, m("#1a1b1f", 0.4)); // the black X, on the side
+    bar.rotation.x = t;
+  }
+  box(g, 3, 0.6, 1, card.x - 3.5, card.y + 4, card.z + 8, glowMat(glow, "#ffffff")); // GEFORCE RTX light
+  box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z + D / 2 - 3, glowMat(glow, "#ff3fa4")); // RGB strips
   box(g, 1, H - 8, 1, x - W / 2 + 2.5, y + 4, z - D / 2 + 3, glowMat(glow, "#7c4dff"));
   const glass = new MeshStandardMaterial({ color: "#cfd8e3", roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.22 });
-  box(g, 0.6, H, D, x - W / 2 + 0.3, y, z, glass); // tempered glass, left side
-  box(g, 3, 0.6, 1.2, x - 6, y + H, z + D / 2 - 4, glowMat(glow, "#ffffff")); // power button light
+  box(g, 0.6, H - 1, D - 2, x - W / 2 + 0.3, y + 0.5, z, glass); // tempered glass, left side
+  box(g, 1.4, 0.4, 1.4, x + 5, y + H, z + D / 2 - 5, glowMat(glow, "#ffffff")); // power button on top
   // RGB through the glass, on the desk and the wall.
   const rgb = new PointLight("#9b5cff", 0, 140, 2);
   rgb.position.set(x - W / 2 - 6, y + H / 2, z);
@@ -412,7 +418,7 @@ export function computer(w: number, towerAt?: [number, number, number]): { group
 
 /**
  * The gaming setup: two screens side by side, slightly turned in, a wide
- * desk mat, a lit keyboard and a mouse, headphones, and the black NZXT tower
+ * desk mat, a lit keyboard and a mouse, a mug, and the black NZXT H510 tower
  * on the desk extension (`towerAt`).
  */
 export function gamingSetup(towerAt: [number, number, number]): { group: Group; screens: MeshStandardMaterial[]; lights: PointLight[] } {
@@ -427,9 +433,6 @@ export function gamingSetup(towerAt: [number, number, number]): { group: Group; 
   box(g, 6, 2.5, 10, 26, 0.4, 15, m("#23262e", 0.5));
   const cup = cyl(g, 4.5, 9, -44, 0, 16, m("#f6efe2", 0.4), 16); // a mug
   cup.castShadow = true;
-  const head = new Mesh(new TorusGeometry(8, 1.6, 8, 20, Math.PI), m(BLACK, 0.4));
-  head.position.set(44, 14, 10);
-  g.add(head);
   nzxt(g, towerAt[0], towerAt[1], towerAt[2], screens, lights);
   return { group: g, screens, lights };
 }
