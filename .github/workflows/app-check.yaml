@@ -35,14 +35,20 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Bundle size budget (150 KB gzipped)
+      - name: Bundle size budget (150 KB gzipped, all files)
         run: |
-          bundle=../www/kaoru-home/kaoru-home.js
-          size=$(gzip -9 -c "$bundle" | wc -c)
+          size=0
+          for f in $(find ../www/kaoru-home -name '*.js'); do size=$((size + $(gzip -9 -c "$f" | wc -c))); done
           limit=$((150 * 1024))
-          echo "kaoru-home.js: $(wc -c < "$bundle") bytes, $size bytes gzipped (budget $limit)"
-          echo "kaoru-home.js gzipped: $size / $limit bytes" >> "$GITHUB_STEP_SUMMARY"
+          echo "kaoru-home: $size bytes gzipped in total (budget $limit)" | tee -a "$GITHUB_STEP_SUMMARY"
           if [ "$size" -gt "$limit" ]; then
-            echo "::error file=www/kaoru-home/kaoru-home.js::Bundle is $size bytes gzipped, over the $limit bytes budget"
+            echo "::error::Kaoru Home is $size bytes gzipped, over the $limit bytes budget"
             exit 1
           fi
+
+      # Uses the runner's Google Chrome through playwright-core: no `playwright install`.
+      - name: Browser component tests
+        run: |
+          CHROME="$(command -v google-chrome)" || { echo "::error::google-chrome not found on the runner"; exit 1; }
+          export CHROME
+          npm run test:browser
