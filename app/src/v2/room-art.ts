@@ -305,7 +305,7 @@ export function roomScene(r: Pick<Room, "id" | "name" | "icon">, lit: boolean, n
  * colours of its scene, lit when its lights are on; the cat in a lit room,
  * asleep in a bedroom at night, or sitting in the garden.
  */
-export function houseScene(rooms: { room: Pick<Room, "id" | "name" | "icon">; lit: boolean }[], night: boolean, sky = "40, 130, 221") {
+export function houseScene(rooms: { room: Pick<Room, "id" | "name" | "icon">; lit: boolean; label?: string }[], night: boolean, sky = "40, 130, 221") {
   const n = Math.max(1, rooms.length);
   const cols = n <= 3 ? n : Math.ceil(n / 2), rows = n <= 3 ? 1 : 2;
   const X0 = 470, X1 = 770, Y0 = 84, Y1 = 206, gap = 6;
@@ -355,7 +355,11 @@ export function houseScene(rooms: { room: Pick<Room, "id" | "name" | "icon">; li
           : svg`<rect x=${c.x} y=${c.y} width=${cw} height=${ch} fill="#141a40" opacity=${night ? 0.62 : 0.12} />`}
         ${i === catAt ? cat(c.x + cw / 2, c.y + ch - 6, Math.min(0.6, ch / 110), sleeping ? "nap" : "sit") : svg``}
         ${i === catAt && sleeping ? svg`<text x=${c.x + cw / 2 + 14} y=${c.y + 18} class="zz small">z</text>` : svg``}
-      </g>`;
+      </g>
+      ${rooms[i].label
+        ? svg`<g class="cell-label"><rect x=${c.x + 2} y=${c.y + 2} width=${rooms[i].label!.length * 5.4 + 6} height="12" rx="6" fill="rgb(0 0 0 / 0.45)" />
+            <text x=${c.x + 5} y=${c.y + 11} fill="#fff" font-size="9" font-weight="700" font-family="system-ui, sans-serif">${rooms[i].label}</text></g>`
+        : svg``}`;
     })}
     <rect x=${X0 - 4} y=${Y1 - 2} width=${X1 - X0 + 8} height="6" fill=${night ? "#8a7d6a" : "#cdbf9f"} />
     ${catAt < 0 ? cat(424, 210, 0.75, "sit") : svg``}

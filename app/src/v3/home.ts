@@ -1,5 +1,6 @@
 import { LitElement, css, html, nothing } from "lit";
 import { isPending, openMoreInfo, runScript, toggle } from "../actions.ts";
+import { alarmBadge, badgeClass, badgeStyle, badgeStyles, lightsBadge, temperatureBadge, timerBadge, windowsBadge } from "../badges.ts";
 import "../components/energy-card.ts";
 import { pcPress } from "../components/gestures.ts";
 import { isPlayerActive } from "../components/media-card.ts";
@@ -8,13 +9,15 @@ import "../components/sparkline.ts";
 import "../components/swipe.ts";
 import { still, weatherIcon } from "../components/weather-card.ts";
 import "../components/widgets.ts";
-import { config, type Computer, type Favorite, type HomeLight } from "../config.ts";
+import { config, type Computer, type Favorite } from "../config.ts";
 import { formatNumber, isActive, isUnavailable, stateLabel } from "../format.ts";
 import { alarmLook, openAlarm, openComputer, openOpenings, openPerson, openWifiQr } from "../popups/open.ts";
-import { currentPerson, type HouseModel, type Room } from "../rooms.ts";
+import { currentPerson, type HouseModel } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
-import type { HomeAssistant } from "../types.ts";
-import { FROG_SKY, forecastDays } from "../weather-utils.ts";
+import "../v2/floorplan.ts";
+import { houseScene, roomScene, roomSceneStyles } from "../v2/room-art.ts";
+import { energyScene, mediaScene, sceneStyles } from "../v2/scenes.ts";
+import { FROG_SKY, forecastDays, frogSky } from "../weather-utils.ts";
 import "./light.ts";
 import { head, pagesOf, ring, ui } from "./theme.ts";
 
@@ -24,7 +27,13 @@ const date = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric",
 /** One colour per room, the same everywhere on the home. */
 const ROOM_COLORS = ["orange", "green", "purple", "teal", "amber", "indigo", "red", "blue"];
 
-type Mode = "wall" | "wide" | "medium" | "phone";
+/** The three home layouts proposed for V3, to compare on the real house. */
+export const EXAMPLES = [
+  { key: "a", label: "Maison de Tomo" },
+  { key: "b", label: "Une scène par tuile" },
+  { key: "c", label: "Plan vivant" },
+] as const;
+type Example = (typeof EXAMPLES)[number]["key"];
 
 function greeting(h: number): string {
   if (h < 5 || h >= 22) return "Bonne nuit";
@@ -36,60 +45,59 @@ function greeting(h: number): string {
 const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`;
 const upper = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
 
-/** Area of an entity; a light group takes the area of its first member. */
-function areaOf(hass: HomeAssistant, id: string): string | undefined {
-  const members = hass.states[id]?.attributes.entity_id;
-  const probe = Array.isArray(members) && members.length ? members[0] : id;
-  const e = hass.entities[probe] ?? hass.entities[id];
-  return e?.area_id ?? (e?.device_id ? (hass.devices[e.device_id]?.area_id ?? undefined) : undefined);
-}
-
 /**
- * V3 home, organised like a home app rather than a wall of widgets:
- *
- *   ┌ Dehors ─────┐ ┌ Résumé: lumières, climat, alarme, ouvertures, minuteur ┐
- *   │ frog scene  │ ├ Pièces: climate, 24 h curve and lights of each room     ┤
- *   │ who is home │ ├ Médias ──────┬ Énergie (Linky graph) ┬ Favoris ────────┤
- *   │ five days   │ │              │ Ordinateurs           │                 │
- *   │ shortcuts   │ └──────────────┴───────────────────────┴─────────────────┘
- *
- * The left column is the ambient screen (time, weather, who is home), the
- * right one the house. One fixed arrangement per screen: wall tablet and PC
- * as above, portrait tablet in two stacks, phone in one.
+ * V3 home, three illustrated proposals built from the same tiles:
+ *  a. Maison de Tomo: the weather frog and the doll's house side by side, lit
+ *     rooms glowing with their temperature, the family on the lawn.
+ *  b. Une scène par tuile: the V2 arrangement, the big tiles each topped by a
+ *     living scene (Tomo on the sofa when something plays, the wind turbine
+ *     turning with the power drawn, the favourite room lit by its lamps).
+ *  c. Plan vivant: the flat's plan in the middle, the tiles around it.
+ * Tiles keep the V2 colours (a wash of their family colour) and fill the
+ * screen; on the wall tablet everything fits without scrolling.
  */
 export class Kh3Home extends LitElement {
-  static properties = { prefix: {}, model: { attribute: false }, now: { state: true }, wall: { type: Boolean } };
+  static properties = { prefix: {}, model: { attribute: false }, now: { state: true }, wall: { type: Boolean }, example: { state: true } };
   declare prefix: string;
   declare model?: HouseModel;
   declare now: Date;
   declare wall: boolean;
+  declare example: Example;
   private timer?: number;
   private width = 1200;
-  private mode: Mode = "wide";
   private sizer = new ResizeObserver(([e]) => {
+    const before = this.phone;
     this.width = e.contentRect.width;
-    if (this.pickMode() !== this.mode) this.requestUpdate();
+    if (before !== this.phone) this.requestUpdate();
   });
 
   constructor() {
     super();
     this.now = new Date();
     this.wall = false;
+    const asked = new URLSearchParams(location.search).get("exemple");
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem("kh3-example");
+    } catch {
+      /* private mode: no memory of the choice */
+    }
+    this.example = (EXAMPLES.find((e) => e.key === (asked ?? saved))?.key ?? "a") as Example;
     new RegistryController(this);
     new EntitiesController(this, () => {
       const h = config.home;
       return [
         h.spotify, ...h.tvs, h.frog?.status, h.frog?.image, h.frog?.location, h.outdoorTemperature, h.nextRain, h.guestMode, h.leave,
-        ...Object.values(h.chips), ...config.weather, "sun.sun",
-        ...Object.keys(config.people).map((p) => `person.${p}`), ...this.batteries().flatMap((b) => [b.entity, b.charging]),
+        ...Object.values(h.chips), ...config.weather, h.energy?.power, "sun.sun",
+        ...Object.keys(config.people).map((p) => `person.${p}`), ...this.batteries().map((b) => b.entity),
         ...(this.model?.rooms ?? []).flatMap((r) => [r.temperature, r.humidity, ...r.lights]),
         ...h.lights.map((l) => l.entity), ...h.computers.flatMap((c) => [c.entity, c.busy]), ...h.stocks.map((s) => s.entity),
       ].filter((x): x is string => !!x);
     });
   }
 
-  private pickMode(): Mode {
-    return this.wall ? "wall" : this.width >= 1100 ? "wide" : this.width >= 600 ? "medium" : "phone";
+  private get phone(): boolean {
+    return !this.wall && this.width < 680;
   }
 
   connectedCallback(): void {
@@ -100,7 +108,6 @@ export class Kh3Home extends LitElement {
     };
     this.timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50);
     window.addEventListener("kh-pending", this.onPending);
-    // The arrangement is decided before the first render: nothing moves once drawn.
     this.width = this.getBoundingClientRect().width || window.innerWidth;
     this.sizer.observe(this);
   }
@@ -113,154 +120,149 @@ export class Kh3Home extends LitElement {
   }
 
   protected willUpdate(): void {
-    this.mode = this.pickMode();
-    this.setAttribute("mode", this.mode);
+    this.setAttribute("layout", this.wall ? "wall" : this.phone ? "phone" : "wide");
     this.toggleAttribute("dark", !!store.hass?.themes.darkMode);
   }
 
   private onPending = () => this.requestUpdate();
 
+  private pick(e: Example): void {
+    this.example = e;
+    try {
+      localStorage.setItem("kh3-example", e);
+    } catch {
+      /* private mode */
+    }
+  }
+
   static styles = [
     ui,
+    badgeStyles,
+    roomSceneStyles,
+    sceneStyles,
     css`
       :host {
         display: block;
-        --side: 344px;
+        --v3-gap: 12px;
+      }
+      /* V2 colours: each tile washed with its family colour, see-through wells. */
+      .card {
+        background: linear-gradient(160deg, rgba(var(--fam, var(--rgb-grey)), 0.2), rgba(var(--fam, var(--rgb-grey)), 0.05) 62%), var(--v3-surface);
+        box-shadow: none;
+        --v3-well: rgb(0 0 0 / 0.045);
+        --v3-well-hi: rgb(0 0 0 / 0.08);
+        --kh-card: var(--v3-well);
+        --kh-card-2: var(--v3-well-hi);
+      }
+      :host([dark]) .card {
+        --v3-well: rgb(255 255 255 / 0.06);
+        --v3-well-hi: rgb(255 255 255 / 0.1);
+      }
+      .head .glyph {
+        background: rgb(var(--fam, var(--rgb-grey)));
+        color: #fff;
+      }
+      :host([dark]) .head .glyph {
+        color: #151a20;
       }
 
       /* ---------- Arrangements ---------- */
-      .home {
+      .cols {
+        margin-top: var(--v3-gap);
         display: grid;
-        grid-template-columns: var(--side) minmax(0, 1fr);
+        grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr));
         gap: var(--v3-gap);
         align-items: start;
       }
-      .ambient,
-      .main,
-      .stack {
+      .col {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: var(--v3-gap);
-        align-content: start;
         min-width: 0;
       }
-      .lower {
-        display: grid;
-        grid-template-columns: var(--lc, minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr));
-        gap: var(--v3-gap);
-        align-items: start;
+      .col > .cols {
+        margin-top: 0;
       }
-      :host([mode="wall"]) {
+      :host([layout="wall"]) {
         --v3-gap: 10px;
-        --side: 320px;
       }
-      :host([mode="medium"]) .home,
-      :host([mode="phone"]) .home {
-        grid-template-columns: minmax(0, 1fr);
+      :host([layout="wall"]) .card {
+        padding: 12px;
+        gap: 10px;
       }
-      :host([mode="medium"]) .lower {
-        --lc: repeat(2, minmax(0, 1fr));
-      }
-      :host([mode="phone"]) {
-        --v3-gap: 12px;
+      :host([layout="phone"]) .cols {
+        grid-template-columns: minmax(0, 1fr) !important;
       }
 
-      /* ---------- Dehors: the frog's scene ---------- */
-      .scene {
+      /* ---------- The weather frog: banner (b, c) or panel (a) ---------- */
+      .frog {
         position: relative;
         overflow: hidden;
-        min-height: 236px;
-        border-radius: var(--v3-r-card);
-        padding: 18px 20px;
+        border-radius: 26px;
+        padding: 16px 20px;
         box-sizing: border-box;
         display: grid;
+        grid-template-columns: 1fr auto;
         grid-template-rows: auto 1fr auto;
+        min-height: 168px;
         color: #fff;
         background-color: rgb(var(--frog));
-        background-image: var(--scene);
-        background-size: cover;
-        background-position: var(--shift) 78%;
-        isolation: isolate;
-        text-shadow: 0 1px 10px rgb(0 0 0 / 0.28);
-      }
-      .scene::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: -1;
-        background:
-          linear-gradient(180deg, rgba(var(--frog), 0.8) 0%, rgba(var(--frog), 0.25) 44%, rgba(var(--frog), 0) 62%),
-          linear-gradient(0deg, rgb(10 16 24 / 0.4) 0%, rgb(10 16 24 / 0) 30%);
-      }
-      .scene .row {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 12px;
+        background-image: linear-gradient(100deg, rgba(var(--frog), 0.72) 0%, rgba(var(--frog), 0.2) 40%, rgba(var(--frog), 0) 62%), var(--scene);
+        background-size: 100% 100%, cover;
+        background-position: top, var(--shift) 78%;
+        background-repeat: no-repeat;
+        text-shadow: 0 1px 6px rgb(0 0 0 / 0.35);
       }
       time {
         display: block;
         font-family: var(--v3-display);
-        font-size: 3.5rem;
-        font-weight: 650;
-        line-height: 0.92;
-        letter-spacing: -0.04em;
+        font-size: 3.25rem;
+        font-weight: 700;
+        line-height: 0.95;
+        letter-spacing: -0.035em;
         font-variant-numeric: tabular-nums;
       }
       .when {
-        margin-top: 8px;
-        font-size: 0.9375rem;
-        font-weight: 500;
+        margin-top: 6px;
+        font-weight: 600;
         line-height: 1.3;
       }
-      .now {
+      .side {
         display: grid;
         justify-items: end;
+        align-content: start;
+        gap: 6px;
+      }
+      .now {
+        display: flex;
+        align-items: center;
+        gap: 4px;
         color: inherit;
         text-decoration: none;
-        text-align: right;
+        font-family: var(--v3-display);
+        font-size: 1.6rem;
+        font-weight: 700;
       }
       .now img {
-        width: 48px;
-        height: 48px;
-        margin: -6px -4px -2px 0;
+        width: 46px;
+        height: 46px;
+        animation: float 4s ease-in-out infinite alternate;
       }
-      .now .t {
-        font-family: var(--v3-display);
-        font-size: 1.625rem;
+      @keyframes float {
+        from {
+          transform: translateY(2px);
+        }
+        to {
+          transform: translateY(-3px);
+        }
+      }
+      .cond {
         font-weight: 600;
-        line-height: 1;
-        font-variant-numeric: tabular-nums;
-      }
-      .now .c {
-        font-size: 0.8125rem;
-        opacity: 0.92;
-      }
-      .scene .foot {
-        grid-row: 3;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        gap: 8px;
-      }
-      .rain {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        min-height: 32px;
-        padding: 0 12px;
-        border-radius: 16px;
-        background: rgb(12 18 26 / 0.45);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        font-size: 0.8125rem;
-        font-weight: 500;
-        --mdc-icon-size: 16px;
+        font-size: 0.875rem;
       }
       .avatars {
         display: flex;
-        gap: 4px;
-        margin-left: auto;
+        gap: 6px;
       }
       .avatar {
         position: relative;
@@ -269,7 +271,6 @@ export class Kh3Home extends LitElement {
         display: grid;
         place-items: center;
         border-radius: 50%;
-        flex: none;
       }
       .avatar .ring {
         position: absolute;
@@ -283,72 +284,225 @@ export class Kh3Home extends LitElement {
         object-fit: cover;
         display: grid;
         place-items: center;
-        background: var(--v3-well-hi);
+        background: rgb(0 0 0 / 0.3);
         font-weight: 700;
       }
-      .away .avatar img {
-        filter: grayscale(0.9) brightness(0.85);
+      .avatar.away img {
+        filter: grayscale(0.9) brightness(0.8);
       }
       .avatar .dot {
         position: absolute;
         right: 2px;
         bottom: 2px;
-        width: 10px;
-        height: 10px;
+        width: 11px;
+        height: 11px;
         border-radius: 50%;
-        background: rgb(var(--rgb-green));
-        box-shadow: 0 0 0 2px var(--dot-edge, var(--v3-surface));
-      }
-      .away .avatar .dot {
-        background: var(--v3-faint);
-      }
-      .scene .avatar {
-        --dot-edge: rgb(var(--frog));
-      }
-
-      /* Who is home, where the others are, their phone's battery. */
-      .people {
-        display: grid;
-        gap: 2px;
-      }
-      .person {
-        display: grid;
-        grid-template-columns: 44px minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 10px;
-        padding: 2px 10px 2px 2px;
-        border-radius: var(--v3-r-item);
-        width: 100%;
+        border: 2px solid #fff;
         box-sizing: border-box;
+        background: rgb(var(--rgb-green));
       }
-      .person:hover {
-        background: var(--v3-well);
+      .avatar.away .dot {
+        background: rgb(var(--rgb-red));
       }
-      .person .n {
-        font-weight: 600;
-        line-height: 1.2;
+      .chips {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
       }
-      .person .s {
-        font-size: 0.8125rem;
-        color: var(--v3-muted);
-      }
-      .person .b {
-        font-size: 0.8125rem;
-        color: var(--v3-muted);
-        font-variant-numeric: tabular-nums;
+      .chip {
         display: inline-flex;
         align-items: center;
-        gap: 2px;
-        --mdc-icon-size: 16px;
+        gap: 6px;
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 16px;
+        background: rgb(0 0 0 / 0.34);
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.8125rem;
+        text-decoration: none;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        --mdc-icon-size: 17px;
       }
-      .person .b.low {
-        color: rgb(var(--rgb-red));
+      .chip.b-tint {
+        background: rgba(var(--b-bg), calc(var(--b-a) + 0.3));
       }
-      .person .b.charging ha-icon {
-        color: rgb(var(--rgb-green));
+      .chip.blink ha-icon {
+        animation: blink 1.2s ease-in-out infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0.35;
+        }
       }
 
-      /* Five days: each day's range against the week's. */
+      /* ---------- a: the doll's house ---------- */
+      .stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: var(--v3-gap);
+      }
+      .stage .frog {
+        min-height: 236px;
+      }
+      .house {
+        position: relative;
+        overflow: hidden;
+        border-radius: 26px;
+        min-height: 236px;
+        color: #fff;
+        background: rgb(var(--sky));
+      }
+      .house.night {
+        background: #18204a;
+      }
+      /* The 800 × 240 frame scaled to the panel's height, the house (its right
+         part) brought into view. */
+      .house .art svg {
+        position: absolute;
+        right: 1%;
+        bottom: 0;
+        height: 100%;
+        width: auto;
+        aspect-ratio: 800 / 240;
+      }
+      .house .caption {
+        position: absolute;
+        z-index: 2;
+        left: 18px;
+        top: 16px;
+        display: grid;
+        gap: 2px;
+        text-shadow: 0 1px 6px rgb(0 0 0 / 0.4);
+        pointer-events: none;
+      }
+      .house .caption b {
+        font-family: var(--v3-display);
+        font-size: 1.375rem;
+        font-weight: 700;
+      }
+      .house .caption span {
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+      .lawn {
+        position: absolute;
+        z-index: 2;
+        left: 16px;
+        bottom: 14px;
+      }
+
+      /* ---------- b: a living scene on top of the big tiles ---------- */
+      .scened {
+        position: relative;
+        height: 96px;
+        margin: -16px -16px 0;
+        overflow: hidden;
+        border-radius: var(--v3-r-card) var(--v3-r-card) 0 0;
+        container-type: size;
+        --scene-max: 400cqw;
+      }
+      :host([layout="wall"]) .scened {
+        margin: -12px -12px 0;
+        height: 80px;
+      }
+
+      /* ---------- c: the plan ---------- */
+      .slim .frog {
+        min-height: 0;
+        padding: 12px 18px;
+      }
+      .slim time {
+        font-size: 2.5rem;
+      }
+      .slim .when {
+        margin-top: 2px;
+        font-size: 0.875rem;
+      }
+      .slim .chips {
+        margin-top: 6px;
+      }
+      .plan {
+        padding: 0;
+        overflow: hidden;
+      }
+      .plan kh-floorplan {
+        display: block;
+      }
+
+      /* ---------- Tiles ---------- */
+      .lights {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .climate {
+        display: grid;
+        gap: 6px;
+      }
+      .room {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        grid-template-areas: "ic n v" "g g g";
+        align-items: center;
+        column-gap: 10px;
+        padding: 8px 10px 0;
+        border-radius: var(--v3-r-item);
+        overflow: hidden;
+        background: linear-gradient(160deg, rgba(var(--c), 0.18), rgba(var(--c), 0.03) 70%), var(--v3-well);
+        width: 100%;
+        box-sizing: border-box;
+        text-align: left;
+      }
+      .room .ic {
+        grid-area: ic;
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        background: rgba(var(--c), 0.24);
+        color: rgb(var(--c));
+        --mdc-icon-size: 19px;
+      }
+      .room .n {
+        grid-area: n;
+        font-weight: 600;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .room .v {
+        grid-area: v;
+        text-align: right;
+        font-weight: 700;
+        font-size: 1.125rem;
+      }
+      .room .v small {
+        display: block;
+        font-family: var(--v3-ui);
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--v3-muted);
+      }
+      .room kh-sparkline {
+        grid-area: g;
+        margin: 4px -10px 0;
+      }
+      .energy {
+        --kh-card: transparent;
+        --kh-kpi-min: 84px;
+      }
+      .energy kh-energy-card {
+        margin: -14px;
+      }
+      :host([layout="wall"]) .energy kh-energy-card {
+        margin: -14px -12px -12px;
+      }
       .days {
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -357,7 +511,7 @@ export class Kh3Home extends LitElement {
       .day {
         display: grid;
         justify-items: center;
-        gap: 3px;
+        gap: 2px;
         padding: 6px 0 8px;
         border-radius: var(--v3-r-item);
       }
@@ -367,311 +521,32 @@ export class Kh3Home extends LitElement {
       .day .d {
         font-size: 0.8125rem;
         color: var(--v3-muted);
-      }
-      .day:first-child .d {
-        color: var(--v3-text);
-        font-weight: 600;
+        font-weight: 500;
       }
       .day img {
-        width: 36px;
-        height: 36px;
-      }
-      :host(:not([dark])) .day img {
-        filter: drop-shadow(0 1px 1.5px rgb(24 32 42 / 0.35));
+        width: 38px;
+        height: 38px;
       }
       .day .hi {
-        font-weight: 600;
+        font-weight: 700;
       }
       .day .lo {
         font-size: 0.8125rem;
         color: var(--v3-muted);
       }
-      .range {
-        position: relative;
-        width: 4px;
-        height: 24px;
-        border-radius: 2px;
-        background: var(--v3-well-hi);
-      }
-      .range i {
-        position: absolute;
-        left: 0;
-        right: 0;
-        border-radius: 2px;
-        background: linear-gradient(0deg, rgb(var(--rgb-light-blue)), rgb(var(--rgb-amber)));
-      }
-      .ticker {
-        display: grid;
-        gap: 4px;
-      }
-      .tick {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        min-height: 36px;
-        align-items: center;
-        padding: 0 12px;
-        border-radius: 12px;
-        background: var(--v3-well);
-        width: 100%;
-        box-sizing: border-box;
-        font-size: 0.875rem;
-      }
-      .tick .v {
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-      }
-      .up {
-        color: rgb(var(--rgb-green));
-      }
-      .down {
-        color: rgb(var(--rgb-red));
-      }
-
-      /* Shortcuts: what the house can do in one tap, and what it does. */
-      .shortcuts {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
-      }
-      .sc {
-        display: grid;
-        grid-template-columns: 22px minmax(0, 1fr);
-        align-items: center;
-        column-gap: 10px;
-        min-height: 48px;
-        padding: 6px 10px;
-        box-sizing: border-box;
-        border-radius: var(--v3-r-item);
-        background: var(--v3-well);
-        color: inherit;
-        text-decoration: none;
-        text-align: left;
-      }
-      .sc ha-icon {
-        grid-row: span 2;
-        color: rgb(var(--c));
-        --mdc-icon-size: 22px;
-      }
-      .sc b {
-        font-weight: 600;
-        font-size: 0.875rem;
-        line-height: 1.2;
-      }
-      .sc small {
-        font-size: 0.75rem;
-        color: var(--v3-muted);
-        line-height: 1.2;
-      }
-      .sc.on {
-        background: rgba(var(--c), 0.16);
-        box-shadow: inset 0 0 0 1.5px rgba(var(--c), 0.6);
-      }
-      .sc:hover {
-        background: var(--v3-well-hi);
-      }
-
-      /* ---------- Résumé (Apple Home's status row) ---------- */
-      .summary {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-        gap: 8px;
-      }
-      .sum {
-        display: grid;
-        grid-template-columns: 36px minmax(0, 1fr);
-        align-items: center;
-        column-gap: 10px;
-        min-height: 60px;
-        padding: 8px 12px 8px 10px;
-        box-sizing: border-box;
-        border-radius: 18px;
-        background: var(--v3-surface);
-        box-shadow: inset 0 0 0 1px var(--v3-line);
-        color: inherit;
-        text-decoration: none;
-        text-align: left;
-      }
-      .sum .ic {
-        grid-row: span 2;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        background: var(--v3-well);
-        color: rgb(var(--c));
-        --mdc-icon-size: 20px;
-      }
-      .sum.hot .ic {
-        background: rgb(var(--c));
-        color: #fff;
-      }
-      :host([dark]) .sum.hot .ic {
-        color: #10161d;
-      }
-      .sum.hot {
-        background: linear-gradient(120deg, rgba(var(--c), 0.16), rgba(var(--c), 0.02) 70%), var(--v3-surface);
-        box-shadow: inset 0 0 0 1px rgba(var(--c), 0.3);
-      }
-      .sum b {
-        font-size: 0.8125rem;
-        font-weight: 500;
-        color: var(--v3-muted);
-        line-height: 1.2;
-      }
-      .sum span:last-child {
-        font-weight: 600;
-        line-height: 1.25;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-      .sum.blink .ic {
-        animation: blink 1.2s ease-in-out infinite;
-      }
-      @keyframes blink {
-        50% {
-          opacity: 0.45;
-        }
-      }
-      .sum:hover {
-        background: var(--v3-well);
-      }
-      :host([mode="phone"]) .summary {
-        display: flex;
-        overflow-x: auto;
-        scrollbar-width: none;
-        margin: 0 -12px;
-        padding: 0 12px;
-        scroll-padding: 0 12px;
-        scroll-snap-type: x mandatory;
-      }
-      :host([mode="phone"]) .summary::-webkit-scrollbar {
-        display: none;
-      }
-      :host([mode="phone"]) .sum {
-        flex: none;
-        min-width: 150px;
-        scroll-snap-align: start;
-      }
-
-      /* ---------- Pièces ---------- */
-      .rooms {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-        grid-auto-flow: row dense;
-        gap: 8px;
-      }
-      .room {
-        position: relative;
-        overflow: hidden;
-        min-height: 118px;
-        padding: 12px;
-        box-sizing: border-box;
-        border-radius: 18px;
-        background: var(--v3-surface);
-        box-shadow: inset 0 0 0 1px var(--v3-line);
-        display: grid;
-        grid-template-rows: auto auto 1fr;
-        gap: 2px;
-        isolation: isolate;
-      }
-      .room.wide {
-        grid-column: span 2;
-      }
-      .room.lit {
-        background: linear-gradient(150deg, rgba(var(--rgb-amber), 0.14), rgba(var(--rgb-amber), 0) 60%), var(--v3-surface);
-      }
-      /* The whole tile opens the room; its lights sit above that link. */
-      .room > a.open {
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        border-radius: inherit;
-      }
-      .room > a.open:hover {
-        background: rgb(127 127 127 / 0.05);
-      }
-      .room .rh {
-        position: relative;
-        display: grid;
-        grid-template-columns: 28px minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 8px;
-        pointer-events: none;
-      }
-      .room .ic {
-        width: 28px;
-        height: 28px;
-        border-radius: 9px;
-        display: grid;
-        place-items: center;
-        background: rgba(var(--c), 0.16);
-        color: rgb(var(--c));
-        --mdc-icon-size: 17px;
-      }
-      .room .n {
-        font-weight: 600;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-      .room .t {
-        font-size: 1.375rem;
-        font-weight: 600;
-        line-height: 1;
-      }
-      .room .meta {
-        position: relative;
-        padding-left: 36px;
-        font-size: 0.8125rem;
-        color: var(--v3-muted);
-        pointer-events: none;
-        min-height: 1.2em;
-      }
-      .room .spark {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: -1;
-        opacity: 0.6;
-        pointer-events: none;
-      }
-      .room .switches {
-        position: relative;
-        z-index: 1;
-        align-self: end;
-        display: grid;
-        grid-auto-flow: column;
-        grid-auto-columns: minmax(0, 1fr);
-        gap: 6px;
-        margin-top: 8px;
-      }
-
-      /* ---------- Médias, Énergie, Ordinateurs, Favoris ---------- */
-      .energy {
-        --kh-card: transparent;
-        --kh-card-2: var(--v3-well);
-        --kh-kpi-min: 84px;
-      }
-      .energy kh-energy-card {
-        margin: -14px;
-      }
       .rows {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 118px), 1fr));
         gap: 6px;
       }
       .pc {
         position: relative;
         overflow: hidden;
         display: grid;
-        grid-template-columns: 32px minmax(0, 1fr);
+        grid-template-columns: 34px minmax(0, 1fr);
         align-items: center;
         gap: 10px;
-        min-height: 48px;
+        min-height: 50px;
         padding: 6px 10px 6px 8px;
         border-radius: var(--v3-r-item);
         background: var(--v3-well);
@@ -680,14 +555,17 @@ export class Kh3Home extends LitElement {
         text-align: left;
       }
       .pc .ic {
-        width: 32px;
-        height: 32px;
-        border-radius: 10px;
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
         display: grid;
         place-items: center;
         background: var(--v3-well-hi);
         color: var(--v3-muted);
-        --mdc-icon-size: 18px;
+        --mdc-icon-size: 19px;
+      }
+      .pc.on {
+        background: linear-gradient(120deg, rgba(var(--rgb-blue), 0.3), rgba(var(--rgb-blue), 0.08));
       }
       .pc.on .ic {
         background: rgb(var(--rgb-blue));
@@ -701,7 +579,6 @@ export class Kh3Home extends LitElement {
         font-size: 0.8125rem;
         color: var(--v3-muted);
       }
-      /* Starting or shutting down: a bar runs along the bottom until done. */
       .pc.busy::after {
         content: "";
         position: absolute;
@@ -721,66 +598,128 @@ export class Kh3Home extends LitElement {
           background-position: 140% 0;
         }
       }
+      .ticks {
+        display: grid;
+        gap: 6px;
+      }
+      .tick {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 42px;
+        align-items: center;
+        padding: 0 12px;
+        border-radius: var(--v3-r-item);
+        background: var(--v3-well);
+        width: 100%;
+        box-sizing: border-box;
+        font-weight: 600;
+      }
+      .up {
+        color: rgb(var(--rgb-green));
+      }
+      .down {
+        color: rgb(var(--rgb-red));
+      }
+      .shortcuts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+      .sc {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        align-items: center;
+        column-gap: 10px;
+        min-height: 46px;
+        padding: 5px 10px;
+        box-sizing: border-box;
+        border-radius: var(--v3-r-item);
+        background: linear-gradient(120deg, rgba(var(--c), 0.26), rgba(var(--c), 0.08));
+        color: inherit;
+        text-decoration: none;
+        text-align: left;
+      }
+      .sc ha-icon {
+        grid-row: span 2;
+        color: rgb(var(--c));
+        --mdc-icon-size: 22px;
+      }
+      .sc b {
+        font-weight: 600;
+        font-size: 0.875rem;
+        line-height: 1.2;
+      }
+      .sc small {
+        font-size: 0.75rem;
+        color: var(--v3-muted);
+        line-height: 1.2;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .sc.on {
+        box-shadow: inset 0 0 0 2px rgba(var(--c), 0.8);
+      }
       .favs {
         display: grid;
         gap: 8px;
       }
 
-      /* ---------- Wall tablet: one screen, no scroll ---------- */
-      :host([mode="wall"]) .card {
-        padding: 12px;
-        gap: 10px;
-      }
-      :host([mode="wall"]) .scene {
-        min-height: 196px;
-        padding: 14px 16px;
-      }
-      :host([mode="wall"]) time {
-        font-size: 3rem;
-      }
-      :host([mode="wall"]) .sum {
-        min-height: 54px;
-      }
-      :host([mode="wall"]) .room {
-        min-height: 142px;
-        padding: 10px;
-      }
-      :host([mode="wall"]) .sc {
-        min-height: 40px;
-        padding: 4px 10px;
-      }
-      :host([mode="wall"]) .day {
-        padding: 4px 0 6px;
-      }
-      :host([mode="wall"]) .day {
+      /* ---------- The example picker ---------- */
+      .picker {
+        position: fixed;
+        z-index: 4;
+        right: 16px;
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        display: flex;
         gap: 2px;
+        padding: 4px;
+        border-radius: 22px;
+        background: var(--v3-veil);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
       }
-      :host([mode="wall"]) .day img {
-        width: 28px;
-        height: 28px;
+      :host([layout="phone"]) .picker {
+        bottom: calc(92px + env(safe-area-inset-bottom));
       }
-      :host([mode="wall"]) .range {
-        height: 16px;
+      .picker button {
+        height: 36px;
+        padding: 0 14px;
+        border-radius: 18px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--v3-muted);
+      }
+      .picker button[aria-pressed="true"] {
+        background: rgb(var(--rgb-blue));
+        color: #fff;
+      }
+      :host([layout="phone"]) .picker .long {
+        display: none;
       }
 
       /* ---------- Phone ---------- */
-      :host([mode="phone"]) .scene {
-        min-height: 250px;
+      :host([layout="phone"]) .stage {
+        grid-template-columns: minmax(0, 1fr);
       }
-      :host([mode="phone"]) time {
-        font-size: 3.75rem;
+      :host([layout="phone"]) .frog {
+        min-height: 220px;
       }
-      :host([mode="phone"]) .rooms {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      :host([layout="phone"]) .house {
+        min-height: 200px;
       }
     `,
   ];
+
+  /* ---------------- The stage ---------------- */
 
   private batteries() {
     return Object.entries(config.people)
       .filter(([, p]) => !p.device)
       .map(([key, p]) => ({ key, ...(p.favorites?.find((f) => f.type === "battery") as Extract<Favorite, { type: "battery" }> | undefined) }))
-      .filter((b) => !!b.entity) as { key: string; entity: string; charging?: string }[];
+      .filter((b) => !!b.entity) as { key: string; entity: string }[];
   }
 
   private residents(): string[] {
@@ -793,21 +732,65 @@ export class Kh3Home extends LitElement {
       .map((s) => s.entity_id);
   }
 
-  private avatar(p: string) {
-    const hass = store.hass!;
-    const s = hass.states[`person.${p}`];
-    const b = this.batteries().find((x) => x.key === p);
-    const level = b ? Number(hass.states[b.entity]?.state) / 100 : NaN;
-    return html`<span class="avatar">
-      ${!isNaN(level) ? ring(level, 44, 3, level > 0.2 ? "rgb(var(--rgb-green))" : "rgb(var(--rgb-red))") : nothing}
-      ${s.attributes.entity_picture ? html`<img src=${s.attributes.entity_picture} alt="" />` : html`<span class="initial">${String(s.attributes.friendly_name ?? p).charAt(0)}</span>`}
-      <span class="dot"></span>
-    </span>`;
+  private get night(): boolean {
+    return store.hass?.states["sun.sun"]?.state === "below_horizon";
   }
 
-  /* ---------------- Dehors ---------------- */
+  private avatars() {
+    const hass = store.hass!;
+    return html`<div class="avatars">
+      ${this.residents().map((p) => {
+        const s = hass.states[`person.${p}`];
+        const home = s.state === "home";
+        const b = this.batteries().find((x) => x.key === p);
+        const level = b ? Number(hass.states[b.entity]?.state) / 100 : NaN;
+        return html`<button class="avatar ${home ? "" : "away"}" aria-label="${s.attributes.friendly_name} : ${home ? "à la maison" : "absent"}" @click=${() => openPerson(p)}>
+          ${!isNaN(level) ? ring(level, 44, 3, level > 0.2 ? "#ffffff" : "rgb(255, 102, 108)") : nothing}
+          ${s.attributes.entity_picture ? html`<img src=${s.attributes.entity_picture} alt="" />` : html`<span class="initial">${String(s.attributes.friendly_name ?? p).charAt(0)}</span>`}
+          <span class="dot"></span>
+        </button>`;
+      })}
+    </div>`;
+  }
 
-  private scene() {
+  /** The V2 chips: rain, inside, the Google timer, lights, windows, alarm. */
+  private chips() {
+    const hass = store.hass!;
+    const h = config.home;
+    const st = (id?: string) => (id ? hass.states[id] : undefined);
+    const rain = st(h.nextRain)?.state;
+    const rainAt = rain && Date.parse(rain) > Date.now() ? time.format(new Date(rain)) : "";
+    const lights = Number(st(h.chips.lightsOn)?.state);
+    const windows = Number(st(h.chips.windowsOpen)?.state);
+    const timer = st(h.chips.timer)?.state;
+    const timerOn = st(h.chips.timerActive)?.state === "active" || isActive(st(h.chips.timerActive));
+    const indoor = Number(st(h.chips.temperature)?.state);
+    const alarm = st(h.chips.alarm);
+    return html`<div class="chips">
+      ${rainAt ? html`<span class="chip"><ha-icon icon="mdi:umbrella"></ha-icon>Pluie à ${rainAt}</span>` : nothing}
+      ${!isNaN(indoor)
+        ? html`<span class="chip ${badgeClass(temperatureBadge(indoor))}" style=${badgeStyle(temperatureBadge(indoor))}><ha-icon icon="mdi:home"></ha-icon>${formatNumber(indoor)}°</span>`
+        : nothing}
+      ${timer && !["unavailable", "unknown"].includes(timer)
+        ? html`<span class="chip ${badgeClass(timerBadge(timerOn))} ${timerOn ? "blink" : ""}" style=${badgeStyle(timerBadge(timerOn))}><ha-icon icon="mdi:google-assistant"></ha-icon>${timer}</span>`
+        : nothing}
+      ${!isNaN(lights)
+        ? html`<a class="chip ${badgeClass(lightsBadge(lights))}" style=${badgeStyle(lightsBadge(lights))} href=${`${this.prefix}/pieces`}>
+            <ha-icon icon=${lights > 0 ? "mdi:lightbulb" : "mdi:lightbulb-off"}></ha-icon>${lights > 0 ? plural(lights, "allumée", "allumées") : "Tout éteint"}</a>`
+        : nothing}
+      ${!isNaN(windows)
+        ? html`<button class="chip ${badgeClass(windowsBadge(windows))}" style=${badgeStyle(windowsBadge(windows))} @click=${() => openOpenings(this.openings())}>
+            <ha-icon icon=${windows > 0 ? "mdi:window-open-variant" : "mdi:window-closed-variant"}></ha-icon>${windows > 0 ? plural(windows, "ouverte", "ouvertes") : "Fermé"}</button>`
+        : nothing}
+      ${alarm
+        ? html`<button class="chip ${badgeClass(alarmBadge(alarm.state))}" style=${badgeStyle(alarmBadge(alarm.state))} @click=${() => openAlarm(alarm.entity_id)}>
+            <ha-icon icon=${alarmLook(alarm.state).icon}></ha-icon>${alarmLook(alarm.state).label}</button>`
+        : nothing}
+    </div>`;
+  }
+
+  /** The weather frog: time, weather, and the family unless the house shows it. */
+  private frog(withPeople: boolean) {
     const hass = store.hass!;
     const h = config.home;
     const st = (id?: string) => (id ? hass.states[id] : undefined);
@@ -816,224 +799,94 @@ export class Kh3Home extends LitElement {
     const place = st(h.frog?.location)?.state;
     const weather = config.weather.map((id) => hass.states[id]).find((s) => s && s.state !== "unavailable");
     const temp = Number(st(h.outdoorTemperature)?.state ?? weather?.attributes.temperature);
-    const night = st("sun.sun")?.state === "below_horizon";
     const me = currentPerson(hass);
     const name = me?.endsWith("tablet") ? "" : String(st(me)?.attributes.friendly_name ?? "");
-    const rain = st(h.nextRain)?.state;
-    const rainAt = rain && Date.parse(rain) > Date.now() ? time.format(new Date(rain)) : "";
     const style = `--frog: ${FROG_SKY[frog] ?? "40, 130, 221"}; --scene: ${/^(https?:)?\//.test(pic) ? `url('${pic}')` : "none"}; --shift: ${place === "field" ? "20%" : place === "hills" ? "40%" : "10%"}`;
-    return html`<section class="scene" style=${style} aria-label="Maintenant">
-      <div class="row">
-        <div>
-          <time datetime=${this.now.toISOString()}>${time.format(this.now)}</time>
-          <div class="when">${upper(date.format(this.now))}<br />${greeting(this.now.getHours())}${name ? ` ${upper(name)}` : ""}</div>
-        </div>
+    return html`<section class="frog" style=${style} aria-label="Maintenant">
+      <div>
+        <time datetime=${this.now.toISOString()}>${time.format(this.now)}</time>
+        <div class="when">${upper(date.format(this.now))}<br />${greeting(this.now.getHours())}${name ? ` ${upper(name)}` : ""}</div>
+      </div>
+      <div class="side">
         ${weather
-          ? html`<a class="now" href=${`${this.prefix}/meteo`} aria-label="Météo : ${stateLabel(hass, weather)}${isNaN(temp) ? "" : `, ${formatNumber(temp)} degrés`}">
-              <img src=${still(weatherIcon(weather.state, night))} alt="" />
-              <span class="t">${isNaN(temp) ? "—" : `${formatNumber(temp)}°`}</span>
-              <span class="c">${stateLabel(hass, weather)}</span>
-            </a>`
+          ? html`<a class="now" href=${`${this.prefix}/meteo`}><img src=${still(weatherIcon(weather.state, this.night))} alt="" />${isNaN(temp) ? "" : `${formatNumber(temp)}°`}</a>
+              <div class="cond">${stateLabel(hass, weather)}</div>`
           : nothing}
+        ${withPeople ? this.avatars() : nothing}
       </div>
-      <div class="foot">
-        ${rainAt ? html`<span class="rain"><ha-icon icon="mdi:umbrella-outline"></ha-icon>Pluie à ${rainAt}</span>` : html`<span></span>`}
-        ${this.mode === "phone"
-          ? html`<span class="avatars">${this.residents().map((p) => {
-              const s = hass.states[`person.${p}`];
-              return html`<button class=${s.state === "home" ? "" : "away"} aria-label="${s.attributes.friendly_name} : ${s.state === "home" ? "à la maison" : "absent"}"
-                @click=${() => openPerson(p)}>${this.avatar(p)}</button>`;
-            })}</span>`
-          : nothing}
-      </div>
+      ${this.chips()}
     </section>`;
   }
 
-  private people() {
+  /** a: the doll's house, one cell per room, lit and labelled with its temperature. */
+  private house() {
     const hass = store.hass!;
-    const list = this.residents();
-    if (!list.length) return nothing;
-    return html`<section class="card" style="--fam: var(--rgb-green)" aria-label="Qui est à la maison">
-      <div class="people">
-        ${list.map((p) => {
-          const s = hass.states[`person.${p}`];
-          const home = s.state === "home";
-          const where = home ? "À la maison" : s.state === "not_home" ? "Absent" : upper(stateLabel(hass, s));
-          const b = this.batteries().find((x) => x.key === p);
-          const level = b ? Number(hass.states[b.entity]?.state) : NaN;
-          const charging = b?.charging ? isActive(hass.states[b.charging]) : false;
-          return html`<button class="person ${home ? "" : "away"}" @click=${() => openPerson(p)}>
-            ${this.avatar(p)}
-            <span style="min-width:0"><span class="n ellipsis" style="display:block">${upper(String(s.attributes.friendly_name ?? p))}</span><span class="s">${where}</span></span>
-            ${!isNaN(level)
-              ? html`<span class="b ${level <= 20 && !charging ? "low" : ""} ${charging ? "charging" : ""}" aria-label="Batterie ${formatNumber(level, 0)} %${charging ? ", en charge" : ""}">
-                  <ha-icon icon=${charging ? "mdi:battery-charging" : level <= 20 ? "mdi:battery-alert-variant-outline" : "mdi:battery-outline"}></ha-icon>${formatNumber(level, 0)} %</span>`
-              : nothing}
-          </button>`;
-        })}
+    const rooms = this.model?.rooms ?? [];
+    const cells = rooms.map((r) => {
+      const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
+      return { room: r, lit: r.lights.some((id) => isActive(hass.states[id])), label: isNaN(t) ? undefined : `${formatNumber(t)}°` };
+    });
+    const lit = cells.filter((c) => c.lit).length;
+    const home = this.residents().filter((p) => hass.states[`person.${p}`]?.state === "home").length;
+    return html`<section class="house ${this.night ? "night" : ""}" style="--sky: ${frogSky()}" aria-label="La maison">
+      <a href=${`${this.prefix}/pieces`} style="position:absolute; inset:0; z-index:1" aria-label="Voir les pièces"></a>
+      <div class="art">${houseScene(cells, this.night, frogSky())}</div>
+      <div class="caption">
+        <b>${lit ? plural(lit, "pièce allumée", "pièces allumées") : "Tout est éteint"}</b>
+        <span>${home ? `${plural(home, "personne", "personnes")} à la maison` : "Personne à la maison"}</span>
       </div>
+      <div class="lawn">${this.avatars()}</div>
     </section>`;
   }
 
-  private outlook() {
+  /* ---------------- Tiles ---------------- */
+
+  private lights(scened = false) {
     const hass = store.hass!;
-    const days = forecastDays();
-    const h = config.home;
-    const stocks = h.stocks.filter((s) => s.home && hass.states[s.entity]);
-    const shown = stocks.length ? stocks : h.stocks.filter((s) => hass.states[s.entity]).slice(0, 1);
-    if (!days.length && !shown.length) return nothing;
-    const lo = Math.min(...days.map((d) => d.templow ?? d.temperature));
-    const hi = Math.max(...days.map((d) => d.temperature));
-    const span = Math.max(1, hi - lo);
-    return html`<section class="card" style="--fam: var(--rgb-light-blue)">
-      ${head("mdi:calendar-week", "Cinq jours", { href: `${this.prefix}/meteo`, label: "Météo" })}
-      ${days.length
-        ? html`<div class="days" role="list">
-            ${days.map((d) => {
-              const low = d.templow ?? d.temperature;
-              return html`<div class="day" role="listitem" aria-label="${d.day} : ${formatNumber(d.temperature, 0)} degrés au plus haut, ${formatNumber(low, 0)} au plus bas">
-                <span class="d">${upper(d.day)}</span>
-                <img src=${still(weatherIcon(d.condition, false, d.precipitation ?? 0))} alt="" />
-                <span class="hi num">${formatNumber(d.temperature, 0)}°</span>
-                <span class="range" aria-hidden="true"><i style="bottom: ${((low - lo) / span) * 100}%; top: ${((hi - d.temperature) / span) * 100}%"></i></span>
-                <span class="lo num">${formatNumber(low, 0)}°</span>
-              </div>`;
-            })}
-          </div>`
-        : nothing}
-      ${shown.length
-        ? html`<div class="ticker">
-            ${shown.map((s) => {
-              const ch = Number(hass.states[s.entity]?.attributes.regularMarketChangePercent);
-              return html`<button class="tick" @click=${() => openMoreInfo(this, s.entity)}>
-                <span class="ellipsis">${s.name}</span>
-                <span class="v ${ch >= 0 ? "up" : "down"}">${isNaN(ch) ? "—" : `${ch >= 0 ? "+" : "−"}${formatNumber(Math.abs(ch), 1)} %`}</span>
-              </button>`;
-            })}
-          </div>`
-        : nothing}
+    const lights = config.home.lights.filter((l) => hass.states[l.entity]);
+    const on = lights.filter((l) => isActive(hass.states[l.entity])).length;
+    const rooms = this.model?.rooms ?? [];
+    const fav = rooms.find((r) => r.id === "chambre_william") ?? rooms[0];
+    return html`<section class="card" style="--fam: var(--rgb-amber)">
+      ${scened && fav ? html`<div class="scened">${roomScene(fav, on > 0, this.night, frogSky(), true)}</div>` : nothing}
+      ${head("mdi:lightbulb-group", "Lumières", { href: `${this.prefix}/pieces`, label: "Pièces" }, on ? html`<span class="aside">${on} sur ${lights.length}</span>` : nothing)}
+      <kh-swipe label="Lumières">
+        ${pagesOf(lights, 6).map((pg) => html`<div class="lights">${pg.map((l) => html`<kh3-light entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh3-light>`)}</div>`)}
+      </kh-swipe>
     </section>`;
   }
 
-  private shortcuts() {
+  /** Climate as in V2: each room in its colour, temperature, humidity and their 24 h curves. */
+  private climate(per: number) {
     const hass = store.hass!;
-    const h = config.home;
-    const p = this.prefix;
-    const guest = h.guestMode ? hass.states[h.guestMode] : undefined;
-    const leaving = h.leave ? isActive(hass.states[h.leave]) : false;
-    return html`<section class="card" style="--fam: var(--rgb-indigo)">
-      ${head("mdi:gesture-tap-button", "Raccourcis")}
-      <div class="shortcuts">
-        ${h.leave
-          ? html`<button class="sc" style="--c: var(--rgb-indigo)" @click=${() => runScript(h.leave!)}>
-              <ha-icon icon="mdi:hand-wave-outline"></ha-icon><b>Partir</b><small class="ellipsis">${leaving ? "En cours…" : "Tout éteindre"}</small></button>`
-          : nothing}
-        ${guest
-          ? html`<button class="sc ${isActive(guest) ? "on" : ""}" style="--c: var(--rgb-amber)" aria-pressed=${String(isActive(guest))}
-              @click=${() => toggle(h.guestMode!, "le mode invité")}>
-              <ha-icon icon="mdi:account-group-outline"></ha-icon><b>Mode invité</b><small class="ellipsis">${isActive(guest) ? "Départs sans effet" : "Désactivé"}</small></button>`
-          : nothing}
-        ${h.wifiQr
-          ? html`<button class="sc" style="--c: var(--rgb-teal)" @click=${() => openWifiQr()}>
-              <ha-icon icon="mdi:qrcode"></ha-icon><b>Wi-Fi</b><small>QR invités</small></button>`
-          : nothing}
-        <a class="sc" style="--c: var(--rgb-purple)" href=${`${p}/medias`}><ha-icon icon="mdi:remote-tv"></ha-icon><b>Télécommande</b><small>Box TV</small></a>
-        <a class="sc" style="--c: var(--rgb-light-blue)" href=${`${p}/meteo`}><ha-icon icon="mdi:radar"></ha-icon><b>Radar</b><small>Pluie, Windy</small></a>
-        <a class="sc" style="--c: var(--rgb-grey)" href=${`${p}/systeme`}><ha-icon icon="mdi:cog-outline"></ha-icon><b>Système</b><small>Réseau, HA</small></a>
-      </div>
+    const rooms = (this.model?.rooms ?? []).filter((r) => r.temperature);
+    return html`<section class="card" style="--fam: var(--rgb-green)">
+      ${head("mdi:home-thermometer", "Climat", { href: `${this.prefix}/meteo`, label: "Météo" })}
+      ${rooms.length
+        ? html`<kh-swipe label="Climat">
+            ${pagesOf(rooms.map((r, i) => ({ r, i })), per).map(
+              (pg) => html`<div class="climate">${pg.map(({ r, i }) => {
+                const t = Number(hass.states[r.temperature!]?.state);
+                const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
+                const c = `var(--rgb-${ROOM_COLORS[i % ROOM_COLORS.length]})`;
+                return html`<button class="room" style="--c: ${c}" @click=${() => openMoreInfo(this, r.temperature!)}>
+                  <span class="ic"><ha-icon icon=${r.icon}></ha-icon></span>
+                  <span class="n">${r.name}</span>
+                  <span class="v num">${isNaN(t) ? "—" : `${formatNumber(t)}°`}${isNaN(hum) ? nothing : html`<small>${formatNumber(hum, 0)} %</small>`}</span>
+                  <kh-sparkline compact height="34" .entities=${[
+                    { entity: r.temperature!, label: "Température", color: c, unit: "°C" },
+                    ...(r.humidity ? [{ entity: r.humidity, label: "Humidité", color: "var(--rgb-light-blue)", unit: "%" }] : []),
+                  ]}></kh-sparkline>
+                </button>`;
+              })}</div>`,
+            )}
+          </kh-swipe>`
+        : html`<div class="muted">Aucun thermomètre ne répond.</div>`}
     </section>`;
   }
 
-  /* ---------------- La maison ---------------- */
-
-  /** The old chips, as Apple Home's status buttons: a state and an action each. */
-  private summary() {
-    const hass = store.hass!;
-    const h = config.home;
-    const st = (id?: string) => (id ? hass.states[id] : undefined);
-    const lights = Number(st(h.chips.lightsOn)?.state);
-    const windows = Number(st(h.chips.windowsOpen)?.state);
-    const timer = st(h.chips.timer)?.state;
-    const timerOn = st(h.chips.timerActive)?.state === "active" || isActive(st(h.chips.timerActive));
-    const indoor = Number(st(h.chips.temperature)?.state);
-    const alarm = st(h.chips.alarm);
-    const look = alarm ? alarmLook(alarm.state) : undefined;
-    const armed = !!alarm && alarm.state !== "disarmed";
-    return html`<nav class="summary" aria-label="Résumé de la maison">
-      <a class="sum ${lights > 0 ? "hot" : ""}" style="--c: var(--rgb-amber)" href=${`${this.prefix}/pieces`}>
-        <span class="ic"><ha-icon icon=${lights > 0 ? "mdi:lightbulb-on" : "mdi:lightbulb-outline"}></ha-icon></span>
-        <b>Lumières</b><span>${isNaN(lights) ? "—" : lights > 0 ? plural(lights, "allumée", "allumées") : "Tout éteint"}</span>
-      </a>
-      <a class="sum ${indoor >= 26 || indoor < 17 ? "hot" : ""}" style="--c: var(--rgb-${indoor >= 26 ? "orange" : indoor < 17 ? "light-blue" : "green"})" href=${`${this.prefix}/meteo`}>
-        <span class="ic"><ha-icon icon="mdi:home-thermometer-outline"></ha-icon></span>
-        <b>Climat</b><span>${isNaN(indoor) ? "—" : `${formatNumber(indoor)}° dedans`}</span>
-      </a>
-      ${alarm && look
-        ? html`<button class="sum ${armed || look.alert ? "hot" : ""}" style="--c: var(--rgb-${look.alert ? "red" : armed ? "indigo" : "green"})" @click=${() => openAlarm(alarm.entity_id)}>
-            <span class="ic"><ha-icon icon=${look.icon}></ha-icon></span><b>Alarme</b><span>${look.label}</span>
-          </button>`
-        : nothing}
-      <button class="sum ${windows > 0 ? "hot" : ""}" style="--c: var(--rgb-light-blue)" @click=${() => openOpenings(this.openings())}>
-        <span class="ic"><ha-icon icon=${windows > 0 ? "mdi:window-open-variant" : "mdi:window-closed-variant"}></ha-icon></span>
-        <b>Ouvertures</b><span>${isNaN(windows) ? "—" : windows > 0 ? plural(windows, "ouverte", "ouvertes") : "Fermées"}</span>
-      </button>
-      ${h.chips.timer
-        ? html`<button class="sum ${timerOn ? "hot blink" : ""}" style="--c: var(--rgb-teal)" @click=${() => h.chips.timerActive && openMoreInfo(this, h.chips.timerActive)}>
-            <span class="ic"><ha-icon icon="mdi:google-assistant"></ha-icon></span>
-            <b>Minuteur</b><span>${timerOn && timer && !["unavailable", "unknown"].includes(timer) ? timer : "Aucun"}</span>
-          </button>`
-        : nothing}
-    </nav>`;
-  }
-
-  /** Each room once: its climate and 24 h curve, and its lights (the home ones, with their dimmer). */
-  private rooms() {
-    const hass = store.hass!;
-    const all = this.model?.rooms ?? [];
-    const lightsOf = new Map<string, HomeLight[]>();
-    for (const l of config.home.lights) {
-      if (!hass.states[l.entity]) continue;
-      const area = areaOf(hass, l.entity);
-      if (area) lightsOf.set(area, [...(lightsOf.get(area) ?? []), l]);
-    }
-    const rooms = all.filter((r) => r.temperature || lightsOf.has(r.id));
-    if (!rooms.length) return nothing;
-    return html`<section class="rooms" aria-label="Pièces">
-      ${rooms.map((r) => this.room(r, all.indexOf(r), lightsOf.get(r.id) ?? []))}
-    </section>`;
-  }
-
-  private room(r: Room, i: number, lights: HomeLight[]) {
-    const hass = store.hass!;
-    const c = `var(--rgb-${ROOM_COLORS[i % ROOM_COLORS.length]})`;
-    const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
-    const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
-    const on = r.lights.filter((id) => isActive(hass.states[id])).length;
-    const meta = [isNaN(hum) ? "" : `${formatNumber(hum, 0)} % d'humidité`, on ? plural(on, "lumière allumée", "lumières allumées") : ""]
-      .filter(Boolean)
-      .join(", ");
-    return html`<article class="room ${lights.length > 1 ? "wide" : ""} ${on ? "lit" : ""}" style="--c: ${c}">
-      <a class="open" href=${`${this.prefix}/pieces/${r.id}`} aria-label="Ouvrir ${r.name}"></a>
-      <div class="rh">
-        <span class="ic"><ha-icon icon=${r.icon}></ha-icon></span>
-        <span class="n">${r.name}</span>
-        ${r.temperature ? html`<span class="t num ${isNaN(t) ? "muted" : ""}">${isNaN(t) ? "—" : `${formatNumber(t)}°`}</span>` : nothing}
-      </div>
-      <div class="meta">${meta}</div>
-      ${r.temperature
-        ? html`<kh-sparkline class="spark" compact height="48" .entities=${[
-            { entity: r.temperature, label: "Température", color: c, unit: "°C" },
-            ...(r.humidity ? [{ entity: r.humidity, label: "Humidité", color: "var(--rgb-light-blue)", unit: "%" }] : []),
-          ]}></kh-sparkline>`
-        : nothing}
-      ${lights.length
-        ? html`<div class="switches">${lights.map((l) => html`<kh3-light compact entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh3-light>`)}</div>`
-        : nothing}
-    </article>`;
-  }
-
-  /** Now playing and the latest on Jellyfin: two pages when something plays. */
-  private media() {
+  /** Now playing and the latest on Jellyfin (two pages when something plays). */
+  private media(scened = false) {
     const h = config.home;
     const playing = [h.spotify, ...h.tvs].find((id) => !!id && isPlayerActive(id));
     const player = playing
@@ -1042,16 +895,40 @@ export class Kh3Home extends LitElement {
     const jelly = h.jellyfin ? html`<kh-jellyfin></kh-jellyfin>` : undefined;
     if (!player && !jelly) return nothing;
     return html`<section class="card" style="--fam: var(--rgb-${playing ? "purple" : "jellyfin"})">
+      ${scened ? html`<div class="scened">${mediaScene(!!playing, this.night, frogSky())}</div>` : nothing}
       ${head(playing ? "mdi:play-circle" : "mdi:filmstrip-box-multiple", playing ? "En lecture" : "Ajouté sur Jellyfin", { href: `${this.prefix}/medias`, label: "Médias" })}
       ${player && jelly ? html`<kh-swipe label="Médias">${player}${jelly}</kh-swipe>` : (player ?? jelly)}
     </section>`;
   }
 
-  private energy() {
-    if (!config.home.energy) return nothing;
+  private energy(scened = false) {
+    const e = config.home.energy;
+    if (!e) return nothing;
+    const watts = Number(store.hass!.states[e.power]?.state);
     return html`<section class="card energy" style="--fam: var(--rgb-orange)">
+      ${scened ? html`<div class="scened">${energyScene(watts, this.night, frogSky())}</div>` : nothing}
       ${head("mdi:lightning-bolt", "Énergie", { href: `${this.prefix}/energie`, label: "Détail" })}
       <kh-energy-card compact></kh-energy-card>
+    </section>`;
+  }
+
+  /** Five days; today's icon is the animated one. */
+  private days() {
+    const days = forecastDays();
+    if (!days.length) return nothing;
+    return html`<section class="card" style="--fam: var(--rgb-light-blue)">
+      ${head("mdi:calendar-week", "Cinq jours", { href: `${this.prefix}/meteo`, label: "Météo" })}
+      <div class="days" role="list">
+        ${days.map((d, i) => {
+          const icon = weatherIcon(d.condition, false, d.precipitation ?? 0);
+          return html`<div class="day" role="listitem">
+            <span class="d">${upper(d.day)}</span>
+            <img src=${i === 0 ? icon : still(icon)} alt=${d.condition} />
+            <span class="hi num">${formatNumber(d.temperature, 0)}°</span>
+            <span class="lo num">${d.templow !== undefined ? `${formatNumber(d.templow, 0)}°` : ""}</span>
+          </div>`;
+        })}
+      </div>
     </section>`;
   }
 
@@ -1063,7 +940,7 @@ export class Kh3Home extends LitElement {
     const waiting = isPending(c.entity);
     const busy = waiting || (c.busy ? isActive(hass.states[c.busy]) : false);
     const press = pcPress(c.entity, () => toggle(c.entity, c.name), () => openComputer(c));
-    const label = isUnavailable(s) ? "Injoignable" : busy ? (waiting ? (on ? "Arrêt…" : "Démarrage…") : "En cours…") : on ? "Allumé" : "Éteint";
+    const label = isUnavailable(s) ? "Indisponible" : busy ? (waiting ? (on ? "Arrêt…" : "Démarrage…") : "En cours…") : on ? "Allumé" : "Éteint";
     return html`<button class="pc ${on ? "on" : ""} ${busy ? "busy" : ""}" aria-pressed=${String(on)} aria-busy=${String(busy)}
       aria-description="Appui : allumer ou éteindre ; appui long : détails"
       @pointerdown=${press.down} @pointerup=${press.cancel} @pointermove=${press.move} @pointercancel=${press.cancel}
@@ -1082,6 +959,26 @@ export class Kh3Home extends LitElement {
     </section>`;
   }
 
+  private stocks() {
+    const hass = store.hass!;
+    const h = config.home;
+    const list = h.stocks.filter((s) => s.home && hass.states[s.entity]);
+    const shown = list.length ? list : h.stocks.filter((s) => hass.states[s.entity]).slice(0, 3);
+    if (!shown.length) return nothing;
+    return html`<section class="card" style="--fam: var(--rgb-teal)">
+      ${head("mdi:chart-line", "Bourse", { href: `${this.prefix}/meteo`, label: "Tout" })}
+      <div class="ticks">
+        ${shown.map((s) => {
+          const ch = Number(hass.states[s.entity]?.attributes.regularMarketChangePercent);
+          return html`<button class="tick" @click=${() => openMoreInfo(this, s.entity)}>
+            <span class="ellipsis">${s.name}</span>
+            <span class=${ch >= 0 ? "up" : "down"}>${isNaN(ch) ? "—" : `${ch >= 0 ? "+" : "−"}${formatNumber(Math.abs(ch), 1)} %`}</span>
+          </button>`;
+        })}
+      </div>
+    </section>`;
+  }
+
   private favoriteList(): Favorite[] {
     const hass = store.hass!;
     const person = currentPerson(hass)?.replace("person.", "");
@@ -1090,7 +987,7 @@ export class Kh3Home extends LitElement {
     );
   }
 
-  private favorites() {
+  private favorites(per: number) {
     const list = this.favoriteList();
     if (!list.length) return nothing;
     const one = (f: Favorite) => {
@@ -1106,45 +1003,105 @@ export class Kh3Home extends LitElement {
       }
       return nothing;
     };
-    const per = this.mode === "phone" ? 3 : 2;
     return html`<section class="card" style="--fam: var(--rgb-yellow)">
-      ${head("mdi:star-outline", "Favoris")}
-      ${list.length > per
-        ? html`<kh-swipe label="Favoris">${pagesOf(list, per).map((pg) => html`<div class="favs">${pg.map(one)}</div>`)}</kh-swipe>`
-        : html`<div class="favs">${list.map(one)}</div>`}
+      ${head("mdi:star", "Favoris")}
+      <kh-swipe label="Favoris">${pagesOf(list, per).map((pg) => html`<div class="favs">${pg.map(one)}</div>`)}</kh-swipe>
     </section>`;
+  }
+
+  private shortcuts() {
+    const hass = store.hass!;
+    const h = config.home;
+    const p = this.prefix;
+    const guest = h.guestMode ? hass.states[h.guestMode] : undefined;
+    const leaving = h.leave ? isActive(hass.states[h.leave]) : false;
+    return html`<section class="card" style="--fam: var(--rgb-indigo)">
+      ${head("mdi:gesture-tap-button", "Raccourcis")}
+      <div class="shortcuts">
+        ${h.leave
+          ? html`<button class="sc" style="--c: var(--rgb-indigo)" @click=${() => runScript(h.leave!)}>
+              <ha-icon icon="mdi:hand-wave"></ha-icon><b>Partir</b><small>${leaving ? "En cours…" : "Tout éteindre"}</small></button>`
+          : nothing}
+        ${guest
+          ? html`<button class="sc ${isActive(guest) ? "on" : ""}" style="--c: var(--rgb-amber)" aria-pressed=${String(isActive(guest))}
+              @click=${() => toggle(h.guestMode!, "le mode invité")}>
+              <ha-icon icon="mdi:account-group"></ha-icon><b>Mode invité</b><small>${isActive(guest) ? "Départs sans effet" : "Désactivé"}</small></button>`
+          : nothing}
+        ${h.wifiQr
+          ? html`<button class="sc" style="--c: var(--rgb-teal)" @click=${() => openWifiQr()}><ha-icon icon="mdi:qrcode"></ha-icon><b>Wi-Fi</b><small>QR invités</small></button>`
+          : nothing}
+        <a class="sc" style="--c: var(--rgb-purple)" href=${`${p}/medias`}><ha-icon icon="mdi:remote-tv"></ha-icon><b>Télécommande</b><small>Box TV</small></a>
+        <a class="sc" style="--c: var(--rgb-light-blue)" href=${`${p}/meteo`}><ha-icon icon="mdi:radar"></ha-icon><b>Radar</b><small>Pluie, Windy</small></a>
+        <a class="sc" style="--c: var(--rgb-indigo)" href=${`${p}/systeme`}><ha-icon icon="mdi:cog"></ha-icon><b>Système</b><small>Réseau, HA</small></a>
+      </div>
+    </section>`;
+  }
+
+  /** c: the flat's plan (2D or 3D), lights and devices live on it. */
+  private plan() {
+    return html`<section class="card plan" style="--fam: var(--rgb-amber)">
+      <kh-floorplan .rooms=${this.model?.rooms ?? []} prefix=${this.prefix}></kh-floorplan>
+    </section>`;
+  }
+
+  /* ---------------- The three examples ---------------- */
+
+  private cols(cols: unknown[][], template?: string) {
+    return html`<div class="cols" style=${template ? `grid-template-columns: ${template}` : `--n: ${cols.length}`}>
+      ${cols.map((c) => html`<div class="col">${c}</div>`)}
+    </div>`;
+  }
+
+  private exampleA() {
+    const stage = html`<div class="stage">${this.frog(false)}${this.house()}</div>`;
+    if (this.phone)
+      return html`${stage}${this.cols([[this.favorites(3), this.lights(), this.media(), this.climate(3), this.energy(), this.days(), this.computers(), this.stocks(), this.shortcuts()]])}`;
+    return html`${stage}${this.cols([
+      [this.lights(), this.favorites(1)],
+      [this.media(), this.stocks(), this.computers()],
+      [this.energy(), this.climate(2)],
+      [this.days(), this.shortcuts()],
+    ])}`;
+  }
+
+  private exampleB() {
+    const banner = this.frog(true);
+    if (this.phone)
+      return html`${banner}${this.cols([[this.favorites(3), this.lights(true), this.media(true), this.energy(true), this.climate(3), this.days(), this.computers(), this.stocks(), this.shortcuts()]])}`;
+    return html`${banner}${this.cols([
+      [this.lights(true), this.favorites(1)],
+      [this.media(true), this.computers()],
+      [this.energy(true), this.shortcuts()],
+      [this.climate(2), this.days(), this.stocks()],
+    ])}`;
+  }
+
+  /** c: the plan carries the lights, TVs and PCs (same gestures as their tiles), so it replaces the Ordinateurs tile. */
+  private exampleC() {
+    const banner = this.frog(true);
+    if (this.phone)
+      return html`${banner}${this.cols([[this.plan(), this.favorites(3), this.lights(), this.media(), this.energy(), this.climate(3), this.days(), this.computers(), this.stocks(), this.shortcuts()]])}`;
+    return html`<div class="slim">${banner}</div>${this.cols(
+      [
+        [this.plan(), this.cols([[this.climate(1)], [this.days()], [this.favorites(1)]])],
+        [this.lights(), this.shortcuts()],
+        [this.media(), this.energy(), this.stocks()],
+      ],
+      "minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 1fr)",
+    )}`;
   }
 
   render() {
     if (!store.hass) return nothing;
-    const favs = this.favoriteList().length > 0;
-    switch (this.mode) {
-      case "phone":
-        return html`<div class="home">
-          ${this.scene()}${this.summary()}${this.favorites()}${this.rooms()}${this.media()}${this.energy()}
-          ${this.computers()}${this.outlook()}${this.shortcuts()}
-        </div>`;
-      case "medium":
-        return html`<div class="home">
-          ${this.scene()}${this.summary()}${this.rooms()}
-          <div class="lower">
-            <div class="stack">${this.media()}${this.favorites()}${this.people()}</div>
-            <div class="stack">${this.energy()}${this.computers()}${this.outlook()}${this.shortcuts()}</div>
-          </div>
-        </div>`;
-      default:
-        return html`<div class="home">
-          <aside class="ambient">${this.scene()}${this.people()}${this.outlook()}${this.shortcuts()}</aside>
-          <div class="main">
-            ${this.summary()}${this.rooms()}
-            <div class="lower" style=${favs ? "" : "--lc: minmax(0, 1.25fr) minmax(0, 1fr)"}>
-              ${this.media()}
-              <div class="stack">${this.energy()}${this.computers()}</div>
-              ${favs ? this.favorites() : nothing}
-            </div>
-          </div>
-        </div>`;
-    }
+    const body = this.example === "b" ? this.exampleB() : this.example === "c" ? this.exampleC() : this.exampleA();
+    return html`${body}
+      <div class="picker" role="group" aria-label="Exemples d'accueil">
+        ${EXAMPLES.map(
+          (e) => html`<button aria-pressed=${String(this.example === e.key)} @click=${() => this.pick(e.key)}>
+            ${e.key.toUpperCase()}<span class="long"> ${e.label}</span>
+          </button>`,
+        )}
+      </div>`;
   }
 }
 customElements.define("kh3-home", Kh3Home);
