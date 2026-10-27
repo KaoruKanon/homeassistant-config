@@ -13,21 +13,24 @@ const SLOP_PX = 8;
  * scroll the page.
  */
 export class Kh3Light extends LitElement {
-  static properties = { entityId: { attribute: "entity-id" }, name: {}, icon: {}, compact: { type: Boolean, reflect: true }, preview: { state: true } };
+  static properties = { entityId: { attribute: "entity-id" }, name: {}, icon: {}, compact: { type: Boolean, reflect: true }, bulb: { type: Boolean, reflect: true }, preview: { state: true } };
   declare entityId: string;
   declare name: string;
   declare icon?: string;
   /** Inside a room tile: one line, icon and name, the brightness bar under them. */
   declare compact: boolean;
+  /** In the home's house: a round bulb in its room, the brightness as a ring; a sideways drag dims from where it is. */
+  declare bulb: boolean;
   /** Brightness shown while dragging. */
   declare preview?: number;
-  private start?: { x: number; y: number };
+  private start?: { x: number; y: number; pct: number };
   private mode: "none" | "drag" | "scroll" = "none";
   private hold = 0;
 
   constructor() {
     super();
     this.compact = false;
+    this.bulb = false;
     new EntitiesController(this, () => [this.entityId]);
   }
 
@@ -134,6 +137,62 @@ export class Kh3Light extends LitElement {
         left: 8px;
         right: 8px;
       }
+      :host([bulb]) .light {
+        width: var(--bulb, 48px);
+        height: var(--bulb, 48px);
+        padding: 0;
+        display: grid;
+        grid-template-columns: 1fr;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--bulb-off, rgb(255 255 255 / 0.12));
+        overflow: visible;
+      }
+      :host([bulb]) .on.light {
+        background: rgb(255 224 150 / 0.35);
+      }
+      :host([bulb]) .bulb {
+        width: calc(var(--bulb, 48px) - 12px);
+        height: calc(var(--bulb, 48px) - 12px);
+        --mdc-icon-size: calc(var(--bulb, 48px) * 0.42);
+        background: transparent;
+        color: var(--bulb-ink, rgb(255 255 255 / 0.85));
+      }
+      :host([bulb]) .on .bulb {
+        background: rgb(var(--rgb-amber));
+        color: #3a2600;
+        box-shadow: 0 0 22px 6px rgba(var(--rgb-amber), 0.7);
+      }
+      :host([bulb]) .light > span:nth-child(2),
+      :host([bulb]) .bar {
+        display: none;
+      }
+      .dial {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        transform: rotate(-90deg);
+      }
+      .dial circle {
+        transition: stroke-dashoffset 260ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .dragging .dial circle {
+        transition: none;
+      }
+      .tip {
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 2px 8px;
+        border-radius: 8px;
+        background: rgb(20 24 40 / 0.85);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+        pointer-events: none;
+      }
       .unavailable {
         cursor: default;
       }
@@ -146,7 +205,8 @@ export class Kh3Light extends LitElement {
 
   private down = (e: PointerEvent) => {
     if (e.button !== 0) return;
-    this.start = { x: e.clientX, y: e.clientY };
+    const s = store.get(this.entityId);
+    this.start = { x: e.clientX, y: e.clientY, pct: isActive(s) ? (brightnessPercent(s) ?? 100) : 0 };
     this.mode = "none";
     window.clearTimeout(this.hold);
     this.hold = window.setTimeout(() => {
@@ -168,7 +228,9 @@ export class Kh3Light extends LitElement {
     }
     if (this.mode === "drag") {
       const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      this.preview = Math.round(Math.min(100, Math.max(1, ((e.clientX - r.left) / r.width) * 100)));
+      // A bulb is too small to point at a level: 150 px of drag go from off to full.
+      const pct = this.bulb ? this.start.pct + (dx / 150) * 100 : ((e.clientX - r.left) / r.width) * 100;
+      this.preview = Math.round(Math.min(100, Math.max(1, pct)));
     }
   };
 
@@ -236,6 +298,11 @@ export class Kh3Light extends LitElement {
         <span class="state">${label}</span>
       </span>
       <span class="bar" aria-hidden="true"><i style="transform: scaleX(${pct / 100})"></i></span>
+      ${this.bulb && (on || this.preview !== undefined)
+        ? html`<svg class="dial" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="none" stroke="rgb(var(--rgb-amber))" stroke-width="3"
+            stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset=${138.2 * (1 - pct / 100)} /></svg>`
+        : nothing}
+      ${this.bulb && this.preview !== undefined ? html`<span class="tip">${pct} %</span>` : nothing}
     </div>`;
   }
 }
