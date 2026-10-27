@@ -1,6 +1,8 @@
-import { LitElement, html, nothing } from "lit";
+import { LitElement, css, html, nothing } from "lit";
+import { openMoreInfo } from "../actions.ts";
 import "../components/energy-card.ts";
 import "../components/energy-devices.ts";
+import "../components/sankey.ts";
 import "../components/tile.ts";
 import "../components/widgets.ts";
 import { config } from "../config.ts";
@@ -18,10 +20,20 @@ export class KhEnergyView extends LitElement {
   constructor() {
     super();
     new RegistryController(this);
-    new EntitiesController(this, () => (config.home.energy ? [config.home.energy.power] : []));
+    new EntitiesController(this, () => [config.home.energy?.power, ...(config.energyPage.meters ?? []).map((m) => m.power)].filter((x): x is string => !!x));
   }
 
-  static styles = [base, pageStyles];
+  static styles = [
+    base,
+    pageStyles,
+    css`
+      .sankey {
+        padding: 16px;
+        display: grid;
+        gap: 10px;
+      }
+    `,
+  ];
 
   render() {
     const hass = store.hass;
@@ -53,6 +65,15 @@ export class KhEnergyView extends LitElement {
                 <div class="stack">${p.fans.map((id) => html`<kh-fan entity-id=${id}></kh-fan>`)}</div>`
             : nothing}
         </div>
+      </div>
+      <h2>Où part l'électricité</h2>
+      <div class="card sankey">
+        <kh-sankey .total=${watts} .flows=${(p.meters ?? []).map((m) => ({
+          name: m.name,
+          watts: Number(hass.states[m.power]?.state) || 0,
+          open: () => openMoreInfo(this, m.power),
+        }))}></kh-sankey>
+        <div class="secondary">Ce que les prises ne mesurent pas (dont le PC de Papa) est compté dans « Reste de la maison ».</div>
       </div>
     `;
   }

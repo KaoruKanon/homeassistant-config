@@ -3,6 +3,7 @@ import "../components/box-remote.ts";
 import { isPlayerActive } from "../components/media-card.ts";
 import "../components/media-card.ts";
 import "../components/posters.ts";
+import "../components/widgets.ts";
 import { config } from "../config.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
@@ -43,6 +44,7 @@ export class KhMediaView extends LitElement {
         </div>
         <div>${m.box ? html`<h2>Box TV</h2><kh-box-remote></kh-box-remote>` : nothing}</div>
       </div>
+      ${h.jellyfin ? html`<h2>Ajouté sur Jellyfin</h2><kh-jellyfin></kh-jellyfin>` : nothing}
       ${m.jellyfin.map((j) => html`<h2>Ajoutés récemment : ${j.title.toLowerCase()}</h2><kh-posters entity-id=${j.entity}></kh-posters>`)}
     `;
   }

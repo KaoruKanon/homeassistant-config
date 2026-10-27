@@ -1,6 +1,8 @@
 import { LitElement, css, html, nothing } from "lit";
 import { setLights } from "../actions.ts";
+import "../components/energy-devices.ts";
 import "../components/light-card.ts";
+import "../components/sparkline.ts";
 import "../components/tile.ts";
 import { config } from "../config.ts";
 import { isActive, sensorValue, stateIcon, stateLabel } from "../format.ts";
@@ -32,6 +34,9 @@ export class KhRoomView extends LitElement {
   static styles = [
     base,
     css`
+      .graph {
+        padding: 12px 16px;
+      }
       :host {
         display: block;
       }
@@ -155,7 +160,11 @@ export class KhRoomView extends LitElement {
     const temp = sensorValue(hass, r.temperature);
     const hum = sensorValue(hass, r.humidity, 0);
     const climate = [temp ? `${temp} °C` : "", hum ? `${hum} % d'humidité` : ""].filter(Boolean).join(", ");
-    const devices = [...r.switches, ...r.fans];
+    const devices = r.switches; // fans get their own card (speed, oscillation, timer)
+    const graph = [
+      ...(r.temperature ? [{ entity: r.temperature, label: "Température", color: "var(--rgb-orange)", unit: "°C" }] : []),
+      ...(r.humidity ? [{ entity: r.humidity, label: "Humidité", color: "var(--rgb-light-blue)", unit: "%" }] : []),
+    ];
     const tiles = (ids: string[]) => html`<div class="grid">
       ${ids.map(
         (id) => html`<kh-tile entity-id=${id} name=${entityName(hass, id, config, r.name)} power-id=${this.model.power[id] ?? nothing}></kh-tile>`,
@@ -188,6 +197,8 @@ export class KhRoomView extends LitElement {
               ${r.lights.map((id) => html`<kh-light-card entity-id=${id} name=${entityName(hass, id, config, r.name)}></kh-light-card>`)}
             </div>`
         : nothing}
+      ${graph.length ? html`<h2>Climat sur 24 h</h2><div class="card graph"><kh-sparkline .entities=${graph}></kh-sparkline></div>` : nothing}
+      ${r.fans.length ? html`<h2>Ventilation</h2><div class="grid">${r.fans.map((id) => html`<kh-fan entity-id=${id}></kh-fan>`)}</div>` : nothing}
       ${devices.length ? html`<h2>Prises et appareils</h2>${tiles(devices)}` : nothing}
       ${r.media.length ? html`<h2>Médias</h2>${tiles(r.media)}` : nothing}
       ${r.openings.length ? html`<h2>Ouvertures</h2>${this.status(r.openings, true, "var(--rgb-red)")}` : nothing}

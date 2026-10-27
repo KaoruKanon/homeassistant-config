@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import { openMoreInfo, restartHomeAssistant, setAutomation, triggerAutomation } from "../actions.ts";
 import { gauge, gaugeStyles } from "../components/gauge.ts";
+import "../components/mini-map.ts";
 import { config } from "../config.ts";
 import { formatNumber, isActive, stateLabel } from "../format.ts";
 import { ago, openPerson, openTablet } from "../popups/open.ts";
@@ -46,6 +47,10 @@ export class KhSystemView extends LitElement {
     pageStyles,
     gaugeStyles,
     css`
+      .map {
+        padding: 8px;
+        margin-bottom: var(--kh-gap);
+      }
       .gauges {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -193,6 +198,17 @@ export class KhSystemView extends LitElement {
       ${pageHead("mdi:cog-outline", "grey", "Système", sub || "Tout va bien")}
 
       <h2>Famille</h2>
+      ${(() => {
+        const located = (id: string) => {
+          const a = hass.states[id]?.attributes;
+          return a?.latitude !== undefined && isFinite(Number(a.latitude)) && isFinite(Number(a.longitude));
+        };
+        const onMap = [
+          ...Object.keys(config.people).filter((p) => !config.people[p].device).map((p) => `person.${p}`),
+          ...config.system.trackers.map((t) => t.entity),
+        ].filter(located);
+        return onMap.length ? html`<div class="card map"><kh-mini-map .entities=${onMap} height="260"></kh-mini-map></div>` : nothing;
+      })()}
       <div class="grid people">
         ${Object.keys(config.people)
           .filter((p) => !config.people[p].device)

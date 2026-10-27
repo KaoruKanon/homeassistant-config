@@ -506,10 +506,10 @@ export class KhStock extends Widget {
 }
 customElements.define("kh-stock", KhStock);
 
-/** "Partir" and "QR Wifi" buttons. */
+/** "Partir", "Mode invité" and "QR Wifi" buttons. */
 export class KhOthers extends Widget {
   protected watched() {
-    return config.home.leave ? [config.home.leave] : [];
+    return [config.home.leave, config.home.guestMode].filter((x): x is string => !!x);
   }
   static styles = [
     ...Widget.styles,
@@ -541,6 +541,13 @@ export class KhOthers extends Widget {
           ? html`<button class="card tile" @click=${() => runScript(h.leave!)}>
               <span class="shape" style="--rgb: var(--rgb-indigo)"><ha-icon icon="mdi:hand-wave-outline"></ha-icon></span>
               <div><div class="primary">Partir</div><div class="secondary">${running ? "En cours…" : "Tout éteindre"}</div></div>
+            </button>`
+          : nothing}
+        ${h.guestMode && store.get(h.guestMode)
+          ? html`<button class="card tile ${isActive(store.get(h.guestMode)) ? "on" : ""}" aria-pressed=${String(isActive(store.get(h.guestMode)))}
+              @click=${() => toggle(h.guestMode!, "le mode invité")}>
+              <span class="shape" style="--rgb: var(--rgb-amber)"><ha-icon icon="mdi:account-group"></ha-icon></span>
+              <div><div class="primary">Mode invité</div><div class="secondary">${isActive(store.get(h.guestMode)) ? "Activé : départs sans effet" : "Désactivé"}</div></div>
             </button>`
           : nothing}
         ${h.wifiQr
