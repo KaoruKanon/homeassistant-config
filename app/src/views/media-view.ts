@@ -17,7 +17,22 @@ export class KhMediaView extends LitElement {
     new EntitiesController(this, () => [config.home.spotify, ...config.home.tvs, ...config.media.speakers].filter((x): x is string => !!x));
   }
 
-  static styles = [base, pageStyles, css``];
+  static styles = [
+    base,
+    pageStyles,
+    css`
+      .posters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--kh-gap);
+      }
+      @container kh (max-width: 759px) {
+        .posters {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    `,
+  ];
 
   render() {
     const hass = store.hass;
@@ -31,21 +46,27 @@ export class KhMediaView extends LitElement {
     return html`
       ${pageHead("mdi:play-box-multiple-outline", "blue", "Médias", sub)}
       <div class="cols">
+        <!-- Music and what Jellyfin added on one side, the TVs and their remote on the other: two columns of about the same height. -->
         <div>
           ${h.spotify ? html`<h2>Spotify</h2><kh-media-card entity-id=${h.spotify} kind="music" name="Spotify"></kh-media-card>` : nothing}
-          <h2>Télévisions</h2>
-          <div class="stack">${h.tvs.map((id) => html`<kh-media-card entity-id=${id} kind="tv"></kh-media-card>`)}</div>
           ${m.speakers.length
             ? html`<h2>Enceintes</h2>
                 <div class="stack">
                   ${m.speakers.map((id) => html`<kh-media-card entity-id=${id} kind="music" icon="mdi:speaker"></kh-media-card>`)}
                 </div>`
             : nothing}
+          ${h.jellyfin ? html`<h2>Ajouté sur Jellyfin</h2><kh-jellyfin></kh-jellyfin>` : nothing}
         </div>
-        <div>${m.box ? html`<h2>Box TV</h2><kh-box-remote></kh-box-remote>` : nothing}</div>
+        <div>
+          <h2>Télévisions</h2>
+          <div class="stack">${h.tvs.map((id) => html`<kh-media-card entity-id=${id} kind="tv"></kh-media-card>`)}</div>
+          ${m.box ? html`<h2>Box TV</h2><kh-box-remote></kh-box-remote>` : nothing}
+        </div>
       </div>
-      ${h.jellyfin ? html`<h2>Ajouté sur Jellyfin</h2><kh-jellyfin></kh-jellyfin>` : nothing}
-      ${m.jellyfin.map((j) => html`<h2>Ajoutés récemment : ${j.title.toLowerCase()}</h2><kh-posters entity-id=${j.entity}></kh-posters>`)}
+      <!-- Films and series side by side (one under the other on a phone). -->
+      <div class="posters">
+        ${m.jellyfin.map((j) => html`<div><h2>Ajoutés récemment : ${j.title.toLowerCase()}</h2><kh-posters entity-id=${j.entity}></kh-posters></div>`)}
+      </div>
     `;
   }
 }

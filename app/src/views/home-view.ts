@@ -155,7 +155,7 @@ export class KhHomeView extends LitElement {
         <kh-swipe label="Lumières">
           ${pages.map(
             (pg) => html`<div class="lights">
-              ${pg.map((l) => html`<kh-light-card entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-card>`)}
+              ${pg.map((l) => html`<kh-light-card compact entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-card>`)}
             </div>`,
           )}
         </kh-swipe></section>`,
@@ -167,12 +167,12 @@ export class KhHomeView extends LitElement {
         : nothing,
       others: html`<section>${this.heading("Autres")}<kh-others></kh-others></section>`,
     };
-    // Independent column stacks: no row alignment, so no holes.
+    // Independent column stacks of about the same height: no row alignment, so no holes.
     const layout: (keyof typeof S)[][] =
       this.columns >= 3
-        ? [["media", "favorites"], ["lights", "energy"], ["weather", "news", "others"]]
+        ? [["media", "favorites", "lights"], ["energy", "others"], ["weather", "news"]]
         : this.columns === 2
-          ? [["media", "favorites", "weather"], ["lights", "energy", "news", "others"]]
+          ? [["media", "favorites", "lights", "news"], ["weather", "energy", "others"]]
           : [["media", "favorites", "lights", "energy", "weather", "news", "others"]];
 
     return html`
