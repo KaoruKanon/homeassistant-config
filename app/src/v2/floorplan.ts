@@ -175,7 +175,7 @@ export class KhFloorplan extends LitElement {
         display: block;
         width: 100%;
         height: auto;
-        max-height: var(--plan-max-height, 62vh);
+        max-height: calc(var(--plan-height, 0.62) * 100vh);
       }
       .room-area {
         cursor: pointer;

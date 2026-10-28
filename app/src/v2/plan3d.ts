@@ -792,7 +792,9 @@ export class KhPlan3d extends LitElement {
     const w = this.clientWidth || 600;
     this.narrow = w < 600;
     // Phones: a tall view along the length of the flat; wide screens: from the salon's corner.
-    const h = Math.round(this.tall ? Math.min(w * 1.25, window.innerHeight * 0.62) : Math.min(w * 0.6, window.innerHeight * 0.62));
+    // --plan-height: share of the window height the view may take (a smaller plan on the V1 bis/ter home).
+    const share = Number(getComputedStyle(this).getPropertyValue("--plan-height")) || 0.62;
+    const h = Math.round(this.tall ? Math.min(w * 1.25, window.innerHeight * share) : Math.min(w * 0.6, window.innerHeight * share));
     r.setSize(w, h, false);
     if (!this.moved) this.camera.position.copy(this.home()[0]);
     this.camera.aspect = w / h;

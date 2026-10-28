@@ -95,6 +95,13 @@ export class KhHomeView extends LitElement {
       .plan {
         padding: 6px;
         overflow: hidden;
+        --plan-height: 0.42;
+      }
+      /* Thermometers paged like the light pills: 3 per row, 2 rows per page. */
+      .thermos {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
       }
       /* Light pills (the whole pill dims): two per row, never narrower than 150 px. */
       .lights {
@@ -192,12 +199,12 @@ export class KhHomeView extends LitElement {
       others: html`<section>${this.heading("Autres")}<kh-others></kh-others></section>`,
       // V1 bis only: the plan (2D / 3D) on the home page, and each room's temperature.
       plan: html`<section>${this.heading("Plan", "pieces")}<div class="card plan"><kh-floorplan ?landscape=${this.variant === "bis"} .rooms=${rooms} prefix=${this.prefix}></kh-floorplan></div></section>`,
-      // Thermometers like the lights: swipeable pages of 2 × 3.
+      // Thermometers like the lights: swipeable pages of 6 (2 rows of 3).
       climate: thermometers.length
         ? html`<section>${this.heading("Températures", "meteo")}
             <kh-swipe label="Températures">
               ${thermoPages.map(
-                (pg) => html`<div class="pair">
+                (pg) => html`<div class="thermos">
                   ${pg.map((r) => html`<kh-thermometer .spec=${{ type: "thermometer", name: r.name, temperature: r.temperature!, humidity: r.humidity }}></kh-thermometer>`)}
                 </div>`,
               )}

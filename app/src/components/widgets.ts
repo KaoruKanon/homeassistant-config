@@ -302,9 +302,15 @@ export class KhThermometer extends Widget {
   static styles = [
     ...Widget.styles,
     css`
+      /* Same height as its neighbours in a grid row (a long room name wraps). */
+      :host {
+        display: block;
+        height: 100%;
+      }
       .thermo {
         display: block;
         width: 100%;
+        height: 100%;
         padding: 0;
         text-align: left;
         overflow: hidden;
