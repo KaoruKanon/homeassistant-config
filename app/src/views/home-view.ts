@@ -8,7 +8,7 @@ import "../components/swipe.ts";
 import "../components/weather-card.ts";
 import "../components/widgets.ts";
 import { config, type Favorite } from "../config.ts";
-import { currentPerson, roomsFor } from "../rooms.ts";
+import { currentPerson, roomsFor, type Room } from "../rooms.ts";
 import { house } from "../house.ts";
 import "../v2/floorplan.ts";
 
@@ -158,6 +158,9 @@ export class KhHomeView extends LitElement {
     // Lights as swipeable pages of 6 (the old swipe-card): denser on every screen.
     const pages: (typeof lights)[] = [];
     for (let i = 0; i < lights.length; i += 6) pages.push(lights.slice(i, i + 6));
+    const thermometers = rooms.filter((r) => r.temperature);
+    const thermoPages: Room[][] = [];
+    for (let i = 0; i < thermometers.length; i += 6) thermoPages.push(thermometers.slice(i, i + 6));
 
     const S = {
       media:
@@ -189,13 +192,16 @@ export class KhHomeView extends LitElement {
       others: html`<section>${this.heading("Autres")}<kh-others></kh-others></section>`,
       // V1 bis only: the plan (2D / 3D) on the home page, and each room's temperature.
       plan: html`<section>${this.heading("Plan", "pieces")}<div class="card plan"><kh-floorplan ?landscape=${this.variant === "bis"} .rooms=${rooms} prefix=${this.prefix}></kh-floorplan></div></section>`,
-      climate: rooms.some((r) => r.temperature)
+      // Thermometers like the lights: swipeable pages of 2 × 3.
+      climate: thermometers.length
         ? html`<section>${this.heading("Températures", "meteo")}
-            <div class="pair">
-              ${rooms
-                .filter((r) => r.temperature)
-                .map((r) => html`<kh-thermometer .spec=${{ type: "thermometer", name: r.name, temperature: r.temperature!, humidity: r.humidity }}></kh-thermometer>`)}
-            </div></section>`
+            <kh-swipe label="Températures">
+              ${thermoPages.map(
+                (pg) => html`<div class="pair">
+                  ${pg.map((r) => html`<kh-thermometer .spec=${{ type: "thermometer", name: r.name, temperature: r.temperature!, humidity: r.humidity }}></kh-thermometer>`)}
+                </div>`,
+              )}
+            </kh-swipe></section>`
         : nothing,
     };
     // Independent column stacks of about the same height: no row alignment, so no holes.
