@@ -1,28 +1,48 @@
 import { LitElement, css, html, nothing } from "lit";
-import { isPending, media, openMoreInfo, runScript, setVolume, toggle } from "../actions.ts";
-import { alarmBadge, badgeClass, badgeStyle, badgeStyles, lightsBadge, temperatureBadge, timerBadge, windowsBadge } from "../badges.ts";
+import { isPending, needsConfirmation, openMoreInfo, runScript, setLights, toggle } from "../actions.ts";
 import "../components/energy-card.ts";
 import { pcPress } from "../components/gestures.ts";
 import { isPlayerActive } from "../components/media-card.ts";
-import "../components/sparkline.ts";
+import "../components/media-card.ts";
 import "../components/swipe.ts";
+import "../v2/floorplan.ts";
 import { still, weatherIcon } from "../components/weather-card.ts";
 import "../components/widgets.ts";
 import { config, type Computer, type Favorite } from "../config.ts";
-import { brightnessPercent, formatNumber, isActive, isUnavailable, stateLabel } from "../format.ts";
+import { formatNumber, isActive, isUnavailable, stateIcon, stateLabel } from "../format.ts";
 import { alarmLook, openAlarm, openComputer, openOpenings, openPerson, openWifiQr } from "../popups/open.ts";
-import { currentPerson, type HouseModel } from "../rooms.ts";
+import { currentPerson, entityName, type HouseModel, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { FROG_SKY, forecastDays } from "../weather-utils.ts";
 import "./light.ts";
-import { pagesOf, ring, ui } from "./theme.ts";
+import { ring, ui } from "./theme.ts";
 
 const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const date = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-/** One colour per room in Climat, the same from one visit to the next. */
-const ROOM_COLORS = ["orange", "green", "purple", "teal", "amber", "indigo", "red", "blue"];
+/** The colour of a device's icon while it is on, by kind. */
+const KIND_COLOR: Record<string, string> = {
+  light: "amber",
+  switch: "blue",
+  computer: "blue",
+  fan: "teal",
+  media_player: "purple",
+  opening: "light-blue",
+  motion: "green",
+};
+
+const FAVORITES = "favoris";
+const PLAN = "plan";
+
+/** The device categories, in the order they are shown, with their heading. */
+const GROUPS: [Device["kind"], string][] = [
+  ["light", "Lumières"],
+  ["computer", "Ordinateurs"],
+  ["switch", "Prises et appareils"],
+  ["fan", "Ventilation"],
+  ["media_player", "Télévisions et enceintes"],
+  ["opening", "Ouvertures"],
+];
 
 function greeting(h: number): string {
   if (h < 5 || h >= 22) return "Bonne nuit";
@@ -34,54 +54,65 @@ function greeting(h: number): string {
 const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`;
 const upper = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
 
+interface Device {
+  id: string;
+  name: string;
+  kind: keyof typeof KIND_COLOR;
+  icon?: string;
+  computer?: Computer;
+}
+
 /**
- * V3 home, « la météo en fond d'écran ». The weather frog's landscape is no
- * longer a banner: it is the wallpaper of the whole home, so the screen
- * changes with the weather and the hour. Frosted-glass panels sit on it:
+ * V3 home, after V1 (itself after Apple Home), UI Lovelace Minimalist and
+ * Cansaas. One reading order, the same on every screen:
  *
- *   time, date, weather and the family on the sky; the house's chips
- *   ┌ the stage: what plays now, big ──────────┐ ┌ lights, as glowing ───┐
- *   │ (else what is new on Jellyfin)           │ │ discs                 │
- *   └──────────────────────────────────────────┘ └───────────────────────┘
- *   ┌ Énergie ─┐ ┌ Climat ─┐ ┌ Cinq jours ─┐ ┌ Favoris ─┐
- *   [ one glass bar: computers, stocks, shortcuts                       ]
+ *   1. who and when: time, greeting; the house's state as categories;
+ *      the family;
+ *   2. what to do in one tap: the shortcuts;
+ *   3. the rooms: a filter per room (Favoris first), the chosen room's
+ *      climate and lights, then its devices, all in one tile shape;
+ *   4. beside them, what the day holds: now playing (only while something
+ *      plays), the weather, the energy, the agenda.
  *
- * On the wall tablet it all fits one screen; on a phone it is one column.
+ * Section titles sit outside the cards; colour only marks what is on.
  */
 export class Kh3Home extends LitElement {
-  static properties = { prefix: {}, model: { attribute: false }, now: { state: true }, wall: { type: Boolean } };
+  static properties = { prefix: {}, model: { attribute: false }, now: { state: true }, wall: { type: Boolean }, room: { state: true } };
   declare prefix: string;
   declare model?: HouseModel;
   declare now: Date;
   declare wall: boolean;
+  /** The room filter: "favoris" or an area id. */
+  declare room: string;
   private timer?: number;
-  private seconds?: number;
   private width = 1200;
   private sizer = new ResizeObserver(([e]) => {
-    const before = this.phone;
+    const before = this.layout;
     this.width = e.contentRect.width;
-    if (before !== this.phone) this.requestUpdate();
+    if (before !== this.layout) this.requestUpdate();
   });
 
   constructor() {
     super();
     this.now = new Date();
     this.wall = false;
+    this.room = new URLSearchParams(location.search).get("piece") ?? FAVORITES;
     new RegistryController(this);
     new EntitiesController(this, () => {
       const h = config.home;
       return [
-        h.spotify, ...h.tvs, h.frog?.status, h.frog?.image, h.frog?.location, h.outdoorTemperature, h.nextRain, h.guestMode, h.leave,
+        h.spotify, ...h.tvs, h.frog?.status, h.frog?.image, h.frog?.location, h.outdoorTemperature, h.guestMode, h.leave,
         ...Object.values(h.chips), ...config.weather, "sun.sun",
         ...Object.keys(config.people).map((p) => `person.${p}`), ...this.batteries().map((b) => b.entity),
-        ...(this.model?.rooms ?? []).flatMap((r) => [r.temperature, r.humidity]),
-        ...h.lights.map((l) => l.entity), ...h.computers.flatMap((c) => [c.entity, c.busy]), ...h.stocks.map((s) => s.entity),
+        ...this.favoriteList().flatMap((f) => ("entity" in f ? [f.entity] : [])),
+        ...this.devices().map((d) => d.id), ...h.computers.map((c) => c.busy),
+        ...(this.model?.rooms ?? []).flatMap((r) => [r.temperature, r.humidity, ...r.lights]),
       ].filter((x): x is string => !!x);
     });
   }
 
-  private get phone(): boolean {
-    return !this.wall && this.width < 760;
+  private get layout(): "wall" | "wide" | "phone" {
+    return this.wall ? "wall" : this.width >= 900 ? "wide" : "phone";
   }
 
   connectedCallback(): void {
@@ -91,8 +122,6 @@ export class Kh3Home extends LitElement {
       this.timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50);
     };
     this.timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50);
-    // The track's progress moves every second, only while something plays.
-    this.seconds = window.setInterval(() => this.playing() && this.requestUpdate(), 1000);
     window.addEventListener("kh-pending", this.onPending);
     this.width = this.getBoundingClientRect().width || window.innerWidth;
     this.sizer.observe(this);
@@ -101,232 +130,253 @@ export class Kh3Home extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     window.clearTimeout(this.timer);
-    window.clearInterval(this.seconds);
     this.sizer.disconnect();
     window.removeEventListener("kh-pending", this.onPending);
   }
 
   protected willUpdate(): void {
-    this.setAttribute("layout", this.wall ? "wall" : this.phone ? "phone" : "wide");
+    this.setAttribute("layout", this.layout);
     this.toggleAttribute("dark", !!store.hass?.themes.darkMode);
   }
 
   private onPending = () => this.requestUpdate();
 
+  /** Chooses a room filter and records it in the address (?piece=), keeping the other parameters. */
+  private pick(room: string): void {
+    this.room = room;
+    const url = new URL(location.href);
+    if (room === FAVORITES) url.searchParams.delete("piece");
+    else url.searchParams.set("piece", room);
+    history.replaceState(history.state, "", url);
+  }
+
   static styles = [
     ui,
-    badgeStyles,
     css`
       :host {
         display: block;
-        position: relative;
-        --gap: 12px;
-        /* Solid surfaces and hairlines: no blur, no wash. */
-        --page: #121418;
-        --glass: #1a1d23;
-        --glass-hi: rgb(255 255 255 / 0.09);
-        --glass-line: rgb(255 255 255 / 0.07);
-        --ink: #f2f4f7;
-        --ink-2: rgb(242 244 247 / 0.58);
-        --well: rgb(255 255 255 / 0.045);
-        --lift: none;
-      }
-      :host(:not([dark])) {
-        --page: #f2f3f5;
-        --glass: #ffffff;
-        --glass-hi: rgb(17 24 39 / 0.07);
-        --glass-line: rgb(17 24 39 / 0.08);
-        --ink: #111827;
-        --ink-2: rgb(17 24 39 / 0.56);
-        --well: #f4f5f7;
-        --lift: 0 1px 2px rgb(16 24 40 / 0.05);
+        --gap: 20px;
+        --tile-h: 72px;
       }
       :host([layout="wall"]) {
-        --gap: 10px;
+        --gap: 14px;
+        --tile-h: 66px;
       }
 
-      /* ---------- Background: plain; the picture lives in the header only ---------- */
-      .wallpaper {
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        background: var(--page);
-      }
-      .home {
-        position: relative;
-        z-index: 1;
-        isolation: isolate;
+      /* ---------- Page ---------- */
+      /* Three columns, as the original dashboard: the rooms; media and energy;
+         the day (weather, agenda, stocks) with the shortcuts at the bottom. */
+      .page {
         display: grid;
-        gap: var(--gap);
-        color: var(--ink);
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas: "top top top" "rooms media side";
+        gap: var(--gap) calc(var(--gap) * 1.25);
+        align-items: start;
       }
-      :host([layout="wall"]) .home {
+      /* The plan wants width: it takes the rooms' and the media's columns. */
+      .page.planned {
+        grid-template-areas: "top top top" "rooms rooms side";
+      }
+      .page.planned .media {
+        display: none;
+      }
+      :host([layout="wall"]) .page {
         height: calc(100dvh - 20px);
-        grid-template-rows: auto minmax(0, 1fr) auto auto;
+        grid-template-rows: auto minmax(0, 1fr);
       }
-
-      .glass {
-        position: relative;
-        min-width: 0;
-        box-sizing: border-box;
-        border-radius: 20px;
-        background: var(--glass);
-        box-shadow: inset 0 0 0 1px var(--glass-line), var(--lift);
-        /* What the shared components inside read. */
-        --kh-text: var(--ink);
-        --kh-text-2: var(--ink-2);
-        --kh-card: var(--well);
-        --kh-card-2: var(--glass-hi);
-        --v3-text: var(--ink);
-        --v3-muted: var(--ink-2);
-        --v3-well: var(--well);
-        --v3-well-hi: var(--glass-hi);
+      :host([layout="phone"]) .page,
+      :host([layout="phone"]) .page.planned {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "top" "media" "rooms" "side";
       }
-      .panel {
-        padding: 14px 16px 16px;
+      :host([layout="phone"]) .page.planned .media {
+        display: grid;
+      }
+      .main,
+      .media,
+      .side {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
+        gap: var(--gap);
         align-content: start;
+        min-width: 0;
+      }
+      .main {
+        grid-area: rooms;
+      }
+      .media {
+        grid-area: media;
+      }
+      .side {
+        grid-area: side;
+      }
+      :host([layout="wall"]) .main,
+      :host([layout="wall"]) .media,
+      :host([layout="wall"]) .side {
+        min-height: 0;
+        height: 100%;
+      }
+      :host([layout="wall"]) .main {
+        grid-template-rows: minmax(0, 1fr);
+      }
+      /* Device categories inside a room. */
+      .groups {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+        min-height: 0;
+        overflow: auto;
+        scrollbar-width: thin;
+      }
+      .sub {
+        margin: 0 0 8px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--v3-muted);
+      }
+      .plan {
+        padding: 6px;
+        overflow: hidden;
+        min-height: 0;
+      }
+      .plan kh-floorplan {
+        display: block;
+      }
+      section {
+        display: grid;
         gap: 10px;
+        min-width: 0;
       }
-      :host([layout="wall"]) .panel {
-        padding: 12px 14px 14px;
-      }
-      .title {
+
+      /* Section titles, outside the cards, with their link (V1, Apple Home). */
+      .h {
         margin: 0;
         display: flex;
         align-items: center;
-        gap: 8px;
-        min-height: 26px;
-        font-size: 0.9375rem;
-        font-weight: 600;
+        gap: 4px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
         text-wrap: balance;
       }
-      .title ha-icon {
-        color: rgb(var(--c));
-        --mdc-icon-size: 20px;
-      }
-      .title span {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-      .title a {
-        flex: none;
+      .h a {
         display: inline-flex;
         align-items: center;
-        min-height: 32px;
-        padding: 0 4px 0 10px;
-        border-radius: 16px;
-        color: var(--ink-2);
-        font-size: 0.8125rem;
-        font-weight: 500;
+        gap: 2px;
+        color: inherit;
         text-decoration: none;
-        --mdc-icon-size: 18px;
+        border-radius: 8px;
+        --mdc-icon-size: 22px;
       }
-      .title a:hover {
-        color: var(--ink);
-        background: var(--well);
+      .h a ha-icon {
+        color: var(--v3-muted);
+      }
+      .h a:hover ha-icon {
+        color: var(--v3-text);
+      }
+      :host([layout="wall"]) .h {
+        font-size: 1.25rem;
       }
 
-      /* ---------- On the sky: time, weather, family, chips ---------- */
-      .sky {
-        position: relative;
-        display: grid;
-        gap: var(--gap);
+      .card {
+        padding: 14px;
+        gap: 10px;
       }
-      /* The weather frog, sharp, at its own 1920 × 317 ratio (a little taller on narrow screens). */
-      .banner {
-        position: relative;
-        overflow: hidden;
+
+      /* ---------- 1. Top: time, greeting, categories, family ---------- */
+      .top {
+        grid-area: top;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
         gap: 16px;
-        aspect-ratio: 1920 / 317;
-        min-height: 168px;
-        padding: 0 28px;
-        box-sizing: border-box;
-        border-radius: 20px;
-        color: #fff;
-        text-shadow: 0 1px 10px rgb(0 0 0 / 0.28);
-        background-color: rgb(var(--frog));
-        background-image: linear-gradient(90deg, rgba(var(--frog), 0.7) 0%, rgba(var(--frog), 0.2) 32%, rgba(var(--frog), 0) 52%), var(--scene);
-        background-size: 100% 100%, cover;
-        background-position: 0 0, var(--shift) 70%;
-      }
-      :host([layout="wall"]) .banner {
-        min-height: 150px;
-        padding: 0 22px;
-      }
-      /* Narrow screens: a taller crop of the picture, never wider than the screen. */
-      :host([layout="phone"]) .banner {
-        aspect-ratio: auto;
-        min-height: 240px;
-        padding: 20px;
-        align-items: end;
-        grid-template-columns: minmax(0, 1fr);
-      }
-      :host([layout="phone"]) .banner .side {
-        position: absolute;
-        top: 16px;
-        right: 16px;
       }
       time {
         display: block;
-        font-size: 5rem;
-        font-weight: 200;
-        line-height: 0.85;
-        letter-spacing: -0.05em;
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.02em;
         font-variant-numeric: tabular-nums;
       }
-      :host([layout="wall"]) time {
-        font-size: 4rem;
-      }
-      .when {
-        margin-top: 8px;
-        font-size: 1.125rem;
+      .hello {
+        margin-top: 4px;
+        color: var(--v3-muted);
         font-weight: 500;
       }
-      .side {
-        display: grid;
-        justify-items: end;
+      .cats {
+        display: flex;
+        justify-content: flex-end;
+        flex-wrap: wrap;
         gap: 8px;
       }
-      .now {
-        display: flex;
+      .cat {
+        display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
+        min-height: 44px;
+        padding: 0 14px 0 6px;
+        border-radius: 22px;
+        background: var(--v3-surface);
+        box-shadow: inset 0 0 0 1px var(--v3-line);
         color: inherit;
         text-decoration: none;
-        border-radius: 18px;
-        padding: 2px 6px;
+        white-space: nowrap;
+        text-align: left;
       }
-      .now img {
-        width: 64px;
-        height: 64px;
+      .cat .ic {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--v3-well);
+        color: var(--v3-muted);
+        --mdc-icon-size: 18px;
       }
-      .now b {
+      .cat.on .ic {
+        background: rgba(var(--c), 0.2);
+        color: rgb(var(--c));
+      }
+      .cat.alert {
+        box-shadow: inset 0 0 0 1.5px rgb(var(--rgb-red));
+      }
+      .cat.alert .ic {
+        background: rgb(var(--rgb-red));
+        color: #fff;
+      }
+      .cat b {
         display: block;
-        font-size: 2.25rem;
-        font-weight: 300;
-        line-height: 1;
-        font-variant-numeric: tabular-nums;
-      }
-      .now span {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         font-weight: 500;
+        color: var(--v3-muted);
+        line-height: 1.1;
       }
-      .avatars {
+      .cat span:last-child {
+        font-size: 0.875rem;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+      .cat:hover {
+        background: var(--v3-well);
+      }
+      .cat.blink .ic {
+        animation: blink 1.2s ease-in-out infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0.4;
+        }
+      }
+      .people {
         display: flex;
         gap: 6px;
       }
       .avatar {
         position: relative;
-        width: 46px;
-        height: 46px;
+        width: 48px;
+        height: 48px;
         display: grid;
         place-items: center;
         border-radius: 50%;
@@ -337,442 +387,397 @@ export class Kh3Home extends LitElement {
       }
       .avatar img,
       .avatar .initial {
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
         border-radius: 50%;
         object-fit: cover;
         display: grid;
         place-items: center;
-        background: rgb(0 0 0 / 0.3);
+        background: var(--v3-well);
         font-weight: 700;
       }
       .avatar.away img {
-        filter: grayscale(0.9) brightness(0.85);
+        filter: grayscale(0.9);
+        opacity: 0.7;
       }
       .avatar .dot {
         position: absolute;
-        right: 2px;
-        bottom: 2px;
-        width: 11px;
-        height: 11px;
+        right: 3px;
+        bottom: 3px;
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
-        border: 2px solid #fff;
+        border: 2px solid var(--v3-bg);
         box-sizing: border-box;
         background: rgb(var(--rgb-green));
       }
       .avatar.away .dot {
-        background: rgb(var(--rgb-red));
+        background: var(--v3-faint);
       }
-      .chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
+      :host([layout="phone"]) .top {
+        grid-template-columns: minmax(0, 1fr) auto;
       }
-      .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        height: 34px;
-        padding: 0 14px;
-        border-radius: 17px;
-        background: var(--glass);
-        box-shadow: inset 0 0 0 1px var(--glass-line), var(--lift);
-        color: var(--ink);
-        font-weight: 600;
-        font-size: 0.8125rem;
-        text-decoration: none;
-        --mdc-icon-size: 17px;
+      :host([layout="phone"]) .cats {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        margin: 0 -12px;
+        padding: 0 12px;
       }
-      .chip ha-icon {
-        color: var(--b-ic, var(--ink-2));
-      }
-      :host(:not([dark])) .chip:not(.b-tint) ha-icon {
-        color: var(--ink-2);
-      }
-      .chip.b-tint {
-        background: rgba(var(--b-bg), var(--b-a));
-        box-shadow: inset 0 0 0 1px rgba(var(--b-bg), 0.35);
-      }
-      .chip.blink ha-icon {
-        animation: blink 1.2s ease-in-out infinite;
-      }
-      @keyframes blink {
-        50% {
-          opacity: 0.35;
-        }
+      :host([layout="phone"]) .cats::-webkit-scrollbar {
+        display: none;
       }
 
-      /* ---------- The stage and the lights ---------- */
-      .middle {
-        position: relative;
+      /* ---------- 2. Shortcuts (Minimalist's scenes) ---------- */
+      /* Autres (V1): two per row, the icon beside its label. */
+      .shortcuts {
         display: grid;
-        grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
-        gap: var(--gap);
-        min-height: 0;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
       }
-      .stage {
-        overflow: hidden;
-        min-height: 300px;
+      .sc {
         display: grid;
-      }
-      :host([layout="wall"]) .stage {
-        min-height: 0;
-      }
-      .stage kh-swipe {
-        min-height: 0;
-      }
-      .stage .page {
-        position: relative;
-        height: 100%;
-        box-sizing: border-box;
-      }
-      /* Now playing: the cover, big, its own colours blurred behind. */
-      .player {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-columns: 42px minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-content: center;
         align-items: center;
-        gap: 22px;
-        padding: 22px;
-        isolation: isolate;
-        overflow: hidden;
-        height: 100%;
+        column-gap: 12px;
+        min-height: var(--tile-h);
+        padding: 0 12px;
         box-sizing: border-box;
+        border-radius: var(--v3-r-item);
+        background: var(--v3-surface);
+        box-shadow: inset 0 0 0 1px var(--v3-line);
+        color: inherit;
+        text-decoration: none;
+        text-align: left;
+        min-width: 0;
       }
-      .player .blur {
-        position: absolute;
-        inset: -40px;
-        z-index: -1;
-        background-image: var(--cover);
-        background-size: cover;
-        background-position: center;
-        filter: blur(40px) saturate(1.4);
-        opacity: 0.55;
-      }
-      .player .art {
-        width: clamp(140px, 22vh, 220px);
-        aspect-ratio: 1;
-        border-radius: 20px;
-        object-fit: cover;
-        background: var(--well);
-        box-shadow: 0 18px 40px rgb(0 0 0 / 0.4);
+      .sc .ic {
+        grid-row: span 2;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
         display: grid;
         place-items: center;
-        --mdc-icon-size: 64px;
+        background: rgba(var(--c), 0.18);
+        color: rgb(var(--c));
+        --mdc-icon-size: 22px;
       }
-      .player .src {
-        display: flex;
-        align-items: center;
-        gap: 6px;
+      .sc.on .ic {
+        background: rgb(var(--c));
+        color: #fff;
+      }
+      .sc.on {
+        box-shadow: inset 0 0 0 1.5px rgba(var(--c), 0.7);
+      }
+      .sc b {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+      .sc small {
         font-size: 0.8125rem;
-        font-weight: 600;
-        color: var(--ink-2);
-        --mdc-icon-size: 18px;
+        color: var(--v3-muted);
+        line-height: 1.25;
       }
-      .player h2 {
-        margin: 6px 0 2px;
-        font-size: 1.75rem;
-        font-weight: 600;
-        line-height: 1.15;
-        letter-spacing: -0.01em;
+      .sc b {
+        min-width: 0;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        text-wrap: balance;
+        overflow-wrap: anywhere;
       }
-      .player .by {
-        color: var(--ink-2);
+      .sc small {
+        min-width: 0;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
       }
-      .progress {
-        margin-top: 16px;
-        display: grid;
-        grid-template-columns: auto 1fr auto;
+      .sc:hover {
+        background: var(--v3-well-hi);
+      }
+
+      /* ---------- 3. Rooms: filters (Cansaas), header, one tile shape ---------- */
+      .rooms {
+        min-height: 0;
+        grid-template-rows: auto auto auto minmax(0, 1fr);
+      }
+      .rooms.noroom {
+        grid-template-rows: auto auto minmax(0, 1fr);
+      }
+      .filters {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        margin: 0 -4px;
+        padding: 2px 4px;
+      }
+      .filters::-webkit-scrollbar {
+        display: none;
+      }
+      .filter {
+        flex: none;
+        display: inline-flex;
         align-items: center;
-        gap: 10px;
-        font-size: 0.75rem;
-        color: var(--ink-2);
+        gap: 6px;
+        min-height: 40px;
+        padding: 0 14px 0 10px;
+        border-radius: 20px;
+        background: var(--v3-surface);
+        box-shadow: inset 0 0 0 1px var(--v3-line);
+        color: var(--v3-muted);
+        font-size: 0.875rem;
+        font-weight: 600;
+        white-space: nowrap;
+        --mdc-icon-size: 18px;
+      }
+      .filter .lit {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: rgb(var(--rgb-amber));
+      }
+      .filter[aria-pressed="true"] {
+        background: var(--v3-text);
+        color: var(--v3-bg);
+        box-shadow: none;
+      }
+      .filter:hover:not([aria-pressed="true"]) {
+        color: var(--v3-text);
+      }
+      .roomhead {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        min-height: 40px;
+      }
+      .roomhead .facts {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 14px;
+        color: var(--v3-muted);
+        font-size: 0.875rem;
+      }
+      .roomhead .facts span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        --mdc-icon-size: 16px;
+      }
+      .roomhead .facts b {
+        color: var(--v3-text);
+        font-weight: 600;
         font-variant-numeric: tabular-nums;
       }
-      .progress .track {
-        height: 4px;
-        border-radius: 2px;
-        background: var(--glass-hi);
-        overflow: hidden;
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 20px;
+        background: var(--v3-well);
+        color: inherit;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        --mdc-icon-size: 18px;
       }
-      .progress .track i {
-        display: block;
+      .btn:hover {
+        background: var(--v3-well-hi);
+      }
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+        grid-auto-rows: var(--tile-h);
+        gap: 10px;
+        align-content: start;
+        --v3-well: var(--v3-surface);
+        --v3-well-hi: var(--kh-card-2);
+      }
+      :host([layout="phone"]) .tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow: visible;
+      }
+      .tiles kh3-light {
         height: 100%;
-        background: var(--ink);
-        transform-origin: left;
       }
-      .controls {
-        margin-top: 14px;
+      /* One tile shape for every device: tinted icon, name, state. */
+      .tile {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        height: 100%;
+        padding: 0 12px;
+        box-sizing: border-box;
+        border-radius: var(--v3-r-item);
+        background: var(--v3-surface);
+        box-shadow: inset 0 0 0 1px var(--v3-line);
+        color: inherit;
+        text-align: left;
+        width: 100%;
+      }
+      .tile .ic {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: var(--kh-card-2);
+        color: var(--v3-muted);
+        --mdc-icon-size: 20px;
+      }
+      .tile.on .ic {
+        background: rgba(var(--c), 0.2);
+        color: rgb(var(--c));
+      }
+      .tile .n {
+        display: block;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        line-height: 1.2;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .tile .s {
+        font-size: 0.8125rem;
+        color: var(--v3-muted);
+      }
+      .tile .lock {
+        color: var(--v3-faint);
+        --mdc-icon-size: 16px;
+      }
+      .tile.off {
+        opacity: 0.5;
+      }
+      .tile:hover {
+        background: var(--v3-well-hi);
+      }
+      .tile.busy::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 50%;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, rgb(var(--c)), transparent);
+        animation: progress 1.3s ease-in-out infinite;
+      }
+      @keyframes progress {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(200%);
+        }
+      }
+      .empty {
+        padding: 16px;
+        border-radius: var(--v3-r-item);
+        background: var(--v3-surface);
+        color: var(--v3-muted);
+      }
+
+      /* ---------- 4. Side: now playing, weather, energy, agenda ---------- */
+      .weather {
+        padding: 0;
+        overflow: hidden;
+        gap: 0;
+      }
+      .frog {
+        position: relative;
+        aspect-ratio: 2.6;
+        background-color: rgb(var(--frog));
+        background-image: linear-gradient(90deg, rgba(var(--frog), 0.65), rgba(var(--frog), 0) 60%), var(--scene);
+        background-size: 100% 100%, cover;
+        background-position: 0 0, var(--shift) 70%;
+        color: #fff;
+        text-shadow: 0 1px 8px rgb(0 0 0 / 0.3);
         display: flex;
         align-items: center;
         gap: 8px;
+        padding: 0 16px;
+        text-decoration: none;
       }
-      .controls button {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        --mdc-icon-size: 26px;
+      .frog img {
+        width: 52px;
+        height: 52px;
       }
-      .controls button:hover {
-        background: var(--well);
-      }
-      .controls .play {
-        width: 64px;
-        height: 64px;
-        background: var(--ink);
-        color: #10141c;
-        --mdc-icon-size: 32px;
-      }
-      :host(:not([dark])) .controls .play {
-        color: #fff;
-      }
-      .controls .play:hover {
-        background: var(--ink);
-        opacity: 0.9;
-      }
-      .controls .vol {
-        margin-left: auto;
-      }
-      .stage .jelly {
-        padding: 14px 16px 16px;
-        display: grid;
-        align-content: center;
-        gap: 10px;
-      }
-      .discs {
-        align-content: center;
-        flex: 1;
-      }
-
-      /* Lights: glowing discs, tap to switch, slide to dim. */
-      .discs {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px 6px;
-        --bulb: 68px;
-        --bulb-off: var(--well);
-        --bulb-ink: var(--ink-2);
-      }
-      :host([layout="wall"]) .discs {
-        --bulb: 58px;
-        gap: 8px 6px;
-      }
-      .disc {
-        display: grid;
-        justify-items: center;
-        gap: 4px;
-        text-align: center;
-        min-width: 0;
-      }
-      .disc b {
-        font-size: 0.8125rem;
-        font-weight: 600;
-        max-width: 100%;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-      .disc small {
-        margin-top: -4px;
-        font-size: 0.75rem;
-        color: var(--ink-2);
-        font-variant-numeric: tabular-nums;
-      }
-      .disc.off {
-        opacity: 0.45;
-      }
-
-      /* ---------- The row of panels ---------- */
-      .row {
-        position: relative;
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: var(--gap);
-        align-items: stretch;
-      }
-      .energy kh-energy-card {
+      .frog b {
         display: block;
-        margin: -14px -14px -12px;
-        --kh-card: transparent;
-        --kh-kpi-min: 76px;
-      }
-      .rooms {
-        display: grid;
-        gap: 6px;
-      }
-      .room {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        grid-template-areas: "n v" "g g";
-        align-items: baseline;
-        padding: 6px 10px 0;
-        border-radius: 14px;
-        overflow: hidden;
-        background: var(--well);
-        width: 100%;
-        box-sizing: border-box;
-        text-align: left;
-      }
-      .room .n {
-        grid-area: n;
-        font-weight: 600;
-        font-size: 0.875rem;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
-      .room .v {
-        grid-area: v;
-        font-size: 1.25rem;
-        font-weight: 300;
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1;
         font-variant-numeric: tabular-nums;
       }
-      .room .v small {
-        font-size: 0.75rem;
+      .frog span {
         font-weight: 500;
-        color: var(--ink-2);
-        margin-left: 4px;
-      }
-      .room kh-sparkline {
-        grid-area: g;
-        margin: 2px -10px 0;
+        font-size: 0.875rem;
       }
       .days {
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
+        padding: 8px 8px 10px;
         text-align: center;
       }
       .day {
         display: grid;
         justify-items: center;
         gap: 2px;
-        padding: 6px 0 8px;
-        border-radius: 14px;
         font-variant-numeric: tabular-nums;
-      }
-      .day:first-child {
-        background: var(--well);
       }
       .day .d {
         font-size: 0.75rem;
-        color: var(--ink-2);
+        color: var(--v3-muted);
         font-weight: 600;
       }
       .day img {
-        width: 38px;
-        height: 38px;
+        width: 34px;
+        height: 34px;
+      }
+      :host(:not([dark])) .day img {
+        filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.3));
       }
       .day .hi {
-        font-size: 1.125rem;
-        font-weight: 400;
+        font-weight: 700;
+        font-size: 0.9375rem;
       }
       .day .lo {
         font-size: 0.8125rem;
-        color: var(--ink-2);
+        color: var(--v3-muted);
       }
-      .favs {
-        display: grid;
-        gap: 8px;
+      .energy {
+        padding: 0;
+        --kh-card: var(--v3-surface);
+        --kh-card-2: var(--v3-well);
+        --kh-kpi-min: 88px;
       }
-
-      /* ---------- One glass bar: computers, stocks, shortcuts ---------- */
-      .bar {
+      .stock {
         display: flex;
+        justify-content: space-between;
+        gap: 10px;
         align-items: center;
-        gap: 2px;
-        padding: 6px;
-        border-radius: 22px;
-        overflow-x: auto;
-        scrollbar-width: none;
-      }
-      .bar::-webkit-scrollbar {
-        display: none;
-      }
-      .bar .sep {
-        flex: none;
-        width: 1px;
-        height: 32px;
-        margin: 0 6px;
-        background: var(--glass-line);
-      }
-      .act {
-        position: relative;
-        overflow: hidden;
-        flex: 1 1 0;
-        min-width: 0;
-        display: grid;
-        grid-template-columns: 36px minmax(0, 1fr);
-        align-items: center;
-        column-gap: 10px;
-        min-height: 52px;
-        padding: 0 12px 0 6px;
-        border-radius: 16px;
-        color: inherit;
-        text-decoration: none;
-        text-align: left;
-      }
-      .act:hover {
-        background: var(--well);
-      }
-      .act .ic {
-        grid-row: span 2;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        background: rgba(var(--c), 0.22);
-        color: rgb(var(--c));
-        --mdc-icon-size: 20px;
-      }
-      .act.on .ic {
-        background: rgb(var(--c));
-        color: #fff;
-        box-shadow: 0 0 14px rgba(var(--c), 0.6);
-      }
-      .act b,
-      .act small {
-        min-width: 0;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        line-height: 1.2;
-      }
-      .act b {
-        font-size: 0.875rem;
+        min-height: 44px;
+        padding: 0 14px;
+        border-radius: var(--v3-r-item);
+        background: var(--v3-surface);
+        box-shadow: inset 0 0 0 1px var(--v3-line);
+        width: 100%;
+        box-sizing: border-box;
         font-weight: 600;
-      }
-      .act small {
-        font-size: 0.75rem;
-        color: var(--ink-2);
-      }
-      .act.busy::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 3px;
-        background: linear-gradient(90deg, transparent, rgb(var(--c)), transparent) no-repeat;
-        background-size: 50% 100%;
-        animation: progress 1.3s ease-in-out infinite;
-      }
-      @keyframes progress {
-        from {
-          background-position: -50% 0;
-        }
-        to {
-          background-position: 150% 0;
-        }
       }
       .up {
         color: rgb(var(--rgb-green));
@@ -780,44 +785,14 @@ export class Kh3Home extends LitElement {
       .down {
         color: rgb(var(--rgb-red));
       }
-
-      /* ---------- Phone ---------- */
-      :host([layout="phone"]) .sky {
-        padding: 10px 4px 0;
-      }
-      :host([layout="phone"]) time {
-        font-size: 4.5rem;
-      }
-      :host([layout="phone"]) .now img {
-        width: 48px;
-        height: 48px;
-      }
-      :host([layout="phone"]) .now b {
-        font-size: 1.75rem;
-      }
-      :host([layout="phone"]) .middle,
-      :host([layout="phone"]) .row {
-        grid-template-columns: minmax(0, 1fr);
-      }
-      :host([layout="phone"]) .player {
-        grid-template-columns: minmax(0, 1fr);
-        justify-items: center;
-        text-align: center;
-      }
-      :host([layout="phone"]) .player .controls,
-      :host([layout="phone"]) .player .src {
-        justify-content: center;
-      }
-      :host([layout="phone"]) .bar {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-      :host([layout="phone"]) .bar .sep {
-        display: none;
+      :host([layout="wall"]) .side {
+        grid-template-rows: auto;
+        overflow: auto;
+        scrollbar-width: none;
       }
       @media (prefers-reduced-motion: reduce) {
-        .chip.blink ha-icon,
-        .act.busy::after {
+        .cat.blink .ic,
+        .tile.busy::after {
           animation: none;
         }
       }
@@ -833,8 +808,11 @@ export class Kh3Home extends LitElement {
       .filter((b) => !!b.entity) as { key: string; entity: string }[];
   }
 
-  private residents(): string[] {
-    return Object.keys(config.people).filter((p) => !config.people[p].device && store.hass?.states[`person.${p}`]);
+  private favoriteList(): Favorite[] {
+    const hass = store.hass;
+    if (!hass) return [];
+    const person = currentPerson(hass)?.replace("person.", "");
+    return (person && config.people[person]?.favorites) || config.people.tablet?.favorites || [];
   }
 
   private openings(): string[] {
@@ -847,340 +825,328 @@ export class Kh3Home extends LitElement {
     return store.hass?.states["sun.sun"]?.state === "below_horizon";
   }
 
-  private playing(): string | undefined {
+  private rooms(): Room[] {
+    return (this.model?.rooms ?? []).filter((r) => r.lights.length + r.switches.length + r.fans.length + r.media.length + r.openings.length > 0 || r.temperature);
+  }
+
+  /** The devices of the chosen filter, lights first, then plugs and PCs, fans, media, openings. */
+  private devices(): Device[] {
+    const hass = store.hass;
+    if (!hass) return [];
     const h = config.home;
-    return [h.spotify, ...h.tvs].find((id) => !!id && isPlayerActive(id));
+    if (this.room === FAVORITES) {
+      return [
+        ...h.lights.filter((l) => hass.states[l.entity]).map((l) => ({ id: l.entity, name: l.name, kind: "light" as const, icon: l.icon })),
+        ...h.computers.filter((c) => hass.states[c.entity]).map((c) => ({ id: c.entity, name: c.name, kind: "computer" as const, computer: c })),
+        ...h.tvs.filter((id) => hass.states[id]).map((id) => ({ id, name: this.tvName(id), kind: "media_player" as const })),
+      ];
+    }
+    const r = this.model?.rooms.find((x) => x.id === this.room);
+    if (!r) return [];
+    const name = (id: string) => entityName(hass, id, config, r.name);
+    const pcId = config.plan?.computers[r.id];
+    const pc = h.computers.find((c) => c.entity === pcId);
+    return [
+      ...r.lights.map((id) => ({ id, name: name(id), kind: "light" as const })),
+      ...(pc ? [{ id: pc.entity, name: pc.name, kind: "computer" as const, computer: pc }] : []),
+      ...r.switches.map((id) => ({ id, name: name(id), kind: "switch" as const })),
+      ...r.fans.map((id) => ({ id, name: name(id), kind: "fan" as const })),
+      ...r.media.map((id) => ({ id, name: name(id), kind: "media_player" as const })),
+      ...r.openings.map((id) => ({ id, name: name(id), kind: "opening" as const })),
+    ].filter((d) => hass.states[d.id]);
   }
 
-  private favoriteList(): Favorite[] {
+  /** "TV Salon": a TV is named after the room it stands in. */
+  private tvName(id: string): string {
     const hass = store.hass!;
-    const person = currentPerson(hass)?.replace("person.", "");
-    return ((person && config.people[person]?.favorites) || config.people.tablet?.favorites || []).filter(
-      (f) => f.type !== "jellyfin" && f.type !== "computers",
-    );
+    const area = Object.entries(config.plan?.tvs ?? {}).find(([, tv]) => tv === id)?.[0];
+    const room = this.model?.rooms.find((r) => r.id === area);
+    return room ? `TV ${room.name.replace(/^Chambre /, "")}` : entityName(hass, id, config);
   }
 
-  /* ---------------- On the sky ---------------- */
+  /* ---------------- 1. Top ---------------- */
 
-  private sky() {
+  private top() {
     const hass = store.hass!;
     const h = config.home;
     const st = (id?: string) => (id ? hass.states[id] : undefined);
-    const weather = config.weather.map((id) => hass.states[id]).find((s) => s && s.state !== "unavailable");
-    const temp = Number(st(h.outdoorTemperature)?.state ?? weather?.attributes.temperature);
     const me = currentPerson(hass);
     const name = me?.endsWith("tablet") ? "" : String(st(me)?.attributes.friendly_name ?? "");
-    return html`<header class="sky">
-      <div class="banner">
-      <div>
-        <time datetime=${this.now.toISOString()}>${time.format(this.now)}</time>
-        <div class="when">${upper(date.format(this.now))}. ${greeting(this.now.getHours())}${name ? ` ${upper(name)}` : ""}.</div>
-      </div>
-      <div class="side">
-        ${weather
-          ? html`<a class="now" href=${`${this.prefix}/meteo`} aria-label="Météo : ${stateLabel(hass, weather)}${isNaN(temp) ? "" : `, ${formatNumber(temp)} degrés`}">
-              <img src=${weatherIcon(weather.state, this.night)} alt="" width="64" height="64" />
-              <span><b>${isNaN(temp) ? "—" : `${formatNumber(temp)}°`}</b>${stateLabel(hass, weather)}</span>
-            </a>`
-          : nothing}
-        ${this.avatars()}
-      </div>
-      </div>
-      ${this.chips()}
-    </header>`;
-  }
-
-  private avatars() {
-    const hass = store.hass!;
-    return html`<div class="avatars">
-      ${this.residents().map((p) => {
-        const s = hass.states[`person.${p}`];
-        const home = s.state === "home";
-        const b = this.batteries().find((x) => x.key === p);
-        const level = b ? Number(hass.states[b.entity]?.state) / 100 : NaN;
-        return html`<button class="avatar ${home ? "" : "away"}" aria-label="${s.attributes.friendly_name} : ${home ? "à la maison" : "absent"}${isNaN(level) ? "" : `, batterie ${Math.round(level * 100)} %`}"
-          @click=${() => openPerson(p)}>
-          ${!isNaN(level) ? ring(level, 46, 3, level > 0.2 ? "#ffffff" : "rgb(255, 102, 108)") : nothing}
-          ${s.attributes.entity_picture ? html`<img src=${s.attributes.entity_picture} alt="" width="36" height="36" />` : html`<span class="initial">${String(s.attributes.friendly_name ?? p).charAt(0)}</span>`}
-          <span class="dot"></span>
-        </button>`;
-      })}
-    </div>`;
-  }
-
-  /** The V2 chips: rain, inside, the Google timer, lights, windows, alarm. */
-  private chips() {
-    const hass = store.hass!;
-    const h = config.home;
-    const st = (id?: string) => (id ? hass.states[id] : undefined);
-    const rain = st(h.nextRain)?.state;
-    const rainAt = rain && Date.parse(rain) > Date.now() ? time.format(new Date(rain)) : "";
     const lights = Number(st(h.chips.lightsOn)?.state);
     const windows = Number(st(h.chips.windowsOpen)?.state);
     const timer = st(h.chips.timer)?.state;
     const timerOn = st(h.chips.timerActive)?.state === "active" || isActive(st(h.chips.timerActive));
+    const temps = this.rooms().map((r) => Number(hass.states[r.temperature ?? ""]?.state)).filter((t) => !isNaN(t));
     const indoor = Number(st(h.chips.temperature)?.state);
+    const climate = temps.length > 1 ? `${formatNumber(Math.min(...temps), 0)}–${formatNumber(Math.max(...temps), 0)}°` : !isNaN(indoor) ? `${formatNumber(indoor)}°` : "—";
     const alarm = st(h.chips.alarm);
-    return html`<div class="chips" aria-live="polite">
-      ${rainAt ? html`<span class="chip"><ha-icon icon="mdi:umbrella" aria-hidden="true"></ha-icon>Pluie à ${rainAt}</span>` : nothing}
-      ${!isNaN(indoor)
-        ? html`<span class="chip ${badgeClass(temperatureBadge(indoor))}" style=${badgeStyle(temperatureBadge(indoor))}><ha-icon icon="mdi:home" aria-hidden="true"></ha-icon>${formatNumber(indoor)}° dedans</span>`
-        : nothing}
-      ${timer && !["unavailable", "unknown"].includes(timer)
-        ? html`<span class="chip ${badgeClass(timerBadge(timerOn))} ${timerOn ? "blink" : ""}" style=${badgeStyle(timerBadge(timerOn))}><ha-icon icon="mdi:google-assistant" aria-hidden="true"></ha-icon>${timer}</span>`
-        : nothing}
-      ${!isNaN(lights)
-        ? html`<a class="chip ${badgeClass(lightsBadge(lights))}" style=${badgeStyle(lightsBadge(lights))} href=${`${this.prefix}/pieces`}>
-            <ha-icon icon=${lights > 0 ? "mdi:lightbulb" : "mdi:lightbulb-off"} aria-hidden="true"></ha-icon>${lights > 0 ? plural(lights, "allumée", "allumées") : "Tout éteint"}</a>`
-        : nothing}
-      ${!isNaN(windows)
-        ? html`<button class="chip ${badgeClass(windowsBadge(windows))}" style=${badgeStyle(windowsBadge(windows))} @click=${() => openOpenings(this.openings())}>
-            <ha-icon icon=${windows > 0 ? "mdi:window-open-variant" : "mdi:window-closed-variant"} aria-hidden="true"></ha-icon>${windows > 0 ? plural(windows, "ouverte", "ouvertes") : "Fermé"}</button>`
-        : nothing}
-      ${alarm
-        ? html`<button class="chip ${badgeClass(alarmBadge(alarm.state))}" style=${badgeStyle(alarmBadge(alarm.state))} @click=${() => openAlarm(alarm.entity_id)}>
-            <ha-icon icon=${alarmLook(alarm.state).icon} aria-hidden="true"></ha-icon>${alarmLook(alarm.state).label}</button>`
-        : nothing}
-    </div>`;
-  }
-
-  /* ---------------- The stage ---------------- */
-
-  /** What plays now, big: cover, title, progress, controls. */
-  private player(id: string) {
-    const s = store.hass!.states[id];
-    const a = s.attributes;
-    const music = id === config.home.spotify;
-    const cover = a.entity_picture as string | undefined;
-    const duration = Number(a.media_duration);
-    const updated = Date.parse(a.media_position_updated_at ?? "") || Date.now();
-    const position = Number(a.media_position) + (s.state === "playing" ? (Date.now() - updated) / 1000 : 0);
-    const known = !isNaN(duration) && duration > 0 && !isNaN(position);
-    const by = [a.media_artist, a.media_album_name].filter(Boolean).join(", ") || (music ? "" : String(a.app_name ?? ""));
-    const vol = Number(a.volume_level);
-    return html`<div class="page player" style=${cover ? `--cover: url('${cover}')` : ""}>
-      ${cover ? html`<div class="blur" aria-hidden="true"></div>` : nothing}
-      ${cover
-        ? html`<img class="art" src=${cover} alt="" width="200" height="200" />`
-        : html`<span class="art" aria-hidden="true"><ha-icon icon=${music ? "mdi:music" : "mdi:television-play"}></ha-icon></span>`}
-      <div style="min-width:0">
-        <div class="src"><ha-icon icon=${music ? "mdi:spotify" : "mdi:television"} aria-hidden="true"></ha-icon>${music ? "Spotify" : a.friendly_name}</div>
-        <h2>${a.media_title ?? stateLabel(store.hass!, s)}</h2>
-        ${by ? html`<div class="by">${by}</div>` : nothing}
-        ${known
-          ? html`<div class="progress" aria-label="Lecture : ${clock(position)} sur ${clock(duration)}">
-              <span>${clock(Math.min(position, duration))}</span>
-              <span class="track"><i style="transform: scaleX(${Math.min(1, position / duration)})"></i></span>
-              <span>${clock(duration)}</span>
-            </div>`
-          : nothing}
-        <div class="controls">
-          <button aria-label="Précédent" @click=${() => media(id, "media_previous_track")}><ha-icon icon="mdi:skip-previous" aria-hidden="true"></ha-icon></button>
-          <button class="play" aria-label=${s.state === "playing" ? "Mettre en pause" : "Lire"} @click=${() => media(id, "media_play_pause")}>
-            <ha-icon icon=${s.state === "playing" ? "mdi:pause" : "mdi:play"} aria-hidden="true"></ha-icon></button>
-          <button aria-label="Suivant" @click=${() => media(id, "media_next_track")}><ha-icon icon="mdi:skip-next" aria-hidden="true"></ha-icon></button>
-          <button class="vol" aria-label="Baisser le volume" @click=${() => (isNaN(vol) ? media(id, "volume_down") : setVolume(id, vol - 0.05))}><ha-icon icon="mdi:volume-minus" aria-hidden="true"></ha-icon></button>
-          <button aria-label="Monter le volume" @click=${() => (isNaN(vol) ? media(id, "volume_up") : setVolume(id, vol + 0.05))}><ha-icon icon="mdi:volume-plus" aria-hidden="true"></ha-icon></button>
-        </div>
+    const look = alarm ? alarmLook(alarm.state) : undefined;
+    return html`<header class="top">
+      <div>
+        <time datetime=${this.now.toISOString()}>${time.format(this.now)}</time>
+        <div class="hello">${upper(date.format(this.now))}. ${greeting(this.now.getHours())}${name ? ` ${upper(name)}` : ""}.</div>
       </div>
-    </div>`;
+      <nav class="cats" aria-label="État de la maison">
+        <a class="cat ${temps.length || !isNaN(indoor) ? "on" : ""}" style="--c: var(--rgb-green)" href=${`${this.prefix}/meteo`}>
+          <span class="ic" aria-hidden="true"><ha-icon icon="mdi:thermometer"></ha-icon></span><span><b>Climat</b>${climate}</span></a>
+        <button class="cat ${lights > 0 ? "on" : ""}" style="--c: var(--rgb-amber)" @click=${() => this.pick(FAVORITES)}>
+          <span class="ic" aria-hidden="true"><ha-icon icon=${lights > 0 ? "mdi:lightbulb-on" : "mdi:lightbulb-outline"}></ha-icon></span>
+          <span><b>Lumières</b>${isNaN(lights) ? "—" : lights > 0 ? plural(lights, "allumée", "allumées") : "Éteintes"}</span></button>
+        <button class="cat ${windows > 0 ? "on" : ""}" style="--c: var(--rgb-light-blue)" @click=${() => openOpenings(this.openings())}>
+          <span class="ic" aria-hidden="true"><ha-icon icon=${windows > 0 ? "mdi:window-open-variant" : "mdi:window-closed-variant"}></ha-icon></span>
+          <span><b>Ouvertures</b>${isNaN(windows) ? "—" : windows > 0 ? plural(windows, "ouverte", "ouvertes") : "Fermées"}</span></button>
+        ${alarm && look
+          ? html`<button class="cat ${alarm.state !== "disarmed" ? "on" : ""} ${look.alert ? "alert" : ""}" style="--c: var(--rgb-indigo)" @click=${() => openAlarm(alarm.entity_id)}>
+              <span class="ic" aria-hidden="true"><ha-icon icon=${look.icon}></ha-icon></span><span><b>Alarme</b>${look.label}</span></button>`
+          : nothing}
+        ${h.chips.timer && timer
+          ? html`<button class="cat ${timerOn ? "on blink" : ""}" style="--c: var(--rgb-teal)" @click=${() => h.chips.timerActive && openMoreInfo(this, h.chips.timerActive)}>
+              <span class="ic" aria-hidden="true"><ha-icon icon="mdi:google-assistant"></ha-icon></span>
+              <span><b>Minuteur</b>${timerOn && !["unavailable", "unknown"].includes(timer) ? timer : "Aucun"}</span></button>`
+          : nothing}
+      </nav>
+      <div class="people">${this.people()}</div>
+    </header>`;
   }
 
-  private stage() {
-    const playing = this.playing();
-    const jelly = config.home.jellyfin
-      ? html`<div class="page jelly">
-          <h2 class="title" style="--c: var(--rgb-jellyfin)"><ha-icon icon="mdi:filmstrip-box-multiple" aria-hidden="true"></ha-icon><span>Ajouté sur Jellyfin</span>
-            <a href=${`${this.prefix}/medias`}>Médias<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a></h2>
-          <kh-jellyfin></kh-jellyfin>
-        </div>`
-      : undefined;
-    const player = playing ? this.player(playing) : undefined;
-    if (!player && !jelly) return nothing;
-    return html`<section class="glass stage" aria-label="Médias">
-      ${player && jelly ? html`<kh-swipe label="Médias">${player}${jelly}</kh-swipe>` : (player ?? jelly)}
+  private people() {
+    const hass = store.hass!;
+    return Object.keys(config.people)
+      .filter((p) => !config.people[p].device && hass.states[`person.${p}`])
+      .map((p) => {
+        const s = hass.states[`person.${p}`];
+        const home = s.state === "home";
+        const b = this.batteries().find((x) => x.key === p);
+        const level = b ? Number(hass.states[b.entity]?.state) / 100 : NaN;
+        return html`<button class="avatar ${home ? "" : "away"}"
+          aria-label="${s.attributes.friendly_name} : ${home ? "à la maison" : "absent"}${isNaN(level) ? "" : `, batterie ${Math.round(level * 100)} %`}"
+          @click=${() => openPerson(p)}>
+          ${!isNaN(level) ? ring(level, 48, 3, level > 0.2 ? "rgb(var(--rgb-green))" : "rgb(var(--rgb-red))") : nothing}
+          ${s.attributes.entity_picture ? html`<img src=${s.attributes.entity_picture} alt="" width="38" height="38" />` : html`<span class="initial">${String(s.attributes.friendly_name ?? p).charAt(0)}</span>`}
+          <span class="dot"></span>
+        </button>`;
+      });
+  }
+
+  /* ---------------- 2. Shortcuts ---------------- */
+
+  private shortcuts() {
+    const hass = store.hass!;
+    const h = config.home;
+    const guest = h.guestMode ? hass.states[h.guestMode] : undefined;
+    const leaving = h.leave ? isActive(hass.states[h.leave]) : false;
+    const automations = this.favoriteList().filter((f): f is Extract<Favorite, { type: "automation" }> => f.type === "automation" && !!hass.states[f.entity]);
+    return html`<section class="shortcuts-section" aria-labelledby="sc-title">
+      <h2 class="h" id="sc-title">Autres</h2>
+      <div class="shortcuts">
+        ${h.leave
+          ? html`<button class="sc" style="--c: var(--rgb-indigo)" @click=${() => runScript(h.leave!)}>
+              <span class="ic" aria-hidden="true"><ha-icon icon="mdi:hand-wave"></ha-icon></span><b>Partir</b><small>${leaving ? "En cours…" : "Lumières et TV"}</small></button>`
+          : nothing}
+        ${guest
+          ? html`<button class="sc ${isActive(guest) ? "on" : ""}" style="--c: var(--rgb-amber)" aria-pressed=${String(isActive(guest))}
+              @click=${() => toggle(h.guestMode!, "le mode invité")}>
+              <span class="ic" aria-hidden="true"><ha-icon icon="mdi:account-group"></ha-icon></span><b>Mode invité</b><small>${isActive(guest) ? "Activé" : "Désactivé"}</small></button>`
+          : nothing}
+        ${automations.map((a) => {
+          const on = isActive(hass.states[a.entity]);
+          return html`<button class="sc ${on ? "on" : ""}" style="--c: var(--rgb-purple)" aria-pressed=${String(on)} @click=${() => toggle(a.entity, a.name)}>
+            <span class="ic" aria-hidden="true"><ha-icon icon="mdi:robot-outline"></ha-icon></span><b>${a.name}</b><small>${on ? "Activée" : "Désactivée"}</small></button>`;
+        })}
+        ${h.wifiQr
+          ? html`<button class="sc" style="--c: var(--rgb-teal)" @click=${() => openWifiQr()}>
+              <span class="ic" aria-hidden="true"><ha-icon icon="mdi:qrcode"></ha-icon></span><b>Wi-Fi</b><small>QR invités</small></button>`
+          : nothing}
+        <a class="sc" style="--c: var(--rgb-purple)" href=${`${this.prefix}/medias`}>
+          <span class="ic" aria-hidden="true"><ha-icon icon="mdi:remote-tv"></ha-icon></span><b>Télécommande</b><small>Box TV</small></a>
+        <a class="sc" style="--c: var(--rgb-light-blue)" href=${`${this.prefix}/meteo`}>
+          <span class="ic" aria-hidden="true"><ha-icon icon="mdi:radar"></ha-icon></span><b>Radar</b><small>Pluie, Windy</small></a>
+      </div>
     </section>`;
   }
 
-  private lights() {
+  /* ---------------- 3. Rooms ---------------- */
+
+  private roomsSection() {
     const hass = store.hass!;
-    const lights = config.home.lights.filter((l) => hass.states[l.entity]);
-    const on = lights.filter((l) => isActive(hass.states[l.entity])).length;
-    return html`<section class="glass panel" aria-label="Lumières">
-      <h2 class="title" style="--c: var(--rgb-amber)"><ha-icon icon="mdi:lightbulb-group" aria-hidden="true"></ha-icon>
-        <span>${on ? plural(on, "lumière allumée", "lumières allumées") : "Lumières"}</span>
-        <a href=${`${this.prefix}/pieces`}>Pièces<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a></h2>
-      <div class="discs">
-        ${lights.map((l) => {
-          const s = hass.states[l.entity];
-          const pct = isActive(s) ? brightnessPercent(s) : undefined;
-          return html`<div class="disc ${isUnavailable(s) ? "off" : ""}">
-            <kh3-light bulb entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh3-light>
-            <b>${l.name}</b>
-            <small>${isUnavailable(s) ? "Injoignable" : isActive(s) ? (pct !== undefined ? `${pct} %` : "Allumée") : "Éteinte"}</small>
-          </div>`;
+    const rooms = this.rooms();
+    const r = rooms.find((x) => x.id === this.room);
+    const devices = this.room === PLAN ? [] : this.devices();
+    return html`<section class="rooms ${r ? "" : "noroom"}" aria-labelledby="rooms-title">
+      <h2 class="h" id="rooms-title"><a href=${`${this.prefix}/pieces`}>Pièces<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a></h2>
+      <div class="filters" role="group" aria-label="Choisir une pièce">
+        <button class="filter" aria-pressed=${String(this.room === FAVORITES)} @click=${() => this.pick(FAVORITES)}>
+          <ha-icon icon="mdi:star" aria-hidden="true"></ha-icon>Favoris</button>
+        <button class="filter" aria-pressed=${String(this.room === PLAN)} @click=${() => this.pick(PLAN)}>
+          <ha-icon icon="mdi:floor-plan" aria-hidden="true"></ha-icon>Plan</button>
+        ${rooms.map((x) => {
+          const lit = x.lights.some((id) => isActive(hass.states[id]));
+          return html`<button class="filter" aria-pressed=${String(this.room === x.id)} @click=${() => this.pick(x.id)}
+            aria-label=${lit ? `${x.name}, lumière allumée` : x.name}>
+            <ha-icon icon=${x.icon} aria-hidden="true"></ha-icon>${x.name}${lit ? html`<span class="lit" aria-hidden="true"></span>` : nothing}</button>`;
         })}
       </div>
+      ${r ? this.roomHead(r) : nothing}
+      ${this.room === PLAN
+        ? html`<div class="card plan"><kh-floorplan .rooms=${this.model?.rooms ?? []} prefix=${this.prefix}></kh-floorplan></div>`
+        : devices.length
+          ? html`<div class="groups">
+              ${GROUPS.map(([kind, title]) => {
+                const list = devices.filter((d) => d.kind === kind);
+                return list.length ? html`<div><h3 class="sub">${title}</h3><div class="tiles">${list.map((d) => this.tile(d))}</div></div>` : nothing;
+              })}
+            </div>`
+          : html`<p class="empty">Aucun appareil dans cette pièce. Ouvrez la pièce pour voir ses capteurs.</p>`}
     </section>`;
   }
 
-  /* ---------------- The row ---------------- */
-
-  private energy() {
-    if (!config.home.energy) return nothing;
-    return html`<section class="glass panel energy" aria-label="Énergie">
-      <h2 class="title" style="--c: var(--rgb-orange)"><ha-icon icon="mdi:lightning-bolt" aria-hidden="true"></ha-icon><span>Énergie</span>
-        <a href=${`${this.prefix}/energie`}>Détail<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a></h2>
-      <kh-energy-card compact></kh-energy-card>
-    </section>`;
-  }
-
-  private climate() {
+  private roomHead(r: Room) {
     const hass = store.hass!;
-    const rooms = (this.model?.rooms ?? []).filter((r) => r.temperature);
-    const per = this.phone ? 5 : 2;
-    return html`<section class="glass panel" aria-label="Climat">
-      <h2 class="title" style="--c: var(--rgb-green)"><ha-icon icon="mdi:home-thermometer" aria-hidden="true"></ha-icon><span>Climat</span>
-        <a href=${`${this.prefix}/meteo`}>Météo<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a></h2>
-      ${rooms.length
-        ? html`<kh-swipe label="Climat">
-            ${pagesOf(rooms.map((r, i) => ({ r, i })), per).map(
-              (pg) => html`<div class="rooms">${pg.map(({ r, i }) => {
-                const t = Number(hass.states[r.temperature!]?.state);
-                const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
-                const c = `var(--rgb-${ROOM_COLORS[i % ROOM_COLORS.length]})`;
-                return html`<button class="room" @click=${() => openMoreInfo(this, r.temperature!)}
-                  aria-label="${r.name} : ${isNaN(t) ? "pas de mesure" : `${formatNumber(t)} degrés`}${isNaN(hum) ? "" : `, ${formatNumber(hum, 0)} % d'humidité`}">
-                  <span class="n">${r.name}</span>
-                  <span class="v">${isNaN(t) ? "—" : `${formatNumber(t)}°`}${isNaN(hum) ? nothing : html`<small>${formatNumber(hum, 0)}&nbsp;%</small>`}</span>
-                  <kh-sparkline compact height="30" .entities=${[
-                    { entity: r.temperature!, label: "Température", color: c, unit: "°C" },
-                    ...(r.humidity ? [{ entity: r.humidity, label: "Humidité", color: "var(--rgb-light-blue)", unit: "%" }] : []),
-                  ]}></kh-sparkline>
-                </button>`;
-              })}</div>`,
-            )}
-          </kh-swipe>`
-        : html`<div style="color: var(--ink-2)">Aucun thermomètre ne répond.</div>`}
-    </section>`;
-  }
-
-  private days() {
-    const days = forecastDays();
-    if (!days.length) return nothing;
-    return html`<section class="glass panel" aria-label="Cinq jours">
-      <h2 class="title" style="--c: var(--rgb-light-blue)"><ha-icon icon="mdi:calendar-week" aria-hidden="true"></ha-icon><span>Cinq jours</span>
-        <a href=${`${this.prefix}/meteo`}>Météo<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a></h2>
-      <div class="days" role="list">
-        ${days.map(
-          (d) => html`<div class="day" role="listitem" aria-label="${d.day} : ${formatNumber(d.temperature, 0)} degrés${d.templow !== undefined ? `, ${formatNumber(d.templow, 0)} au plus bas` : ""}">
-            <span class="d">${upper(d.day)}</span>
-            <img src=${still(weatherIcon(d.condition, false, d.precipitation ?? 0))} alt="" width="38" height="38" />
-            <span class="hi">${formatNumber(d.temperature, 0)}°</span>
-            <span class="lo">${d.templow !== undefined ? `${formatNumber(d.templow, 0)}°` : ""}</span>
-          </div>`,
-        )}
+    const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
+    const hum = r.humidity ? Number(hass.states[r.humidity]?.state) : NaN;
+    const on = r.lights.filter((id) => isActive(hass.states[id]));
+    const reachable = r.lights.filter((id) => !isUnavailable(hass.states[id]));
+    return html`<div class="roomhead">
+      <div class="facts">
+        ${isNaN(t) ? nothing : html`<span><ha-icon icon="mdi:thermometer" aria-hidden="true"></ha-icon><b>${formatNumber(t)}°</b></span>`}
+        ${isNaN(hum) ? nothing : html`<span><ha-icon icon="mdi:water-percent" aria-hidden="true"></ha-icon><b>${formatNumber(hum, 0)}&nbsp;%</b></span>`}
+        ${r.lights.length
+          ? html`<span><ha-icon icon="mdi:lightbulb-outline" aria-hidden="true"></ha-icon>${on.length ? html`<b>${on.length}</b>&nbsp;sur ${r.lights.length} allumée${on.length > 1 ? "s" : ""}` : "Lumières éteintes"}</span>`
+          : nothing}
       </div>
-    </section>`;
+      ${reachable.length
+        ? html`<button class="btn" @click=${() => setLights(r.lights, on.length === 0)}>
+            <ha-icon icon=${on.length ? "mdi:lightbulb-off-outline" : "mdi:lightbulb-on-outline"} aria-hidden="true"></ha-icon>${on.length ? "Tout éteindre" : "Tout allumer"}</button>`
+        : nothing}
+      <a class="btn" href=${`${this.prefix}/pieces/${r.id}`}>Ouvrir la pièce<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a>
+    </div>`;
   }
 
-  private favorites() {
-    const list = this.favoriteList();
-    if (!list.length) return nothing;
-    const one = (f: Favorite) => {
-      switch (f.type) {
-        case "battery":
-          return html`<kh-battery .spec=${f}></kh-battery>`;
-        case "calendar":
-          return html`<kh-calendar .spec=${f}></kh-calendar>`;
-        case "thermometer":
-          return html`<kh-thermometer .spec=${f}></kh-thermometer>`;
-        case "automation":
-          return html`<kh-automation .spec=${f}></kh-automation>`;
-      }
-      return nothing;
-    };
-    return html`<section class="glass panel" aria-label="Favoris">
-      <h2 class="title" style="--c: var(--rgb-yellow)"><ha-icon icon="mdi:star" aria-hidden="true"></ha-icon><span>Favoris</span></h2>
-      <kh-swipe label="Favoris">${pagesOf(list, this.phone ? 3 : 1).map((pg) => html`<div class="favs">${pg.map(one)}</div>`)}</kh-swipe>
-    </section>`;
-  }
-
-  /* ---------------- The bar ---------------- */
-
-  private computer(c: Computer) {
+  private tile(d: Device) {
     const hass = store.hass!;
-    const s = hass.states[c.entity];
-    if (!s) return nothing;
-    const on = isActive(s);
-    const waiting = isPending(c.entity);
-    const busy = waiting || (c.busy ? isActive(hass.states[c.busy]) : false);
-    const press = pcPress(c.entity, () => toggle(c.entity, c.name), () => openComputer(c));
-    const label = isUnavailable(s) ? "Injoignable" : busy ? (waiting ? (on ? "Arrêt…" : "Démarrage…") : "En cours…") : on ? "Allumé" : "Éteint";
-    return html`<button class="act ${on ? "on" : ""} ${busy ? "busy" : ""}" style="--c: var(--rgb-blue)" aria-pressed=${String(on)}
-      aria-description="Appui : allumer ou éteindre ; appui long : détails"
-      @pointerdown=${press.down} @pointerup=${press.cancel} @pointermove=${press.move} @pointercancel=${press.cancel}
-      @pointerleave=${press.cancel} @contextmenu=${press.contextmenu} @click=${press.click}>
-      <span class="ic"><ha-icon icon="mdi:desktop-tower-monitor" aria-hidden="true"></ha-icon></span><b>${c.name}</b><small>${label}</small>
+    const s = hass.states[d.id];
+    if (d.kind === "light") return html`<kh3-light entity-id=${d.id} name=${d.name} icon=${d.icon ?? nothing}></kh3-light>`;
+    const c = `var(--rgb-${KIND_COLOR[d.kind]})`;
+    const off = isUnavailable(s);
+    const on = isActive(s) || (d.kind === "media_player" && isPlayerActive(d.id));
+    if (d.kind === "computer" && d.computer) {
+      const waiting = isPending(d.id);
+      const busy = waiting || (d.computer.busy ? isActive(hass.states[d.computer.busy]) : false);
+      const press = pcPress(d.id, () => toggle(d.id, d.name), () => openComputer(d.computer!));
+      const label = off ? "Indisponible" : busy ? (waiting ? (on ? "Arrêt…" : "Démarrage…") : "En cours…") : on ? "Allumé" : "Éteint";
+      return html`<button class="tile ${on ? "on" : ""} ${busy ? "busy" : ""} ${off ? "off" : ""}" style="--c: ${c}" aria-pressed=${String(on)}
+        aria-description="Appui : allumer ou éteindre ; appui long : détails"
+        @pointerdown=${press.down} @pointerup=${press.cancel} @pointermove=${press.move} @pointercancel=${press.cancel}
+        @pointerleave=${press.cancel} @contextmenu=${press.contextmenu} @click=${press.click}>
+        <span class="ic" aria-hidden="true"><ha-icon icon="mdi:desktop-tower-monitor"></ha-icon></span>
+        <span style="min-width:0"><span class="n">${d.name}</span><span class="s">${label}</span></span><span></span>
+      </button>`;
+    }
+    // Plugs and fans switch (protected ones ask first); media and sensors open their details.
+    const switches = d.kind === "switch" || d.kind === "fan";
+    const label = off ? "Indisponible" : stateLabel(hass, s);
+    return html`<button class="tile ${on ? "on" : ""} ${off ? "off" : ""}" style="--c: ${c}" aria-pressed=${switches ? String(on) : nothing}
+      @click=${() => (switches && !off ? toggle(d.id, d.name) : openMoreInfo(this, d.id))}>
+      <span class="ic" aria-hidden="true">${stateIcon(hass, s)}</span>
+      <span style="min-width:0"><span class="n">${d.name}</span><span class="s">${label}</span></span>
+      ${switches && needsConfirmation(d.id) ? html`<ha-icon class="lock" icon="mdi:shield-lock-outline" aria-label="Demande une confirmation"></ha-icon>` : html`<span></span>`}
     </button>`;
   }
 
-  private bar() {
-    const hass = store.hass!;
+  /* ---------------- 4. Side ---------------- */
+
+  /** What plays now (Spotify, the TVs), then the latest on Jellyfin: one card, one page each. */
+  private media() {
     const h = config.home;
-    const p = this.prefix;
-    const guest = h.guestMode ? hass.states[h.guestMode] : undefined;
-    const leaving = h.leave ? isActive(hass.states[h.leave]) : false;
-    const stocks = h.stocks.filter((s) => s.home && hass.states[s.entity]);
-    const shown = stocks.length ? stocks : h.stocks.filter((s) => hass.states[s.entity]).slice(0, 1);
-    return html`<nav class="glass bar" aria-label="Ordinateurs, bourse et raccourcis">
-      ${h.computers.map((c) => this.computer(c))}
-      <span class="sep" aria-hidden="true"></span>
-      ${shown.map((s) => {
-        const ch = Number(hass.states[s.entity]?.attributes.regularMarketChangePercent);
-        return html`<button class="act" style="--c: var(--rgb-teal)" @click=${() => openMoreInfo(this, s.entity)}>
-          <span class="ic"><ha-icon icon="mdi:chart-line" aria-hidden="true"></ha-icon></span><b>${s.name}</b>
-          <small class=${ch >= 0 ? "up" : "down"}>${isNaN(ch) ? "—" : `${ch >= 0 ? "+" : "−"}${formatNumber(Math.abs(ch), 1)} %`}</small>
-        </button>`;
-      })}
-      <span class="sep" aria-hidden="true"></span>
-      ${h.leave
-        ? html`<button class="act" style="--c: var(--rgb-indigo)" @click=${() => runScript(h.leave!)}>
-            <span class="ic"><ha-icon icon="mdi:hand-wave" aria-hidden="true"></ha-icon></span><b>Partir</b><small>${leaving ? "En cours…" : "Tout éteindre"}</small></button>`
-        : nothing}
-      ${guest
-        ? html`<button class="act ${isActive(guest) ? "on" : ""}" style="--c: var(--rgb-amber)" aria-pressed=${String(isActive(guest))}
-            @click=${() => toggle(h.guestMode!, "le mode invité")}>
-            <span class="ic"><ha-icon icon="mdi:account-group" aria-hidden="true"></ha-icon></span><b>Mode invité</b><small>${isActive(guest) ? "Départs sans effet" : "Désactivé"}</small></button>`
-        : nothing}
-      ${h.wifiQr
-        ? html`<button class="act" style="--c: var(--rgb-teal)" @click=${() => openWifiQr()}>
-            <span class="ic"><ha-icon icon="mdi:qrcode" aria-hidden="true"></ha-icon></span><b>Wi-Fi</b><small>QR invités</small></button>`
-        : nothing}
-      <a class="act" style="--c: var(--rgb-purple)" href=${`${p}/medias`}><span class="ic"><ha-icon icon="mdi:remote-tv" aria-hidden="true"></ha-icon></span><b>Télécommande</b><small>Box TV</small></a>
-      <a class="act" style="--c: var(--rgb-light-blue)" href=${`${p}/meteo`}><span class="ic"><ha-icon icon="mdi:radar" aria-hidden="true"></ha-icon></span><b>Radar</b><small>Pluie, Windy</small></a>
-      <a class="act" style="--c: var(--rgb-indigo)" href=${`${p}/systeme`}><span class="ic"><ha-icon icon="mdi:cog" aria-hidden="true"></ha-icon></span><b>Système</b><small>Réseau, HA</small></a>
-    </nav>`;
+    const playing = [h.spotify, ...h.tvs].filter((id): id is string => !!id && isPlayerActive(id));
+    const pages = [
+      ...playing.map((id) => html`<kh-media-card entity-id=${id} kind=${id === h.spotify ? "music" : "tv"} name=${id === h.spotify ? "Spotify" : this.tvName(id)}></kh-media-card>`),
+      ...(h.jellyfin ? [html`<kh-jellyfin></kh-jellyfin>`] : []),
+    ];
+    if (!pages.length) return nothing;
+    return html`<section aria-labelledby="m-title">
+      <h2 class="h" id="m-title"><a href=${`${this.prefix}/medias`}>${playing.length ? "En lecture" : "Ajouté sur Jellyfin"}<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a></h2>
+      ${pages.length > 1 ? html`<kh-swipe label="Médias">${pages}</kh-swipe>` : pages[0]}
+    </section>`;
   }
 
-  render() {
-    const hass = store.hass;
-    if (!hass) return nothing;
+  private weather() {
+    const hass = store.hass!;
     const h = config.home;
     const st = (id?: string) => (id ? hass.states[id] : undefined);
     const frog = st(h.frog?.status)?.state ?? "";
     const pic = st(h.frog?.image)?.state ?? "";
     const place = st(h.frog?.location)?.state;
+    const weather = config.weather.map((id) => hass.states[id]).find((s) => s && s.state !== "unavailable");
+    const temp = Number(st(h.outdoorTemperature)?.state ?? weather?.attributes.temperature);
+    const days = forecastDays();
     const style = `--frog: ${FROG_SKY[frog] ?? "40, 130, 221"}; --scene: ${/^(https?:)?\//.test(pic) ? `url('${pic}')` : "none"}; --shift: ${place === "field" ? "20%" : place === "hills" ? "40%" : "10%"}`;
-    return html`
-      <div class="wallpaper" style=${style} aria-hidden="true"></div>
-      <div class="home" style=${style}>
-        ${this.sky()}
-        <div class="middle">${this.stage()}${this.lights()}</div>
-        <div class="row">${this.energy()}${this.climate()}${this.days()}${this.favorites()}</div>
-        ${this.bar()}
+    return html`<section aria-labelledby="w-title">
+      <h2 class="h" id="w-title"><a href=${`${this.prefix}/meteo`}>Météo<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a></h2>
+      <div class="card weather">
+        <a class="frog" style=${style} href=${`${this.prefix}/meteo`} aria-label="Météo : ${weather ? stateLabel(hass, weather) : ""}${isNaN(temp) ? "" : `, ${formatNumber(temp)} degrés`}">
+          ${weather ? html`<img src=${still(weatherIcon(weather.state, this.night))} alt="" width="52" height="52" />` : nothing}
+          <span><b>${isNaN(temp) ? "—" : `${formatNumber(temp)}°`}</b>${weather ? stateLabel(hass, weather) : ""}</span>
+        </a>
+        ${days.length
+          ? html`<div class="days" role="list">
+              ${days.map(
+                (d) => html`<div class="day" role="listitem" aria-label="${d.day} : ${formatNumber(d.temperature, 0)} degrés${d.templow !== undefined ? `, ${formatNumber(d.templow, 0)} au plus bas` : ""}">
+                  <span class="d">${upper(d.day)}</span>
+                  <img src=${still(weatherIcon(d.condition, false, d.precipitation ?? 0))} alt="" width="34" height="34" />
+                  <span class="hi">${formatNumber(d.temperature, 0)}°</span>
+                  <span class="lo">${d.templow !== undefined ? `${formatNumber(d.templow, 0)}°` : ""}</span>
+                </div>`,
+              )}
+            </div>`
+          : nothing}
       </div>
-    `;
+    </section>`;
+  }
+
+  private energy() {
+    if (!config.home.energy) return nothing;
+    return html`<section aria-labelledby="e-title">
+      <h2 class="h" id="e-title"><a href=${`${this.prefix}/energie`}>Énergie<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a></h2>
+      <div class="card energy"><kh-energy-card compact></kh-energy-card></div>
+    </section>`;
+  }
+
+  private agenda() {
+    const cal = this.favoriteList().find((f): f is Extract<Favorite, { type: "calendar" }> => f.type === "calendar");
+    if (!cal) return nothing;
+    return html`<section aria-labelledby="a-title">
+      <h2 class="h" id="a-title">Agenda</h2>
+      <kh-calendar .spec=${cal}></kh-calendar>
+    </section>`;
+  }
+
+  private stocks() {
+    const hass = store.hass!;
+    const h = config.home;
+    const list = h.stocks.filter((s) => s.home && hass.states[s.entity]);
+    const shown = list.length ? list : h.stocks.filter((s) => hass.states[s.entity]).slice(0, 1);
+    if (!shown.length) return nothing;
+    return html`<section aria-labelledby="s-title">
+      <h2 class="h" id="s-title"><a href=${`${this.prefix}/meteo`}>Bourse<ha-icon icon="mdi:chevron-right" aria-hidden="true"></ha-icon></a></h2>
+      ${shown.map((s) => {
+        const ch = Number(hass.states[s.entity]?.attributes.regularMarketChangePercent);
+        return html`<button class="stock" @click=${() => openMoreInfo(this, s.entity)}>
+          <span>${s.name}</span><span class=${ch >= 0 ? "up" : "down"}>${isNaN(ch) ? "—" : `${ch >= 0 ? "+" : "−"}${formatNumber(Math.abs(ch), 1)} %`}</span>
+        </button>`;
+      })}
+    </section>`;
+  }
+
+  render() {
+    if (!store.hass) return nothing;
+    return html`<div class="page ${this.room === PLAN ? "planned" : ""}">
+      <h1 class="sr">Accueil</h1>
+      ${this.top()}
+      <div class="main">${this.roomsSection()}</div>
+      <div class="media">${this.media()}${this.energy()}${this.agenda()}</div>
+      <aside class="side">${this.weather()}${this.shortcuts()}${this.stocks()}</aside>
+    </div>`;
   }
 }
 customElements.define("kh3-home", Kh3Home);

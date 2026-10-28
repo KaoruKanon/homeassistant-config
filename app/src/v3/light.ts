@@ -43,11 +43,11 @@ export class Kh3Light extends LitElement {
       .light {
         position: relative;
         overflow: hidden;
-        height: 60px;
+        height: var(--tile-h, 60px);
         display: grid;
-        grid-template-columns: 36px minmax(0, 1fr);
+        grid-template-columns: 42px minmax(0, 1fr);
         align-items: center;
-        gap: 12px;
+        gap: 14px;
         padding: 0 12px;
         border-radius: var(--v3-r-item);
         background: var(--v3-well);
@@ -55,22 +55,19 @@ export class Kh3Light extends LitElement {
         cursor: pointer;
       }
       .bulb {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
         display: grid;
         place-items: center;
         background: var(--v3-well-hi);
         color: var(--v3-muted);
         transition: background-color 220ms ease, color 220ms ease, box-shadow 220ms ease;
       }
+      /* On: the icon tinted in the lamp's colour, as Mushroom and Minimalist do. */
       .on .bulb {
-        background: rgb(var(--rgb-amber));
-        color: #3a2600;
-        box-shadow: 0 0 0 4px rgba(var(--rgb-amber), 0.18), 0 0 18px rgba(var(--rgb-amber), 0.45);
-      }
-      .on {
-        background: linear-gradient(90deg, rgba(var(--rgb-amber), 0.14), rgba(var(--rgb-amber), 0.04)), var(--v3-well);
+        background: rgba(var(--rgb-amber), 0.22);
+        color: rgb(var(--rgb-amber));
       }
       .name {
         font-weight: 600;
