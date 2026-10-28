@@ -8,7 +8,10 @@ import "../components/swipe.ts";
 import "../components/weather-card.ts";
 import "../components/widgets.ts";
 import { config, type Favorite } from "../config.ts";
-import { currentPerson } from "../rooms.ts";
+import { currentPerson, roomsFor } from "../rooms.ts";
+import { house } from "../house.ts";
+import "../v2/floorplan.ts";
+
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
 
@@ -18,8 +21,13 @@ import { base } from "../styles.ts";
  * on a small tablet, one on a phone.
  */
 export class KhHomeView extends LitElement {
-  static properties = { prefix: {}, columns: { state: true } };
+  static properties = { prefix: {}, variant: {}, columns: { state: true } };
   declare prefix: string;
+  /**
+   * Home page proposals with the apartment plan: "bis" puts it in the left
+   * column, "ter" lays it across the first two columns with the cards below.
+   */
+  declare variant?: string;
   /** 1, 2 or 3 columns, from the view's own width (columns stay >= ~400 px). */
   declare columns: number;
   private resize = new ResizeObserver(([e]) => {
@@ -47,6 +55,9 @@ export class KhHomeView extends LitElement {
         grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr));
         gap: 0 28px;
         align-items: start;
+      }
+      .wide {
+        grid-column: span 2;
       }
       .col {
         display: flex;
@@ -80,6 +91,10 @@ export class KhHomeView extends LitElement {
       }
       .energy {
         padding: 14px 16px 10px;
+      }
+      .plan {
+        padding: 6px;
+        overflow: hidden;
       }
       /* Light pills (the whole pill dims): two per row, never narrower than 150 px. */
       .lights {
@@ -139,6 +154,7 @@ export class KhHomeView extends LitElement {
     const spotifyOn = !!h.spotify && isPlayerActive(h.spotify);
     const tvsOn = h.tvs.filter((id) => isPlayerActive(id));
     const lights = h.lights.filter((l) => hass.states[l.entity]);
+    const rooms = this.variant === "bis" || this.variant === "ter" ? roomsFor(house(hass), (person && config.people[person]?.favoriteRooms) || []) : [];
     // Lights as swipeable pages of 6 (the old swipe-card): denser on every screen.
     const pages: (typeof lights)[] = [];
     for (let i = 0; i < lights.length; i += 6) pages.push(lights.slice(i, i + 6));
@@ -171,15 +187,49 @@ export class KhHomeView extends LitElement {
             <div class="stack">${h.stocks.filter((s) => s.home).map((s) => html`<kh-stock entity-id=${s.entity} name=${s.name}></kh-stock>`)}</div></section>`
         : nothing,
       others: html`<section>${this.heading("Autres")}<kh-others></kh-others></section>`,
+      // V1 bis only: the plan (2D / 3D) on the home page, and each room's temperature.
+      plan: html`<section>${this.heading("Plan", "pieces")}<div class="card plan"><kh-floorplan ?landscape=${this.variant === "bis"} .rooms=${rooms} prefix=${this.prefix}></kh-floorplan></div></section>`,
+      climate: rooms.some((r) => r.temperature)
+        ? html`<section>${this.heading("Températures", "meteo")}
+            <div class="pair">
+              ${rooms
+                .filter((r) => r.temperature)
+                .map((r) => html`<kh-thermometer .spec=${{ type: "thermometer", name: r.name, temperature: r.temperature!, humidity: r.humidity }}></kh-thermometer>`)}
+            </div></section>`
+        : nothing,
     };
     // Independent column stacks of about the same height: no row alignment, so no holes.
     const layout: (keyof typeof S)[][] =
-      this.columns >= 3
-        ? [["media", "favorites", "others"], ["lights", "energy"], ["weather", "news"]]
-        : this.columns === 2
-          ? [["media", "favorites", "news", "others"], ["lights", "energy", "weather"]]
-          : [["media", "favorites", "lights", "energy", "weather", "news", "others"]];
+      this.variant === "bis" || this.variant === "ter"
+        ? this.columns >= 3
+          ? [["plan", "media"], ["energy", "favorites", "news"], ["weather", "lights", "climate", "others"]]
+          : this.columns === 2
+            ? [["plan", "media", "energy", "favorites"], ["weather", "lights", "climate", "news", "others"]]
+            : [["plan", "media", "lights", "favorites", "energy", "weather", "climate", "news", "others"]]
+        : this.columns >= 3
+          ? [["media", "favorites"], ["lights", "energy"], ["weather", "news", "others"]]
+          : this.columns === 2
+            ? [["media", "favorites", "lights", "energy"], ["weather", "news", "others"]]
+            : [["media", "favorites", "lights", "energy", "weather", "news", "others"]];
 
+    const col = (keys: (keyof typeof S)[]) => html`<div class="col">${keys.map((k) => S[k])}</div>`;
+    if (this.variant === "ter" && this.columns >= 2) {
+      // The plan across two columns, the other cards in two stacks below it.
+      const three = this.columns >= 3;
+      return html`
+        <kh-hero .mapHref=${`${this.prefix}/pieces`}></kh-hero>
+        <div class="cols" style="--n:${three ? 3 : 2}">
+          <div class="wide">
+            ${S.plan}
+            <div class="cols" style="--n:2">
+              ${col(three ? ["media", "favorites"] : ["media", "favorites", "energy"])}
+              ${col(three ? ["energy", "news"] : ["weather", "lights", "climate", "news", "others"])}
+            </div>
+          </div>
+          ${three ? col(["weather", "lights", "climate", "others"]) : nothing}
+        </div>
+      `;
+    }
     return html`
       <kh-hero .mapHref=${`${this.prefix}/pieces`}></kh-hero>
       <div class="cols" style="--n:${layout.length}">

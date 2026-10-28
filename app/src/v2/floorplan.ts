@@ -107,13 +107,15 @@ function piece(name: string, w: number, h: number): SVGTemplateResult {
  * its popup. Landscape (rotated) when wide, upright on phones.
  */
 export class KhFloorplan extends LitElement {
-  static properties = { rooms: { attribute: false }, prefix: {}, wide: { state: true }, mode: { state: true } };
+  static properties = { rooms: { attribute: false }, prefix: {}, landscape: { type: Boolean }, wide: { state: true }, mode: { state: true } };
   declare rooms: Room[];
   declare prefix: string;
+  /** Always drawn landscape, even in a narrow column (Maison V1 bis home). */
+  declare landscape: boolean;
   declare wide: boolean;
   /** Flat plan or isometric view; remembered per screen. */
   declare mode: "2d" | "3d";
-  private resize = new ResizeObserver(([e]) => (this.wide = e.contentRect.width >= 600));
+  private resize = new ResizeObserver(([e]) => (this.wide = this.landscape || e.contentRect.width >= 600));
 
   constructor() {
     super();
@@ -318,7 +320,7 @@ export class KhFloorplan extends LitElement {
   connectedCallback(): void {
     super.connectedCallback();
     // Orientation from the first render: drawing it landscape then portrait moved the whole page.
-    this.wide = (this.getBoundingClientRect().width || window.innerWidth) >= 600;
+    this.wide = this.landscape || (this.getBoundingClientRect().width || window.innerWidth) >= 600;
     this.resize.observe(this);
     window.addEventListener("kh-pending", this.onPending);
   }
@@ -431,7 +433,7 @@ export class KhFloorplan extends LitElement {
       import("./plan3d.ts").then(() => ((this.three = true), this.requestUpdate()));
       return html`<div style="height:40vh" aria-busy="true"></div>`;
     }
-    return html`<kh-plan3d .rooms=${this.rooms} prefix=${this.prefix} @plan3d-unavailable=${() => this.setMode("2d")}></kh-plan3d>`;
+    return html`<kh-plan3d ?landscape=${this.landscape} .rooms=${this.rooms} prefix=${this.prefix} @plan3d-unavailable=${() => this.setMode("2d")}></kh-plan3d>`;
   }
 
   private plan2d() {

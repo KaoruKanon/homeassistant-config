@@ -102,7 +102,9 @@ type View = "overview" | "top";
  * TV / PC badges are HTML laid over the canvas. Renders on demand only.
  */
 export class KhPlan3d extends LitElement {
-  static properties = { rooms: { attribute: false }, prefix: {} };
+  static properties = { rooms: { attribute: false }, prefix: {}, landscape: { type: Boolean } };
+  /** Wide framing even in a narrow column (Maison V1 bis home); labels stay compact. */
+  declare landscape: boolean;
   declare rooms: Room[];
   declare prefix: string;
 
@@ -131,6 +133,10 @@ export class KhPlan3d extends LitElement {
   private layer: "none" | "temp" = "none";
   private spin = 0;
   private narrow = false;
+  /** Upright framing: phones, unless forced landscape. */
+  private get tall(): boolean {
+    return this.narrow && !this.landscape;
+  }
 
   constructor() {
     super();
@@ -786,7 +792,7 @@ export class KhPlan3d extends LitElement {
     const w = this.clientWidth || 600;
     this.narrow = w < 600;
     // Phones: a tall view along the length of the flat; wide screens: from the salon's corner.
-    const h = Math.round(this.narrow ? Math.min(w * 1.25, window.innerHeight * 0.62) : Math.min(w * 0.6, window.innerHeight * 0.62));
+    const h = Math.round(this.tall ? Math.min(w * 1.25, window.innerHeight * 0.62) : Math.min(w * 0.6, window.innerHeight * 0.62));
     r.setSize(w, h, false);
     if (!this.moved) this.camera.position.copy(this.home()[0]);
     this.camera.aspect = w / h;
@@ -859,8 +865,8 @@ export class KhPlan3d extends LitElement {
   }
 
   private home(): [Vector3] {
-    if (this.view === "top") return [new Vector3(0, this.narrow ? 3100 : 2700, 1)];
-    return [new Vector3(...((this.narrow ? [0, 1550, 1150] : [-1050, 1500, 1050]) as [number, number, number]))];
+    if (this.view === "top") return [new Vector3(0, this.tall ? 3100 : 2700, 1)];
+    return [new Vector3(...((this.tall ? [0, 1550, 1150] : [-1050, 1500, 1050]) as [number, number, number]))];
   }
 
   private setLayer(l: "none" | "temp"): void {

@@ -68,6 +68,26 @@ class KaoruHomePanel extends Panel {
 }
 customElements.define("kaoru-home", KaoruHomePanel);
 
+/** Maison V1 bis (`panel_custom: name: kaoru-home-v1bis`): V1 with the plan on its home page (proposal). */
+class KaoruHomeV1BisPanel extends Panel {
+  protected load() {
+    return import("./v1/app.ts");
+  }
+
+  render() {
+    return this.ready && store.hass ? html`<kh-v1-app variant="bis" .narrow=${this.narrow} .route=${this.route}></kh-v1-app>` : nothing;
+  }
+}
+customElements.define("kaoru-home-v1bis", KaoruHomeV1BisPanel);
+
+/** Maison V1 ter (`panel_custom: name: kaoru-home-v1ter`): the plan across two columns (proposal). */
+class KaoruHomeV1TerPanel extends KaoruHomeV1BisPanel {
+  render() {
+    return this.ready && store.hass ? html`<kh-v1-app variant="ter" .narrow=${this.narrow} .route=${this.route}></kh-v1-app>` : nothing;
+  }
+}
+customElements.define("kaoru-home-v1ter", KaoruHomeV1TerPanel);
+
 /** Maison V2 (`panel_custom: name: kaoru-home-v2`), under src/v2. */
 class KaoruHomeV2Panel extends Panel {
   protected load() {

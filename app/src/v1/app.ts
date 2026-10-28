@@ -38,9 +38,12 @@ export class KhV1App extends LitElement {
   static properties = {
     narrow: { type: Boolean },
     route: { attribute: false },
+    variant: {},
   };
   declare narrow: boolean;
   declare route?: PanelRoute;
+  /** "bis": Maison V1 bis, the home page with the plan (proposal). */
+  declare variant?: string;
 
   constructor() {
     super();
@@ -258,7 +261,7 @@ export class KhV1App extends LitElement {
     const room = section === "pieces" && sub ? rooms.find((r) => r.id === sub) : undefined;
 
     let page;
-    if (section === "") page = html`<kh-home-view prefix=${prefix}></kh-home-view>`;
+    if (section === "") page = html`<kh-home-view prefix=${prefix} variant=${this.variant ?? nothing}></kh-home-view>`;
     else if (section === "pieces" && room)
       page = html`<kh-room-view .room=${room} .model=${model} .rooms=${rooms} prefix=${prefix}></kh-room-view>`;
     else if (section === "pieces") page = html`<kh-rooms-view .rooms=${rooms} prefix=${prefix}></kh-rooms-view>`;

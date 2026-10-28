@@ -39,7 +39,7 @@ for (const [size, device] of Object.entries(SIZES)) for (const sidebar of SIDEBA
   const page = await ctx.newPage();
   for (const p of PAGES) {
     await page.goto(`${url}${p}?as=kaoru`);
-    await page.waitForSelector("kaoru-home, kaoru-home-v2");
+    await page.waitForSelector("kaoru-home, kaoru-home-v1bis, kaoru-home-v1ter, kaoru-home-v2");
     await page.waitForTimeout(p.split("/").length === 2 ? 1800 : 1200);
     const audit = (MIN) => page.evaluate((MIN) => {
       const issues = [];

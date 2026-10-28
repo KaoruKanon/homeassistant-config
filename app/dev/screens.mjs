@@ -53,7 +53,7 @@ async function main() {
       page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
       for (const p of paths) {
         await page.goto(`${url}${p}`);
-        await page.waitForSelector("kaoru-home, kaoru-home-v2", { timeout: 30000 });
+        await page.waitForSelector("kaoru-home, kaoru-home-v1bis, kaoru-home-v1ter, kaoru-home-v2", { timeout: 30000 });
         await page.waitForTimeout(1500);
         const file = join(out, `${name}-${scheme}${p.replaceAll("/", "_")}.png`);
         await page.screenshot({ path: file, fullPage: false });
