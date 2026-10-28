@@ -14,15 +14,12 @@ export class KhLightCard extends LitElement {
     entityId: { attribute: "entity-id" },
     name: {},
     icon: {},
-    compact: { type: Boolean, reflect: true },
     dragging: { state: true },
     optimistic: { state: true },
   };
   declare entityId: string;
   declare name: string;
   declare icon?: string;
-  /** Home page: one height for every light (no slider row; long press for the details), brightness as a thin bar. */
-  declare compact: boolean;
   declare dragging?: number;
   /** Shown state right after a tap, before Home Assistant confirms it. */
   declare optimistic?: boolean;
@@ -87,15 +84,6 @@ export class KhLightCard extends LitElement {
       .controls {
         display: flex;
         gap: 10px;
-      }
-      /* Compact (home page): the brightness of a lit lamp as a thin bar. */
-      .level {
-        height: 4px;
-        border-radius: 2px;
-        background: linear-gradient(90deg, rgb(var(--rgb)) var(--pct), rgba(var(--rgb), 0.18) var(--pct));
-      }
-      .level.idle {
-        visibility: hidden;
       }
       input[type="range"] {
         flex: 1;
@@ -189,10 +177,7 @@ export class KhLightCard extends LitElement {
             <div class="secondary">${state}</div>
           </div>
         </button>
-        ${this.compact
-          ? // Always there (same height lit or not), visible only for a lit dimmable lamp.
-            html`<div class="level ${on && isDimmable(s) ? "" : "idle"}" style="--pct:${pct}%" aria-hidden="true"></div>`
-          : isDimmable(s) ? html`<div class="controls">
+        ${isDimmable(s) ? html`<div class="controls">
           <input
             type="range"
             min="1"

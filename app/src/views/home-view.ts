@@ -1,7 +1,7 @@
 import { LitElement, css, html, nothing } from "lit";
 import "../components/energy-card.ts";
 import "../components/hero.ts";
-import "../components/light-card.ts";
+import "../components/light-pill.ts";
 import { isPlayerActive } from "../components/media-card.ts";
 import "../components/media-card.ts";
 import "../components/swipe.ts";
@@ -78,11 +78,12 @@ export class KhHomeView extends LitElement {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--kh-gap);
       }
-      /* Light cards: as many as fit, never narrower than 170 px. */
+      /* Light pills (the whole pill dims): two per row, never narrower than 150 px. */
       .lights {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-        gap: var(--kh-gap);
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        --pill-radius: var(--kh-radius);
       }
     `,
   ];
@@ -155,7 +156,7 @@ export class KhHomeView extends LitElement {
         <kh-swipe label="Lumières">
           ${pages.map(
             (pg) => html`<div class="lights">
-              ${pg.map((l) => html`<kh-light-card compact entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-card>`)}
+              ${pg.map((l) => html`<kh-light-pill tinted entity-id=${l.entity} name=${l.name} icon=${l.icon ?? nothing}></kh-light-pill>`)}
             </div>`,
           )}
         </kh-swipe></section>`,
@@ -170,9 +171,9 @@ export class KhHomeView extends LitElement {
     // Independent column stacks of about the same height: no row alignment, so no holes.
     const layout: (keyof typeof S)[][] =
       this.columns >= 3
-        ? [["media", "favorites", "lights"], ["energy", "others"], ["weather", "news"]]
+        ? [["media", "favorites", "others"], ["lights", "energy"], ["weather", "news"]]
         : this.columns === 2
-          ? [["media", "favorites", "lights", "news"], ["weather", "energy", "others"]]
+          ? [["media", "favorites", "news", "others"], ["lights", "energy", "weather"]]
           : [["media", "favorites", "lights", "energy", "weather", "news", "others"]];
 
     return html`

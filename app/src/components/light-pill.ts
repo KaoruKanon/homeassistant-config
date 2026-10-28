@@ -12,10 +12,12 @@ const SLOP_PX = 8;
  * popup; vertical moves scroll the page as usual.
  */
 export class KhLightPill extends LitElement {
-  static properties = { entityId: { attribute: "entity-id" }, name: {}, icon: {}, preview: { state: true } };
+  static properties = { entityId: { attribute: "entity-id" }, name: {}, icon: {}, tinted: { type: Boolean }, preview: { state: true } };
   declare entityId: string;
   declare name: string;
   declare icon?: string;
+  /** Filled with the lamp's own colour (when it has one) instead of amber. */
+  declare tinted: boolean;
   /** Brightness shown while dragging. */
   declare preview?: number;
   private start?: { x: number; y: number; t: number };
@@ -43,15 +45,15 @@ export class KhLightPill extends LitElement {
         gap: 12px;
         padding: 0 14px;
         box-sizing: border-box;
-        border-radius: 20px;
-        background: var(--kh-card);
+        border-radius: var(--pill-radius, 20px);
+        background: var(--pill-bg, var(--kh-card));
         text-align: left;
         touch-action: pan-y;
       }
       .fill {
         position: absolute;
         inset: 0 auto 0 0;
-        background: linear-gradient(90deg, rgba(var(--rgb-amber), 0.55), rgba(var(--rgb-orange), 0.35));
+        background: linear-gradient(90deg, rgba(var(--lamp, var(--rgb-amber)), 0.55), rgba(var(--lamp, var(--rgb-orange)), 0.32));
         transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);
         pointer-events: none;
       }
@@ -72,7 +74,7 @@ export class KhLightPill extends LitElement {
         font-variant-numeric: tabular-nums;
       }
       .on .shape {
-        background: rgb(var(--rgb-amber));
+        background: rgb(var(--lamp, var(--rgb-amber)));
         color: #2b2003;
       }
       .unavailable {
@@ -141,7 +143,9 @@ export class KhLightPill extends LitElement {
     if (!store.hass || !s) return nothing;
     const on = isActive(s);
     const pct = this.preview ?? (on ? (brightnessPercent(s) ?? 100) : 0);
+    const rgb = this.tinted ? (s.attributes.rgb_color as number[] | undefined) : undefined;
     return html`<div
+      style=${rgb ? `--lamp: ${rgb.join(", ")}` : ""}
       class="pill ${on || this.preview ? "on" : ""} ${this.preview !== undefined ? "dragging" : ""} ${isUnavailable(s) ? "unavailable" : ""}"
       role="slider"
       tabindex="0"
