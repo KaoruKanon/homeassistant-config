@@ -519,6 +519,16 @@ export class KhOthers extends Widget {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--kh-gap);
       }
+      /* Something running or turned on (guest mode, leaving): white, like a PC that is on. */
+      .tile.on {
+        background: #e4e6e8;
+        color: #1f2326;
+        --kh-text-2: #5d6368;
+      }
+      .tile.on .shape {
+        background: rgb(0 0 0 / 0.08);
+        color: #1f2326;
+      }
       .qr {
         margin-top: var(--kh-gap);
         padding: 16px;
@@ -538,7 +548,7 @@ export class KhOthers extends Widget {
     const running = h.leave ? isActive(store.get(h.leave)) : false;
     return html`<div class="grid">
         ${h.leave
-          ? html`<button class="card tile" @click=${() => runScript(h.leave!)}>
+          ? html`<button class="card tile ${running ? "on" : ""}" @click=${() => runScript(h.leave!)}>
               <span class="shape" style="--rgb: var(--rgb-indigo)"><ha-icon icon="mdi:hand-wave-outline"></ha-icon></span>
               <div><div class="primary">Partir</div><div class="secondary">${running ? "En cours…" : "Tout éteindre"}</div></div>
             </button>`

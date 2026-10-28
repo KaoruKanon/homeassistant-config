@@ -78,6 +78,9 @@ export class KhHomeView extends LitElement {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--kh-gap);
       }
+      .energy {
+        padding: 14px 16px 10px;
+      }
       /* Light pills (the whole pill dims): two per row, never narrower than 150 px. */
       .lights {
         display: grid;
@@ -160,7 +163,8 @@ export class KhHomeView extends LitElement {
             </div>`,
           )}
         </kh-swipe></section>`,
-      energy: h.energy ? html`<section>${this.heading("Énergie", "energie")}<kh-energy-card></kh-energy-card></section>` : nothing,
+      // Home: the compact card (one line of figures and the graph), the details on the Énergie page.
+      energy: h.energy ? html`<section>${this.heading("Énergie", "energie")}<div class="card energy"><kh-energy-card compact></kh-energy-card></div></section>` : nothing,
       weather: html`<section>${this.heading("Météo", "meteo")}<kh-weather-card></kh-weather-card></section>`,
       news: h.stocks.some((s) => s.home)
         ? html`<section>${this.heading("News", "meteo")}

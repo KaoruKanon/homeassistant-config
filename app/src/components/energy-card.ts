@@ -68,16 +68,24 @@ export class KhEnergyCard extends LitElement {
     css`
       :host {
         display: block;
+        container: kh-energy / inline-size;
       }
       .card {
         padding: 14px;
         display: grid;
         gap: 14px;
       }
+      /* Four figures: one row when the card is wide enough, else two by two
+         (never three and a lone one under them). */
       .kpis {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(var(--kh-kpi-min, 118px), 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
+      }
+      @container kh-energy (min-width: 520px) {
+        .kpis {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
       }
       .kpi {
         display: grid;

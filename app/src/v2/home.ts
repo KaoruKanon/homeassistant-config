@@ -402,9 +402,14 @@ export class KhHomeV2 extends LitElement {
         gap: 10px;
       }
       /* A shortcut that is a switch (guest mode), while on. */
+      /* A shortcut that is on or running (guest mode, leaving): white, like a PC that is on. */
       .shortcuts .action.on {
-        background: rgba(var(--c), 0.3);
-        box-shadow: inset 0 0 0 2px rgba(var(--c), 0.8);
+        background: #e4e6e8;
+        color: #1f2326;
+      }
+      .shortcuts .action.on .secondary,
+      .shortcuts .action.on ha-icon {
+        color: #3a3f45;
       }
       .favs {
         display: grid;
@@ -758,7 +763,7 @@ export class KhHomeV2 extends LitElement {
           ${head("mdi:gesture-tap-button", "Raccourcis")}
           <div class="shortcuts">
             ${h.leave
-              ? html`<button class="action" style="--c: var(--rgb-indigo)" @click=${() => runScript(h.leave!)}>
+              ? html`<button class="action ${isActive(hass.states[h.leave]) ? "on" : ""}" style="--c: var(--rgb-indigo)" @click=${() => runScript(h.leave!)}>
                   <ha-icon icon="mdi:hand-wave"></ha-icon>Partir<span class="secondary">${isActive(hass.states[h.leave]) ? "En cours…" : "Tout éteindre"}</span></button>`
               : nothing}
             ${h.guestMode && hass.states[h.guestMode]
