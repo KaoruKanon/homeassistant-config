@@ -19,6 +19,7 @@ const allTargets = {
   lovelace: { path: "/lovelace/home", ready: ["MUSHROOM-TEMPLATE-CARD", "MUSHROOM-CHIPS-CARD", "HUI-ENTITIES-CARD"] },
   "kaoru-home": { path: "/maison", ready: ["KH-LIGHT-CARD"] },
   "kaoru-home-v2": { path: "/maison-v2", ready: ["KH-LIGHT-PILL"] },
+  "kaoru-home-v3": { path: "/maison-v3", ready: ["KH3-HOME"] },
 };
 
 const targets = only ? { [only]: allTargets[only] } : allTargets;

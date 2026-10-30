@@ -5,7 +5,7 @@ import { defineConfig, type Plugin } from "vite";
 // kaoru-home.js (the panel_custom module_url) is a tiny loader that reads
 // manifest.json, fetched fresh on every load, then imports the current build.
 
-const PAGE_ONLY = /\/src\/(v2\/[^/]+|v3\/[^/]+|weather-utils|views\/((media|weather|energy|system)-view|page)|components\/(box-remote|posters|energy-devices|light-pill|gauge))\.ts$/;
+const PAGE_ONLY = /\/src\/(v2\/[^/]+|v3\/.+|weather-utils|views\/((media|weather|energy|system)-view|page)|components\/(box-remote|posters|energy-devices|light-pill|gauge))\.ts$/;
 // Maison V1 and what only it uses: its own chunk, never downloaded by V2.
 const V1_ONLY = /\/src\/(v1\/[^/]+|views\/(home|room|rooms)-view|components\/(hero|light-card|room-card))\.ts$/;
 // Loaded on first use (a tap, a page): the details popups, the map, the Sankey, the page tiles.
