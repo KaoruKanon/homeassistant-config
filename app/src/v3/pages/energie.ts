@@ -5,7 +5,7 @@ import { openComputer } from "../../popups/open.ts";
 import { entityName } from "../../rooms.ts";
 import { EntitiesController, store } from "../../store.ts";
 import { energyHours, f0, f1, f2, minutes, num, since, statistics } from "../data.ts";
-import { icon } from "../icons.ts";
+import { icon, liveIcon } from "../icons.ts";
 import { Page } from "../page.ts";
 
 type View = "day" | "week" | "month";
@@ -52,6 +52,7 @@ export class Kh3Energie extends Page {
     hours: { state: true },
     daily: { state: true },
     split: { state: true },
+    loaded: { state: true },
   };
   declare view: View;
   declare mode: Mode;
@@ -60,6 +61,8 @@ export class Kh3Energie extends Page {
   declare daily: Day[];
   /** Energy since midnight per meter (Wh), from hourly means. */
   declare split: Record<string, number>;
+  /** The meter's statistics have arrived (until then, the bars keep their room). */
+  declare loaded: boolean;
   private timer = 0;
 
   constructor() {
@@ -68,6 +71,7 @@ export class Kh3Energie extends Page {
     this.mode = "now";
     this.daily = [];
     this.split = {};
+    this.loaded = false;
     new EntitiesController(this, () => {
       const e = config.home.energy;
       const p = config.energyPage;
@@ -112,6 +116,7 @@ export class Kh3Energie extends Page {
       statistics(e.meter, from, "day", ["change"]),
       ...meters.map((m) => statistics(m.power, midnight, "hour", ["mean"])),
     ]);
+    this.loaded = true;
     if (hours) this.hours = hours;
     if (days) this.daily = days.map((r) => ({ date: new Date(r.start), kwh: Math.max(0, r.change ?? 0) }));
     const split: Record<string, number> = {};
@@ -222,11 +227,11 @@ export class Kh3Energie extends Page {
         gap: 4px;
         touch-action: pan-y;
       }
-      .bars > span {
+      .bars > button {
         flex: 1;
+        min-width: 0;
         height: 100%;
         position: relative;
-        cursor: pointer;
       }
       .bars u,
       .bars b {
@@ -568,14 +573,17 @@ export class Kh3Energie extends Page {
           <button aria-pressed=${this.view === "month" ? "true" : "false"} @click=${set("month")}>Mois</button>
         </div>
       </div>
-      ${!this.hours && !this.daily.length
+      ${!this.loaded
+        ? html`<div class="bars" aria-busy="true"></div>`
+        : !this.hours && !this.daily.length
         ? html`<p class="empty" style="flex:1">Pas encore de statistiques du compteur.</p>`
-        : html`<div class="bars" role="img" aria-label="Consommation, ${f1(total)} kWh sur la période. Touche une barre pour sa valeur.">
-            ${bars.map((b, i) => html`<span class="${b.cur ? "cur" : ""} ${picked && picked !== b ? "dim" : ""}" title=${b.tip}
+        : html`<div class="bars" role="group" aria-label="Consommation, ${f1(total)} kWh sur la période. Touche une barre pour sa valeur.">
+            ${bars.map((b, i) => html`<button type="button" class="${b.cur ? "cur" : ""} ${picked && picked !== b ? "dim" : ""}" title=${b.tip}
+              aria-label=${b.tip} aria-pressed=${picked === b ? "true" : "false"}
               @click=${() => (this.picked = this.picked === i ? undefined : i)}>
               <u style="height:${(b.ghost / max) * 100}%"></u>
               ${b.future ? nothing : html`<b style="height:${(b.v / max) * 100}%;animation-delay:${i * 12}ms"></b>`}
-            </span>`)}
+            </button>`)}
           </div>
           <div class="axis st num" aria-hidden="true">${axis.map((a) => html`<span>${a}</span>`)}</div>`}
     </section>`;
@@ -651,15 +659,15 @@ export class Kh3Energie extends Page {
         <rect x="0" y=${(used - srcH) / 2} width="12" height=${srcH} rx="4" style="fill:var(--yellow)"></rect>
         ${ribbons}
       </svg>
-      <div class="labels" role="list" aria-label="Répartition">
+      <div class="labels" role="group" aria-label="Répartition">
         ${nodes.map((n) => {
           const share = Math.round((n.f.value / total) * 100);
           const body = html`<i style="background:${n.f.color}"></i>
             <span style="flex:1;min-width:0"><span class="n ell">${n.f.name}</span><span class="st num" style="display:block">${share} % du total</span></span>
             <span class="w num">${unit(n.f.value)}</span>`;
           return n.f.entity
-            ? html`<button role="listitem" class="lab" style="top:${(n.center / used) * 100}%" @click=${() => openMoreInfo(this, n.f.entity!)}>${body}</button>`
-            : html`<div role="listitem" class="lab" style="top:${(n.center / used) * 100}%">${body}</div>`;
+            ? html`<button type="button" class="lab" style="top:${(n.center / used) * 100}%" @click=${() => openMoreInfo(this, n.f.entity!)}>${body}</button>`
+            : html`<div class="lab" style="top:${(n.center / used) * 100}%">${body}</div>`;
         })}
       </div>
     </div>`;
@@ -693,7 +701,7 @@ export class Kh3Energie extends Page {
     const status = gone ? "Hors ligne" : waiting ? (on ? "S'arrête…" : "Démarre…") : on ? `Allumé depuis ${sinceText}` : "Éteint";
     return html`<div class="row ${on ? "on" : ""}">
       <button class="main" aria-label="${c.name}, ${status}. Détails" @click=${() => openComputer(c)}>
-        <span class="ico" style="${on ? "background:var(--surf);color:var(--blue)" : ""}">${icon("monitor")}</span>
+        <span class="ico" style="${on ? "background:var(--surf);color:var(--blue)" : ""}">${liveIcon("monitor", on)}</span>
         <span style="min-width:0"><span class="nm ell">${c.name}</span><span class="st ell" style="display:block">${status}</span></span>
       </button>
       ${waiting
@@ -720,7 +728,7 @@ export class Kh3Energie extends Page {
     return html`<section class="card" aria-label=${p.name}>
       <button class="sw-row" role="switch" aria-checked=${on ? "true" : "false"} aria-disabled=${gone ? "true" : "false"} @click=${() => toggle(p.plug, p.name)}>
         <span style="display:flex;align-items:center;gap:10px">
-          <span class="ico ${on ? "kh-pulse" : ""}" style="${on ? "background:var(--yellowTint);color:var(--yellowInk)" : ""}">${icon("scooter")}</span>
+          <span class="ico" style="${on ? "background:var(--yellowTint);color:var(--yellowInk)" : ""}">${liveIcon("scooter", on)}</span>
           <span style="min-width:0"><span class="h ell" style="display:block">${p.name}</span><span class="st">${status}</span></span>
         </span>
         <span class="switch ${on ? "on" : ""}" aria-hidden="true"></span>

@@ -1,15 +1,14 @@
 import { css, html, nothing, svg } from "lit";
-import { media, openMoreInfo, setBrightness, setLights, toggle } from "../../actions.ts";
+import { media, openMoreInfo, setBrightness, setColorTemp, setHue, setLights, toggle } from "../../actions.ts";
 import { config } from "../../config.ts";
 import { brightnessPercent, isUnavailable, stateLabel } from "../../format.ts";
 import { openComputer } from "../../popups/open.ts";
 import { entityName, matches, type Room } from "../../rooms.ts";
 import { EntitiesController, store } from "../../store.ts";
 import "../../v2/floorplan.ts";
-import { f0, f1, history, linePath, num, resample, since, type Point } from "../data.ts";
-import { icon, roomIcon } from "../icons.ts";
-import { goTo } from "../nav.ts";
-import { Page } from "../page.ts";
+import { f0, f1, history, linePath, num, resample, since, smoothSeries, type Point } from "../data.ts";
+import { icon, liveIcon, roomIcon } from "../icons.ts";
+import { Gesture, Page } from "../page.ts";
 
 const openLight = (id: string) => void import("../../popups/details.ts").then((m) => m.openLight(id));
 const OFF = new Set(["off", "unavailable", "standby", "unknown", "idle"]);
@@ -37,14 +36,21 @@ export class Kh3Maison extends Page {
       }
       .layout {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 340px;
+        grid-template-columns: minmax(0, 1fr) 290px;
         gap: 14px;
         align-items: start;
       }
+      /* The plan takes the whole height left under the title, centred in its card. */
       .plan {
-        padding: 12px;
+        padding: 6px;
+        height: calc(100dvh - 32px - 70px);
+        min-height: 420px;
+        display: grid;
+        align-content: center;
         --kh-font: "Instrument Sans", system-ui, sans-serif;
-        --plan-max-height: calc(100dvh - 140px);
+        --plan-max-height: calc(100dvh - 32px - 70px - 24px);
+        --plan3d-fill: 1;
+        --plan-style: v3;
       }
       .list {
         display: flex;
@@ -101,6 +107,8 @@ export class Kh3Maison extends Page {
           grid-template-columns: minmax(0, 1fr);
         }
         .plan {
+          height: auto;
+          min-height: 0;
           --plan-max-height: 70vh;
         }
       }
@@ -121,7 +129,7 @@ export class Kh3Maison extends Page {
         <div class="hs" style="flex:1;min-width:0">
           <span class="chip"><span class="ico" style=${lights ? "background:var(--amber);color:#3a2400" : off}>${icon("bulb", 18)}</span>
             ${lights ? `${lights} lumière${lights > 1 ? "s" : ""} dans ${litRooms.length} pièce${litRooms.length > 1 ? "s" : ""}` : "Tout est éteint"}</span>
-          <span class="chip"><span class="ico" style=${open ? "background:var(--red);color:#fff" : off}>${icon("window", 18)}</span>${open ? `${open} ouverture${open > 1 ? "s" : ""}` : "Tout est fermé"}</span>
+          <span class="chip"><span class="ico" style=${open ? "background:var(--red);color:#fff" : off}>${liveIcon("window", open > 0, 18)}</span>${open ? `${open} ouverture${open > 1 ? "s" : ""}` : "Tout est fermé"}</span>
           ${presence.length ? html`<span class="chip"><span class="ico" style="background:var(--tealTint);color:var(--teal)">${icon("motion", 18)}</span>Présence : ${presence.join(", ")}</span>` : nothing}
         </div>
         ${lights ? html`<button class="btn" @click=${() => setLights(rooms.flatMap(visibleLights), false)}>${icon("power", 16)}Tout éteindre</button>` : nothing}
@@ -202,33 +210,90 @@ export class Kh3Piece extends Page {
         gap: 14px;
         align-items: start;
       }
-      .grid > .lights {
-        grid-row: span 2;
+      /* Three independent columns: a card growing (lights switched on) never moves the others. */
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        min-width: 0;
+      }
+      .lights {
+        max-height: calc(100dvh - 32px - 70px - 54px);
+        overflow-y: auto;
+        scrollbar-width: thin;
       }
       .light {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
         padding: 12px;
         border-radius: 18px;
         background: var(--surf2);
+      }
+      .light[aria-disabled="true"] {
+        opacity: 0.55;
       }
       .light .head {
         display: flex;
         align-items: center;
         gap: 12px;
+        text-align: left;
+        width: 100%;
+        min-height: 44px;
+        touch-action: manipulation;
+        user-select: none;
       }
       .light.on .ico {
         background: var(--amber);
         color: #3a2400;
       }
-      .light.on .switch[aria-checked="true"] {
-        background: var(--amber);
+      .light .pct {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--amberInk);
       }
-      input[type="range"] {
-        width: 100%;
-        accent-color: var(--amber);
-        height: 32px;
+      .bar {
+        position: relative;
+        height: 44px;
+        border-radius: 14px;
+        background: var(--bg);
+        overflow: hidden;
+        cursor: pointer;
+        touch-action: none;
+      }
+      .bar .fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        background: var(--amber);
+        border-radius: 14px;
+      }
+      .bar .knob {
+        position: absolute;
+        top: 10px;
+        bottom: 10px;
+        width: 4px;
+        border-radius: 2px;
+        background: #fff;
+      }
+      .swatches {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .sw {
+        width: 28px;
+        height: 28px;
+        border-radius: 99px;
+        position: relative;
+      }
+      .sw::before {
+        content: "";
+        position: absolute;
+        inset: -6px;
+      }
+      .sw[aria-pressed="true"] {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
       }
       .back {
         width: 44px;
@@ -254,31 +319,81 @@ export class Kh3Piece extends Page {
         .grid {
           grid-template-columns: minmax(0, 1fr);
         }
-        .grid > .lights {
-          grid-row: auto;
+        .lights {
+          max-height: none;
         }
       }
     `,
   ];
 
+  private gestures = new Map<string, Gesture>();
+  /** Brightness shown while a finger is on a slider (sent when it lifts). */
+  private preview?: { id: string; pct: number };
+
+  private slide(e: PointerEvent, id: string, done: boolean): void {
+    const bar = e.currentTarget as HTMLElement;
+    const r = bar.getBoundingClientRect();
+    const pct = Math.max(1, Math.min(100, Math.round(((e.clientX - r.left) / r.width) * 100)));
+    this.preview = { id, pct };
+    if (done) {
+      void setBrightness(id, pct);
+      window.setTimeout(() => this.preview?.id === id && ((this.preview = undefined), this.requestUpdate()), 1500);
+    }
+    this.requestUpdate();
+  }
+
+  /**
+   * One light, as on the mockup: the whole card switches it (a long press
+   * opens its settings); lit, a wide amber brightness bar and its colours.
+   */
   private lightRow(id: string, room: Room) {
     const hass = store.hass!;
     const s = store.get(id);
     const name = entityName(hass, id, config, room.name);
     const on = s?.state === "on";
     const gone = isUnavailable(s);
-    const dimmable = !gone && (s?.attributes.supported_color_modes ?? []).some((m: string) => m !== "onoff");
-    const pct = brightnessPercent(s) ?? (on ? 100 : 0);
-    return html`<div class="light ${on ? "on" : ""}">
-      <div class="head">
-        <span class="ico">${icon("bulb")}</span>
-        <button style="flex:1;min-width:0;text-align:left" aria-label="Réglages de ${name}" @click=${() => openLight(id)}>
-          <span class="nm ell">${name}</span><span class="st">${gone ? "Hors ligne" : on ? `${pct} %` : "Éteinte"}</span></button>
-        <button class="switch" role="switch" aria-checked=${on ? "true" : "false"} aria-label=${name} ?disabled=${gone} @click=${() => toggle(id, name)}></button>
-      </div>
-      ${dimmable && on
-        ? html`<input type="range" min="1" max="100" .value=${String(pct)} aria-label="Luminosité de ${name}"
-            @change=${(e: Event) => setBrightness(id, Number((e.target as HTMLInputElement).value))} />`
+    const modes: string[] = s?.attributes.supported_color_modes ?? [];
+    const dimmable = !gone && modes.some((m) => m !== "onoff");
+    const temps = modes.includes("color_temp");
+    const colours = modes.some((m) => ["hs", "rgb", "rgbw", "rgbww", "xy"].includes(m));
+    const pct = this.preview?.id === id ? this.preview.pct : (brightnessPercent(s) ?? (on ? 100 : 0));
+    let g = this.gestures.get(id);
+    if (!g) this.gestures.set(id, (g = new Gesture(() => !gone && toggle(id, name), () => openLight(id))));
+    const kelvin = Number(s?.attributes.color_temp_kelvin);
+    const hs = s?.attributes.hs_color as [number, number] | undefined;
+    const mode = s?.attributes.color_mode as string | undefined;
+    const tone = mode === "color_temp" && kelvin ? (kelvin < 3300 ? "Blanc chaud" : kelvin < 5000 ? "Blanc neutre" : "Blanc froid") : mode && mode !== "brightness" && mode !== "onoff" ? "Couleur" : "";
+    const swatches = [
+      ...(temps ? [{ c: "#FFD9A0", label: "Blanc chaud", on: mode === "color_temp" && kelvin < 3300, set: () => setColorTemp(id, 2700) },
+                   { c: "#FFF4E0", label: "Blanc neutre", on: mode === "color_temp" && kelvin >= 3300 && kelvin < 5000, set: () => setColorTemp(id, 4000) },
+                   { c: "#CFE3FF", label: "Blanc froid", on: mode === "color_temp" && kelvin >= 5000, set: () => setColorTemp(id, 6000) }] : []),
+      ...(colours ? [[350, 75, "#FF6F8A", "Rose"], [30, 85, "#FFA24D", "Orange"], [265, 70, "#9F8BFF", "Violet"], [210, 75, "#5FA8FF", "Bleu"], [140, 60, "#6FDB8F", "Vert"]].map(([h, sat, c, label]) => ({
+        c: c as string, label: label as string, on: mode !== "color_temp" && !!hs && Math.abs(hs[0] - (h as number)) < 15, set: () => setHue(id, [h as number, sat as number]),
+      })) : []),
+    ];
+    return html`<div class="light ${on ? "on" : ""}" aria-disabled=${gone ? "true" : "false"}>
+      <button class="head" aria-pressed=${on ? "true" : "false"} aria-label="${name}, ${gone ? "hors ligne" : on ? `allumée à ${pct} %` : "éteinte"}. Appui long : réglages" ?disabled=${gone}
+        @pointerdown=${g.down} @pointermove=${g.move} @pointerup=${g.up} @pointercancel=${g.cancel} @click=${g.click} @keydown=${g.key} @contextmenu=${g.contextmenu}>
+        <span class="ico">${liveIcon("bulb", on)}</span>
+        <span style="flex:1;min-width:0"><span class="nm ell">${name}</span><span class="st">${gone ? "Hors ligne" : on ? tone || "Allumée" : "Éteinte"}</span></span>
+        ${on && dimmable ? html`<span class="num pct">${pct} %</span>` : nothing}
+      </button>
+      ${on && dimmable
+        ? html`<div class="bar" role="slider" tabindex="0" aria-label="Luminosité de ${name}" aria-valuemin="1" aria-valuemax="100" aria-valuenow=${pct}
+            @pointerdown=${(e: PointerEvent) => ((e.currentTarget as HTMLElement).setPointerCapture(e.pointerId), this.slide(e, id, false))}
+            @pointermove=${(e: PointerEvent) => (e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId) && this.slide(e, id, false)}
+            @pointerup=${(e: PointerEvent) => this.slide(e, id, true)}
+            @keydown=${(e: KeyboardEvent) => {
+              const step = e.key === "ArrowRight" || e.key === "ArrowUp" ? 5 : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -5 : 0;
+              if (step) (e.preventDefault(), void setBrightness(id, Math.max(1, Math.min(100, pct + step))));
+            }}>
+            <span class="fill" style="width:${pct}%"></span><span class="knob" style="left:calc(${pct}% - 2px)"></span>
+          </div>
+          ${swatches.length
+            ? html`<div class="swatches" role="group" aria-label="Couleur de ${name}">${swatches.map(
+                (w) => html`<button class="sw" style="background:${w.c}" aria-label=${w.label} aria-pressed=${w.on ? "true" : "false"} @click=${w.set}></button>`,
+              )}</div>`
+            : nothing}`
         : nothing}
     </div>`;
   }
@@ -286,8 +401,8 @@ export class Kh3Piece extends Page {
   private climate(r: Room) {
     if (!r.temperature) return nothing;
     const now = Date.now(), from = now - 24 * 3600_000;
-    const t = resample(this.series[r.temperature] ?? [], from, now, 48);
-    const h = r.humidity ? resample(this.series[r.humidity] ?? [], from, now, 48) : [];
+    const t = smoothSeries(resample(this.series[r.temperature] ?? [], from, now, 48));
+    const h = r.humidity ? smoothSeries(resample(this.series[r.humidity] ?? [], from, now, 48)) : [];
     const tv = t.filter((v): v is number => v !== undefined), hv = h.filter((v): v is number => v !== undefined);
     const W = 300, H = 120;
     const pts = (vals: (number | undefined)[], lo: number, hi: number) =>
@@ -298,9 +413,10 @@ export class Kh3Piece extends Page {
       <div style="display:flex;align-items:baseline;justify-content:space-between"><h2 class="h">Climat sur 24 h</h2>
         <span class="st">${tv.length ? `${f1(Math.min(...tv))}° à ${f1(Math.max(...tv))}°` : "Pas d'historique"}</span></div>
       <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Température et humidité sur 24 heures">
-        ${tl ? svg`<path d="${tl} L${W} ${H} L0 ${H} Z" fill="var(--tealTint)"></path>` : nothing}
+        ${tl ? svg`<defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--teal);stop-opacity:.3"></stop><stop offset="1" style="stop-color:var(--teal);stop-opacity:0"></stop></linearGradient></defs>
+          <path d="${tl} L${W} ${H} L0 ${H} Z" fill="url(#pg)"></path>` : nothing}
         ${hl ? svg`<path d=${hl} fill="none" stroke="var(--blue)" stroke-width="2" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></path>` : nothing}
-        ${tl ? svg`<path d=${tl} fill="none" stroke="var(--teal)" stroke-width="3" vector-effect="non-scaling-stroke"></path>` : nothing}
+        ${tl ? svg`<path d=${tl} fill="none" stroke="var(--teal)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>` : nothing}
       </svg>
       <div class="st" style="display:flex;gap:14px"><span style="display:flex;align-items:center;gap:6px"><i style="width:12px;height:3px;background:var(--teal)"></i>Température</span>
         ${r.humidity ? html`<span style="display:flex;align-items:center;gap:6px"><i style="width:12px;border-top:2px dashed var(--blue)"></i>Humidité</span>` : nothing}</div>
@@ -334,7 +450,7 @@ export class Kh3Piece extends Page {
         const name = entityName(hass, id, config, r.name);
         const playing = s?.state === "playing";
         return html`<div class="row" style=${on ? "background:var(--violetTint)" : ""}>
-          <span class="ico" style=${on ? "background:var(--violet);color:#fff" : ""}>${icon(config.home.tvs.includes(id) ? "tv" : "speaker")}</span>
+          <span class="ico" style=${on ? "background:var(--violet);color:#fff" : ""}>${liveIcon(config.home.tvs.includes(id) ? "tv" : "speaker", config.home.tvs.includes(id) ? on : playing)}</span>
           <span style="flex:1;min-width:0"><span class="nm ell">${name}</span><span class="st ell" style="display:block">${s?.attributes.media_title ?? stateLabel(hass, s)}</span></span>
           ${s?.attributes.media_title
             ? html`<button class="rb" style="background:var(--violet);color:#fff;border-radius:999px" aria-label=${playing ? "Pause" : "Lecture"} @click=${() => media(id, "media_play_pause")}>${icon(playing ? "pause" : "play", 18)}</button>`
@@ -353,7 +469,7 @@ export class Kh3Piece extends Page {
         ${pcs.map((c) => {
           const on = store.get(c.entity)?.state === "on";
           return html`<div class="row" style=${on ? "background:var(--blueTint)" : ""}>
-            <span class="ico" style=${on ? "background:var(--blue);color:#fff" : ""}>${icon("monitor")}</span>
+            <span class="ico" style=${on ? "background:var(--blue);color:#fff" : ""}>${liveIcon("monitor", on)}</span>
             <button style="flex:1;min-width:0;text-align:left" @click=${() => openComputer(c)} aria-label="Détails de ${c.name}"><span class="nm ell">${c.name}</span><span class="st">${on ? "Allumé" : "Éteint"}</span></button>
             <button class="switch" role="switch" aria-checked=${on ? "true" : "false"} aria-label=${c.name} @click=${() => toggle(c.entity, c.name)}></button>
           </div>`;
@@ -364,7 +480,7 @@ export class Kh3Piece extends Page {
           const name = entityName(hass, id, config, r.name);
           const watts = this.p.model.power[id] ? num(this.p.model.power[id]) : undefined;
           return html`<div class="row">
-            <span class="ico" style=${on ? "background:var(--yellowTint);color:var(--yellowInk)" : ""}>${icon(id.startsWith("fan.") ? "fan" : "plug")}</span>
+            <span class="ico" style=${on ? "background:var(--yellowTint);color:var(--yellowInk)" : ""}>${liveIcon(id.startsWith("fan.") ? "fan" : "plug", on)}</span>
             <button style="flex:1;min-width:0;text-align:left" @click=${() => openMoreInfo(this, id)} aria-label="Détails de ${name}"><span class="nm ell">${name}</span>
               <span class="st">${isUnavailable(s) ? "Hors ligne" : on ? `Allumé${watts !== undefined ? `, ${f0(watts)} W` : ""}` : "Éteint"}</span></button>
             <button class="switch" role="switch" aria-checked=${on ? "true" : "false"} aria-label=${name} ?disabled=${isUnavailable(s)} @click=${() => toggle(id, name)}></button>
@@ -393,16 +509,19 @@ export class Kh3Piece extends Page {
           ${last.state === "on" ? "Présence en ce moment" : `Présence il y a ${since(last.last_changed)}`}</span>` : nothing}
       </div>
       <nav class="hs" aria-label="Autres pièces" style="margin-bottom:14px">
-        ${this.p.rooms.map((x) => html`<button class="pill" style="background:${x.id === r.id ? "" : "var(--surf)"}" aria-current=${x.id === r.id ? "page" : "false"}
-          @click=${() => goTo(`${this.p.prefix}/maison/${x.id}`)}>${x.name}</button>`)}
+        ${this.p.rooms.map((x) => html`<a class="pill" style="background:${x.id === r.id ? "" : "var(--surf)"}" aria-current=${x.id === r.id ? "page" : nothing}
+          href="${this.p.prefix}/maison/${x.id}">${x.name}</a>`)}
       </nav>
       <div class="grid">
+        <div class="col">
         <section class="card lights" aria-label="Lumières">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><h2 class="h" style="margin:0">Lumières</h2>
             ${anyOn ? html`<button class="btn" style="background:var(--amberTint);color:var(--amberInk)" @click=${() => setLights(lights, false)}>Tout éteindre</button>` : nothing}</div>
           <div class="rows">${lights.length ? lights.map((id) => this.lightRow(id, r)) : html`<p class="empty">Pas de lumière dans cette pièce.</p>`}</div>
         </section>
-        ${this.climate(r)}${this.openings(r)}${this.mediaCard(r)}${this.others(r)}
+        </div>
+        <div class="col">${this.climate(r)}${this.mediaCard(r)}</div>
+        <div class="col">${this.openings(r)}${this.others(r)}</div>
       </div>
     `;
   }

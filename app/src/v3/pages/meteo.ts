@@ -359,7 +359,7 @@ export class Kh3Meteo extends Page {
     const [moonLabel] = moon();
     const label = weather ? stateLabel(hass, weather) : "";
     return html`<section class="hero" aria-label="Maintenant" style="background:rgb(${frogSky()})">
-      ${image && /^(https?:)?\//.test(image) ? html`<img src=${image} alt="" decoding="async" @error=${(e: Event) => ((e.target as HTMLElement).hidden = true)} style="object-position:${shift} 75%" />` : nothing}
+      ${image && /^(https?:)?\//.test(image) ? html`<img src=${image} alt="" width="1280" height="440" decoding="async" fetchpriority="high" @error=${(e: Event) => ((e.target as HTMLElement).hidden = true)} style="object-position:${shift} 75%" />` : nothing}
       <span class="shade"></span>
       <div class="now">
         <div class="temp num">${temp !== undefined && !isNaN(temp) ? `${f1(temp)}°` : "—"}${weather ? weatherIcon(weatherKind(weather.state, !day), 44) : nothing}</div>

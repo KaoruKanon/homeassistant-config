@@ -116,7 +116,12 @@ export function themeShared(choice: ThemeChoice | undefined, systemDark: boolean
     el.id = "kh3-shared-theme";
     document.head.append(el);
   }
+  const v3 = Object.entries(t)
+    .filter(([k]) => k !== "navBg")
+    .map(([k, v]) => `--${k}: ${v};`)
+    .join(" ");
   el.textContent = `kh-popup, kh-confirm-dialog, kh-toast {
+    ${v3}
     --kh-dialog: ${t.surf}; --kh-card: ${t.surf2}; --kh-card-2: ${t.surf2}; --kh-line: ${t.surf2};
     --kh-text: ${t.ink}; --kh-text-2: ${t.muted}; --kh-accent: ${t.blue}; --kh-on-accent: ${dark ? "#0b1a26" : "#ffffff"};
     --kh-alert: ${t.red}; --kh-on-alert: #ffffff; --kh-radius: 16px; --kh-radius-icon: 12px;
@@ -163,6 +168,13 @@ export const ui = css`
   a {
     color: inherit;
     text-decoration: none;
+    touch-action: manipulation;
+  }
+  input,
+  select,
+  textarea,
+  label {
+    touch-action: manipulation;
   }
   button:focus-visible,
   a:focus-visible,
@@ -178,6 +190,11 @@ export const ui = css`
   h3,
   p {
     margin: 0;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
   }
   svg {
     flex: none;
@@ -377,6 +394,12 @@ export const ui = css`
     background: var(--muted);
     transition: transform 0.2s, background-color 0.2s;
   }
+  /* 44 px tall hit area around the 28 px track. */
+  .switch::before {
+    content: "";
+    position: absolute;
+    inset: -8px -2px;
+  }
   .switch[aria-checked="true"]::after {
     transform: translateX(18px);
     background: #fff;
@@ -384,6 +407,14 @@ export const ui = css`
   .empty {
     color: var(--muted);
     font-size: 13px;
+  }
+  /* Phone: 44 px touch targets. */
+  @media (max-width: 699px) {
+    .btn,
+    .pill,
+    .seg button {
+      min-height: 44px;
+    }
   }
 
   /* Motion that shows a state; all of it stops when less motion is asked. */
@@ -435,15 +466,57 @@ export const ui = css`
       transform: translateX(1.2px);
     }
   }
-  .kh-glow {
-    animation: kh-glow 3s ease-in-out infinite;
+  .kh-screen {
+    animation: kh-screen 2.6s steps(1) infinite;
   }
-  @keyframes kh-glow {
-    50% {
-      opacity: 0.6;
-    }
+  @keyframes kh-screen {
+    0% { opacity: 0.35; }
+    18% { opacity: 0.55; }
+    31% { opacity: 0.3; }
+    47% { opacity: 0.6; }
+    66% { opacity: 0.4; }
+    82% { opacity: 0.5; }
+  }
+  .kh-scan {
+    animation: kh-scan 2.2s linear infinite;
+  }
+  @keyframes kh-scan {
+    from { transform: translateY(0); opacity: 0.7; }
+    to { transform: translateY(5px); opacity: 0; }
+  }
+  .kh-wave {
+    animation: kh-wave 1.4s ease-out infinite;
+  }
+  @keyframes kh-wave {
+    0% { opacity: 0; }
+    40% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .kh-charge {
+    animation: kh-charge 1.6s ease-in-out infinite;
+  }
+  @keyframes kh-charge {
+    50% { opacity: 0.2; }
+  }
+  .kh-swing {
+    transform-box: view-box;
+    transform-origin: 12px 12px;
+    animation: kh-swing 3.2s ease-in-out infinite;
+  }
+  @keyframes kh-swing {
+    50% { transform: skewY(-6deg) scaleX(0.85); }
+  }
+  .kh-hand {
+    transform-box: view-box;
+    transform-origin: 12px 13px;
+    animation: kh-spin 6s linear infinite;
+  }
+  .kh-rays {
+    animation: kh-wave 2.4s ease-in-out infinite;
   }
   .kh-pulse {
+    transform-box: fill-box;
+    transform-origin: center;
     animation: kh-pulse 1.8s ease-in-out infinite;
   }
   @keyframes kh-pulse {
@@ -460,8 +533,10 @@ export const ui = css`
   }
   .kh-eq i {
     width: 3px;
+    height: 11px;
     border-radius: 1px;
     background: currentColor;
+    transform-origin: bottom;
     animation: kh-eq 0.9s ease-in-out infinite;
   }
   .kh-eq i:nth-child(2) {
@@ -473,10 +548,10 @@ export const ui = css`
   @keyframes kh-eq {
     0%,
     100% {
-      height: 3px;
+      transform: scaleY(0.27);
     }
     50% {
-      height: 11px;
+      transform: scaleY(1);
     }
   }
   @media (prefers-reduced-motion: reduce) {

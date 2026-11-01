@@ -1,22 +1,111 @@
 import { LitElement, css, html, nothing, type TemplateResult } from "lit";
 import { EntitiesController, RegistryController, store } from "../store.ts";
-import { base, tokens } from "../styles.ts";
-import { installPressFeedback } from "./gestures.ts";
+import { tokens } from "../styles.ts";
+import { icon } from "../v3/icons.ts";
+import { ui } from "../v3/theme.ts";
+import { glyph, overlayTokens, toneCss, toneOf } from "./toast.ts";
+
+export { glyph, toneOf };
 
 export interface PopupSpec {
   title: string;
+  /** "mdi:…" (from config / entities) or a V3 icon name. */
   icon?: string;
-  /** Mushroom colour token name, e.g. "blue" → --rgb-blue */
+  /** Mushroom colour name, e.g. "blue", "amber"; mapped to a V3 tone. */
   color?: string;
+  /** A round photo instead of the icon (people); ring in teal when home. */
+  picture?: () => { src?: string; initial: string; home: boolean } | undefined;
+  /** A short line under the title, re-evaluated on every render. */
+  subtitle?: () => string | undefined;
   /** Entities whose changes re-render the popup. */
   watch: string[];
   body: () => TemplateResult | typeof nothing;
 }
 
+// ---- Building blocks for popups/*.ts ----
+
+export interface RowSpec {
+  icon: string;
+  color?: string;
+  label: string;
+  sub?: string;
+  value?: string;
+  onClick?: () => void;
+  /** A switch on the right; the row becomes role="switch". */
+  checked?: boolean;
+  /** A chevron on the right (opens something). */
+  chevron?: boolean;
+  /** Tinted background (the "on" look). */
+  lit?: boolean;
+  big?: boolean;
+}
+
+/** A V3 row: tinted icon square, name and detail, value or switch on the right. */
+export function row(r: RowSpec): TemplateResult {
+  const cls = `row t-${toneOf(r.color)} ${r.lit ? "on" : ""} ${r.big ? "big" : ""} ${r.checked ? "checked" : ""}`;
+  const content = html`<span class="ico">${glyph(r.icon, r.big ? 22 : 20)}</span>
+    <span class="grow"><span class="nm ell">${r.label}</span>${r.sub ? html`<span class="st">${r.sub}</span>` : nothing}</span>
+    ${r.value ? html`<span class="val num">${r.value}</span>` : nothing}
+    ${r.checked !== undefined ? html`<span class="switch" aria-hidden="true"></span>` : nothing}
+    ${r.chevron ? html`<span class="chev">${icon("chevronR", 18)}</span>` : nothing}`;
+  if (!r.onClick) return html`<div class=${cls}>${content}</div>`;
+  return r.checked !== undefined
+    ? html`<button class=${cls} type="button" role="switch" aria-checked=${String(r.checked)} @click=${r.onClick}>${content}</button>`
+    : html`<button class=${cls} type="button" @click=${r.onClick}>${content}</button>`;
+}
+
+/** A V3 action button; `solid` for the main one. */
+export function action(label: string, iconName: string, color: string, run: () => void, solid = false): TemplateResult {
+  return html`<button class="act t-${toneOf(color)} ${solid ? "solid" : ""}" type="button" @click=${run}>${glyph(iconName, 18)}${label}</button>`;
+}
+
+export interface SliderSpec {
+  label: string;
+  icon: string;
+  /** Range of the input (raw values, e.g. 0..255). */
+  min: number;
+  max: number;
+  raw: number;
+  /** Raw value to the percentage shown. */
+  pct: (raw: number) => number;
+  /** False: drawn empty, the value reads "—" (light off). */
+  on: boolean;
+  onChange: (raw: number) => void;
+}
+
 /**
- * Details popup replacing the browser_mod ones: a sheet rising from the
- * bottom on phones, a centred card on tablets and PCs. Esc, the backdrop and
- * the close button dismiss it; focus returns to what opened it.
+ * Big amber slider (brightness): a fill, the icon, the label and the
+ * percentage; the native range input on top keeps keyboard and screen
+ * readers. The fill and figure follow the finger before the value is sent.
+ */
+export function bigSlider(o: SliderSpec): TemplateResult {
+  const p = Math.round(o.pct(o.raw));
+  const preview = (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const v = Math.round(o.pct(Number(input.value)));
+    const box = input.parentElement!;
+    box.style.setProperty("--p", `${v}%`);
+    box.style.setProperty("--n", String(v));
+    box.classList.remove("off");
+  };
+  return html`<label class="bright ${o.on ? "" : "off"}" style="--p:${o.on ? p : 0}%;--n:${p}">
+    <span class="fill"></span>
+    <span class="in">${glyph(o.icon, 22)}<span class="bl">${o.label}</span><span class="bv num"></span></span>
+    <input type="range" min=${o.min} max=${o.max} .value=${String(o.raw)} aria-label=${o.label}
+      @input=${preview} @change=${(e: Event) => o.onChange(Number((e.target as HTMLInputElement).value))} />
+  </label>`;
+}
+
+/** Small section title inside a popup. */
+export function label(text: string): TemplateResult {
+  return html`<h3 class="lbl">${text}</h3>`;
+}
+
+/**
+ * Details popup replacing the browser_mod ones, in the V3 design: a sheet
+ * rising from the bottom on phones, a centred card on tablets and PCs. Esc,
+ * the backdrop, the close button and a swipe down dismiss it; focus returns
+ * to what opened it.
  */
 class KhPopup extends LitElement {
   static properties = { spec: { attribute: false } };
@@ -31,31 +120,38 @@ class KhPopup extends LitElement {
 
   static styles = [
     tokens,
-    base,
+    overlayTokens,
+    ui,
+    toneCss,
     css`
+      :host {
+        font-family: var(--kh-font);
+      }
       dialog {
         border: 0;
         padding: 0;
         width: min(560px, calc(100vw - 32px));
+        max-width: none;
         max-height: calc(100dvh - 48px);
-        border-radius: 24px;
-        background: var(--kh-dialog);
-        color: var(--kh-text);
-        box-shadow: 0 12px 40px rgb(0 0 0 / 0.35);
+        border-radius: 28px;
+        background: var(--surf);
+        color: var(--ink);
+        box-shadow: 0 24px 60px rgb(0 0 0 / 0.35);
         overflow: hidden;
       }
-      dialog::backdrop {
-        background: rgb(0 0 0 / 0.45);
-        backdrop-filter: blur(6px);
-        animation: fade 220ms ease-out;
-      }
       dialog[open] {
-        animation: spring 420ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        display: flex;
+        flex-direction: column;
+        animation: pop 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
       }
-      @keyframes spring {
+      dialog::backdrop {
+        background: rgb(8 10 20 / 0.5);
+        animation: fade 200ms ease-out;
+      }
+      @keyframes pop {
         from {
           opacity: 0;
-          transform: scale(0.9) translateY(12px);
+          transform: translateY(8px) scale(0.98);
         }
       }
       @keyframes fade {
@@ -63,331 +159,618 @@ class KhPopup extends LitElement {
           opacity: 0;
         }
       }
-      @media (max-width: 599px) {
-        dialog {
-          margin: auto 0 0;
-          width: 100vw;
-          max-width: 100vw;
-          max-height: 88dvh;
-          border-radius: 24px 24px 0 0;
-          padding-bottom: env(safe-area-inset-bottom);
-        }
-        dialog[open] {
-          animation: rise 220ms ease-out;
-        }
-      }
       @keyframes rise {
         from {
-          transform: translateY(40px);
-          opacity: 0.4;
+          transform: translateY(48px);
+          opacity: 0.5;
         }
       }
       header {
-        touch-action: none;
+        position: relative;
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 16px 16px 8px;
+        padding: 18px 16px 10px 18px;
+        flex: none;
       }
-      header h2 {
-        flex: 1;
-        margin: 0;
-        font-size: 1.25rem;
+      .grab {
+        display: none;
       }
-      .close {
+      header .ico {
         width: 44px;
         height: 44px;
+        border-radius: 14px;
+      }
+      header .ico svg {
+        width: 22px;
+        height: 22px;
+      }
+      .avatar {
+        width: 48px;
+        height: 48px;
+        flex: none;
+        border-radius: 999px;
+        overflow: hidden;
         display: grid;
         place-items: center;
-        border-radius: 50%;
-        background: var(--kh-card-2);
+        background: var(--violetTint);
+        color: var(--violet);
+        font-weight: 700;
+        font-size: 18px;
+        border: 2px solid var(--surf);
+        box-shadow: 0 0 0 2.5px var(--muted);
+      }
+      .avatar.home {
+        box-shadow: 0 0 0 2.5px var(--teal);
+      }
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .titles {
+        flex: 1;
+        min-width: 0;
+      }
+      h2 {
+        font-family: "Bricolage Grotesque", system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 21px;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        overflow-wrap: anywhere;
+      }
+      .titles .st {
+        font-size: 13px;
+        margin-top: 2px;
       }
       .body {
-        padding: 8px 16px 20px;
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
-        max-height: calc(100dvh - 48px - 76px);
+        overscroll-behavior: contain;
         display: grid;
-        gap: 12px;
+        align-content: start;
+        gap: 10px;
+        padding: 6px 18px 20px;
       }
-      @media (max-width: 599px) {
-        .body {
-          max-height: calc(88dvh - 80px);
-        }
-      }
-      /* Landscape tablets (wall tablet, ~1000×600): wider and denser, so a
-         popup fits the screen without scrolling. */
-      @media (min-width: 600px) and (max-height: 820px) {
+
+      /* Phones: a sheet from the bottom, with a grab handle. */
+      @media (max-width: 699px) {
         dialog {
-          width: min(720px, calc(100vw - 32px));
-          max-height: calc(100dvh - 24px);
+          margin: auto 0 0;
+          width: 100vw;
+          max-height: 92dvh;
+          border-radius: 28px 28px 0 0;
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+        dialog[open] {
+          animation: rise 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         header {
-          padding: 12px 16px 4px;
+          padding-top: 22px;
+          touch-action: none;
+        }
+        .grab {
+          display: block;
+          position: absolute;
+          top: 8px;
+          left: 50%;
+          width: 40px;
+          height: 5px;
+          margin-left: -20px;
+          border-radius: 99px;
+          background: var(--muted);
+          opacity: 0.35;
         }
         .body {
-          gap: 8px;
-          padding: 6px 16px 14px;
-          max-height: calc(100dvh - 24px - 64px);
-        }
-        .row {
-          padding: 7px 10px;
-        }
-        .fat {
-          height: 44px;
-        }
-        .hero-value {
-          font-size: 2.25rem;
+          padding: 6px 14px 18px;
         }
       }
-      /* A line of figures (temperature, humidity, battery…). */
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
-        gap: 8px;
+      @media (prefers-reduced-motion: reduce) {
+        dialog[open],
+        dialog::backdrop {
+          animation: none;
+        }
       }
-      .stat {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        align-items: center;
-        gap: 2px 10px;
-        padding: 10px 12px;
-        border-radius: var(--kh-radius);
-        background: var(--kh-card-2);
-      }
-      .stat .shape {
-        grid-row: span 2;
-        width: 36px;
-        height: 36px;
-      }
-      .stat b {
-        font-size: 1.25rem;
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      /* Building blocks used by popups/*.ts */
+
+      /* Rows. */
       .row {
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 10px 12px;
-        border-radius: var(--kh-radius);
-        background: var(--kh-card-2);
-        text-align: left;
         width: 100%;
-        box-sizing: border-box;
+        min-width: 0;
+        min-height: 60px;
+        padding: 10px 14px 10px 10px;
+        border-radius: 16px;
+        background: var(--surf2);
+        text-align: left;
+        transition: transform 0.12s, background-color 0.2s;
       }
-      .row > div {
+      button.row:active,
+      .act:active,
+      .key:active,
+      .sw:active,
+      .meter:active {
+        transform: scale(0.98);
+      }
+      .row.on {
+        background: var(--ct);
+      }
+      .row .grow {
         flex: 1;
         min-width: 0;
       }
-      .row .value {
+      .row .st {
+        display: block;
+        margin-top: 1px;
+      }
+      .row .val {
         font-weight: 700;
-        font-variant-numeric: tabular-nums;
+        font-size: 17px;
+        white-space: nowrap;
       }
-      .bar {
+      .chev {
+        color: var(--muted);
         display: grid;
-        gap: 6px;
       }
-      .bar .track {
-        height: 10px;
-        border-radius: 5px;
-        background: var(--kh-card-2);
-        overflow: hidden;
+      .row.big {
+        min-height: 72px;
       }
-      .bar .fill {
-        height: 100%;
-        border-radius: 5px;
-        background: rgb(var(--rgb, var(--rgb-blue)));
+      .row.big .ico {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
       }
-      .bar .label {
+      .row.big .nm {
+        font-size: 17px;
+        font-weight: 700;
+      }
+      .row.on .switch,
+      .row.checked .switch {
+        background: var(--c, var(--blue));
+      }
+      .row.on .switch::after,
+      .row.checked .switch::after {
+        transform: translateX(18px);
+        background: #fff;
+      }
+      .lbl {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 6px 4px 0;
+      }
+      .since {
+        font-size: 13px;
+        color: var(--muted);
+        padding: 0 4px;
+      }
+
+      /* Figures. */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+        gap: 8px;
+      }
+      .stat {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 16px;
+        background: var(--surf2);
+        min-width: 0;
+      }
+      .stat.off {
+        opacity: 0.6;
+      }
+      .stat .top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+      .stat .ico {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+      }
+      .stat .ico svg {
+        width: 18px;
+        height: 18px;
+      }
+      .stat .num {
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+      .meter {
+        display: grid;
+        gap: 8px;
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: var(--surf2);
+        text-align: left;
+        transition: transform 0.12s;
+      }
+      .meter .top {
         display: flex;
         justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        font-size: 13px;
         font-weight: 600;
-        font-size: 0.875rem;
       }
+      .meter .num {
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .meter .track {
+        height: 8px;
+        border-radius: 99px;
+        background: var(--bg);
+        overflow: hidden;
+      }
+      .meter .fill {
+        display: block;
+        height: 100%;
+        border-radius: 99px;
+        background: var(--c, var(--blue));
+        transition: width 0.3s;
+      }
+      .hero {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        padding: 4px 4px 0;
+      }
+      .hero .num {
+        font-size: 52px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .hero .u {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .hero.word .num {
+        font-size: 30px;
+      }
+
+      /* Actions. */
       .grid2 {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
+        gap: 8px;
       }
-      .action {
+      .acts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .acts > * {
+        flex: 1 1 160px;
+      }
+      .act {
+        min-height: 52px;
+        padding: 0 16px;
+        border-radius: 16px;
+        background: var(--ct, var(--surf2));
+        color: var(--ci, var(--ink));
+        font-weight: 700;
+        font-size: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        min-height: 48px;
-        padding: 0 14px;
-        border-radius: var(--kh-radius-icon);
-        background: rgba(var(--rgb, var(--rgb-blue)), 0.2);
-        font-weight: 700;
+        text-align: center;
+        transition: transform 0.12s;
       }
+      .act.solid {
+        background: var(--c, var(--blue));
+        color: var(--surf);
+      }
+      .act svg {
+        width: 18px;
+        height: 18px;
+      }
+      .more {
+        justify-self: start;
+        background: none;
+        color: var(--muted);
+        padding: 0 6px;
+        min-height: 44px;
+      }
+
+      /* Pictures and the map. */
       .shot {
-        width: 100%;
-        border-radius: var(--kh-radius);
+        position: relative;
         display: block;
-        background: var(--kh-card-2);
+        width: 100%;
+        border-radius: 18px;
+        overflow: hidden;
+        background: var(--surf2);
+      }
+      .shot img {
+        display: block;
+        width: 100%;
         min-height: 120px;
         object-fit: cover;
       }
-      /* Alarm keypad */
+      .shot .cap {
+        position: absolute;
+        left: 10px;
+        bottom: 10px;
+        height: 30px;
+        padding: 0 10px;
+        border-radius: 99px;
+        background: color-mix(in srgb, var(--surf) 88%, transparent);
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .shot .cap svg {
+        width: 14px;
+        height: 14px;
+      }
+      .pmap {
+        height: 220px;
+        border-radius: 18px;
+      }
+      .qr {
+        justify-self: center;
+        width: min(100%, 300px);
+        padding: 16px;
+        border-radius: 22px;
+        background: #fff;
+      }
+      .qr img {
+        display: block;
+        width: 100%;
+      }
+      .cover {
+        display: block;
+        width: 100%;
+        max-height: 260px;
+        object-fit: cover;
+        border-radius: 18px;
+        background: var(--surf2);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .chip {
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 99px;
+        background: var(--surf2);
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+      }
+      .text {
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      /* Alarm code and keypad. */
       .code {
-        min-height: 44px;
+        height: 64px;
         display: grid;
         place-items: center;
-        border-radius: var(--kh-radius);
-        background: var(--kh-card-2);
-        font-size: 1.5rem;
-        letter-spacing: 0.3em;
+        border-radius: 18px;
+        background: var(--surf2);
+        font-family: "Bricolage Grotesque", system-ui, sans-serif;
+        font-size: 28px;
+        letter-spacing: 0.35em;
       }
-      .code .muted {
+      .code .ph {
+        font-family: inherit;
         letter-spacing: normal;
-        font-size: 1rem;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--muted);
       }
       .code-input {
-        height: 48px;
-        padding: 0 14px;
+        height: 56px;
+        padding: 0 16px;
         border: 0;
-        border-radius: var(--kh-radius);
-        background: var(--kh-card-2);
+        border-radius: 16px;
+        background: var(--surf2);
         color: inherit;
         font: inherit;
+        font-size: 18px;
+      }
+      .code-input:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
       }
       .keypad {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
       }
-      .keypad .action {
-        font-size: 1.25rem;
+      .key {
+        height: 60px;
+        border-radius: 18px;
+        background: var(--surf2);
+        font-family: "Bricolage Grotesque", system-ui, sans-serif;
+        font-size: 24px;
+        font-weight: 600;
+        display: grid;
+        place-items: center;
+        transition: transform 0.12s;
       }
-      .muted {
-        color: var(--kh-text-2);
-        font-size: 0.875rem;
+
+      /* Light: big brightness slider, white temperature, colours, effects. */
+      .bright {
+        position: relative;
+        display: block;
+        height: 72px;
+        border-radius: 20px;
+        background: var(--surf2);
+        overflow: hidden;
+        cursor: pointer;
+        --p: 0%;
+        --n: 0;
       }
-      /* Light popup */
-      .big-toggle {
+      .bright:has(input:focus-visible) {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+      .bright .fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: var(--p);
+        background: color-mix(in srgb, var(--amber) 55%, var(--surf2));
+        box-shadow: inset -4px 0 0 var(--amber);
+        transition: width 0.15s;
+      }
+      .bright .in {
+        position: absolute;
+        inset: 0;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 14px 16px;
-        border-radius: var(--kh-radius);
-        background: var(--kh-card-2);
+        gap: 10px;
+        padding: 0 18px;
         font-weight: 700;
-        font-size: 1.0625rem;
+        pointer-events: none;
+        color: var(--ink);
       }
-      .big-toggle.on {
-        background: rgba(var(--rgb-amber), 0.25);
+      .bright .in svg {
+        color: var(--amberInk);
       }
-      .switch {
-        width: 52px;
-        height: 30px;
-        border-radius: 15px;
-        background: var(--kh-card-2);
-        position: relative;
-        transition: background-color 250ms ease;
+      .bright .bl {
+        flex: 1;
+        font-size: 15px;
       }
-      .switch::after {
-        content: "";
+      .bright .bv {
+        font-size: 22px;
+      }
+      .bright .bv::after {
+        counter-reset: p var(--n);
+        content: counter(p) " %";
+      }
+      .bright.off .bv::after {
+        content: "—";
+      }
+      .bright input {
         position: absolute;
-        top: 3px;
-        left: 3px;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background: #fff;
-        transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
-      }
-      .on .switch {
-        background: rgb(var(--rgb-amber));
-      }
-      .on .switch::after {
-        transform: translateX(22px);
-      }
-      .slider-block {
-        display: grid;
-        gap: 8px;
-      }
-      .slider-block .label {
-        display: flex;
-        justify-content: space-between;
-        font-weight: 700;
-      }
-      .fat {
-        appearance: none;
-        -webkit-appearance: none;
+        inset: 0;
         width: 100%;
-        height: 56px;
+        height: 100%;
         margin: 0;
-        border-radius: 16px;
+        opacity: 0;
         cursor: pointer;
       }
-      .fat::-webkit-slider-thumb {
+      .range {
+        appearance: none;
         -webkit-appearance: none;
-        width: 8px;
-        height: 34px;
-        border-radius: 4px;
-        background: #fff;
-        box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+        display: block;
+        width: 100%;
+        height: 44px;
+        margin: 0;
+        border-radius: 99px;
+        cursor: pointer;
       }
-      .fat::-moz-range-thumb {
-        width: 8px;
-        height: 34px;
-        border: 0;
-        border-radius: 4px;
+      .range::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
         background: #fff;
+        box-shadow: 0 1px 6px rgb(0 0 0 / 0.35);
+      }
+      .range::-moz-range-thumb {
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 6px rgb(0 0 0 / 0.35);
+      }
+      .range:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 3px;
+      }
+      .ctemp {
+        display: grid;
+        gap: 8px;
+      }
+      .ctemp .top {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 0 4px;
       }
       .swatches {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+        display: flex;
+        flex-wrap: wrap;
         gap: 10px;
       }
-      .swatch {
-        aspect-ratio: 1;
+      .sw {
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
-        box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.15);
+        box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+        transition: transform 0.12s, box-shadow 0.2s;
       }
-      .chips {
+      .sw[aria-pressed="true"] {
+        box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12), 0 0 0 3px var(--surf), 0 0 0 5px var(--ink);
+      }
+      .pills {
         display: flex;
+        flex-wrap: wrap;
         gap: 8px;
-        overflow-x: auto;
-        padding-bottom: 4px;
-        scrollbar-width: thin;
       }
-      .chip {
-        flex: none;
-        min-height: 38px;
-        padding: 0 14px;
-        border-radius: 999px;
-        background: var(--kh-card-2);
-        font-weight: 600;
-        font-size: 0.875rem;
+      .pills .pill {
+        min-height: 44px;
       }
-      .chip.active {
-        background: rgba(var(--rgb-amber), 0.3);
-      }
-      .link {
-        justify-self: start;
-        color: var(--kh-text-2);
-        font-weight: 600;
-        font-size: 0.875rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        min-height: 40px;
-      }
-      .hero-value {
-        font-size: 2.75rem;
-        font-weight: 800;
-        line-height: 1;
-        font-variant-numeric: tabular-nums;
-      }
-      .hero-value small {
-        font-size: 1rem;
-        color: var(--kh-text-2);
-        margin-left: 4px;
+
+      /* Landscape tablets (wall tablet, ~1000×600): wider and denser. */
+      @media (min-width: 700px) and (max-height: 820px) {
+        dialog {
+          width: min(760px, calc(100vw - 32px));
+          max-height: calc(100dvh - 24px);
+        }
+        header {
+          padding: 14px 16px 6px 18px;
+        }
+        .body {
+          gap: 8px;
+          padding: 4px 18px 16px;
+        }
+        .row {
+          min-height: 52px;
+          padding-block: 7px;
+        }
+        .row.big {
+          min-height: 60px;
+        }
+        .bright {
+          height: 60px;
+        }
+        .hero .num {
+          font-size: 40px;
+        }
+        .pmap {
+          height: 200px;
+        }
+        .key {
+          height: 52px;
+        }
       }
     `,
   ];
@@ -398,7 +781,6 @@ class KhPopup extends LitElement {
 
   firstUpdated(): void {
     this.opener = deepActive();
-    installPressFeedback(this.renderRoot as ShadowRoot);
     this.renderRoot.querySelector("dialog")!.showModal();
   }
 
@@ -413,7 +795,11 @@ class KhPopup extends LitElement {
   }
 
   // Swipe the sheet down to close it (phones).
-  private dragDown = (e: PointerEvent) => (this.dragStart = e.clientY);
+  private dragDown = (e: PointerEvent) => {
+    if (!matchMedia("(max-width: 699px)").matches || (e.target as Element).closest("button")) return;
+    this.dragStart = e.clientY;
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
   private dragMove = (e: PointerEvent) => {
     if (this.dragStart === undefined) return;
     const dy = Math.max(0, e.clientY - this.dragStart);
@@ -432,15 +818,33 @@ class KhPopup extends LitElement {
   render() {
     const s = this.spec;
     if (!s || !store.hass) return nothing;
+    const pic = s.picture?.();
+    const sub = s.subtitle?.();
     return html`<dialog
       aria-labelledby="kh-popup-title"
       @cancel=${(e: Event) => (e.preventDefault(), this.close())}
       @click=${(e: Event) => e.target === e.currentTarget && this.close()}
     >
-      <header @pointerdown=${this.dragDown} @pointermove=${this.dragMove} @pointerup=${this.dragEnd} @pointercancel=${this.dragEnd}>
-        ${s.icon ? html`<span class="shape" style="--rgb: var(--rgb-${s.color ?? "blue"})"><ha-icon icon=${s.icon}></ha-icon></span>` : nothing}
-        <h2 id="kh-popup-title">${s.title}</h2>
-        <button class="close" aria-label="Fermer" @click=${() => this.close()}><ha-icon icon="mdi:close"></ha-icon></button>
+      <header
+        class="t-${toneOf(s.color)}"
+        @pointerdown=${this.dragDown}
+        @pointermove=${this.dragMove}
+        @pointerup=${this.dragEnd}
+        @pointercancel=${this.dragEnd}
+      >
+        <span class="grab" aria-hidden="true"></span>
+        ${pic
+          ? html`<span class="avatar ${pic.home ? "home" : ""}" aria-hidden="true">
+              ${pic.src ? html`<img src=${pic.src} alt="" width="48" height="48" decoding="async" />` : pic.initial}
+            </span>`
+          : s.icon
+            ? html`<span class="ico">${glyph(s.icon, 22)}</span>`
+            : nothing}
+        <div class="titles">
+          <h2 id="kh-popup-title">${s.title}</h2>
+          ${sub ? html`<p class="st">${sub}</p>` : nothing}
+        </div>
+        <button class="rb" type="button" aria-label="Fermer" @click=${() => this.close()}>${icon("close")}</button>
       </header>
       <div class="body">${s.body()}</div>
     </dialog>`;
@@ -471,9 +875,9 @@ export function openPopup(spec: PopupSpec): void {
   if (!replacing) history.pushState({ khPopup: true }, "", location.href);
   el.pushed = true;
   current = el;
-  // Inside <home-assistant>: HA's own elements in a popup (the native map)
-  // read their data from the app's context. The dialog is in the top layer anyway.
-  (document.querySelector("home-assistant")?.shadowRoot ?? document.body).append(el);
+  // On the document, not in HA's shadow root: the V3 theme rule (themeShared)
+  // reaches it there. The dialog is in the top layer anyway.
+  document.body.append(el);
 }
 
 /** Re-renders the open popup (state kept by its body, e.g. a code being typed). */

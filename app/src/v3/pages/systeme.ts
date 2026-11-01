@@ -158,6 +158,11 @@ export class Kh3Systeme extends Page {
       .ch .st {
         display: block;
       }
+      /* "Tout voir": 44 px hit area, same layout box. */
+      .ch > a.st {
+        padding: 12px 4px;
+        margin: -12px -4px;
+      }
       .acts {
         display: flex;
         gap: 8px;
@@ -241,6 +246,7 @@ export class Kh3Systeme extends Page {
         position: relative;
         width: 100%;
         max-width: 120px;
+        container-type: inline-size;
       }
       .arc svg {
         display: block;
@@ -269,10 +275,14 @@ export class Kh3Systeme extends Page {
         align-items: baseline;
         gap: 4px;
       }
+      /* The value scales with the gauge, so it always fits inside the arc. */
       .gv .num {
-        font-size: 24px;
+        font-size: clamp(15px, 19cqw, 24px);
         font-weight: 700;
         line-height: 1.1;
+      }
+      .gv .st {
+        font-size: clamp(9px, 9cqw, 12px);
       }
       .gl {
         font-size: 13px;
@@ -636,6 +646,7 @@ export class Kh3Systeme extends Page {
               ${this.testing ? icon("refresh", 16) : icon("play", 16)}${this.testing ? "Test en cours…" : "Lancer un test"}
             </button>`
           : nothing}
+        <span class="sr" role="status">${this.testing ? "Test de débit en cours…" : ""}</span>
       </div>
       <div class="gauges">
         ${gauge("Descendant", down, 1000, "Mb/s", "var(--blue)", "sur 1 000 Mb/s")}
@@ -782,6 +793,7 @@ export class Kh3Systeme extends Page {
             <span class="num" aria-hidden="true">${pct === undefined ? "—" : `${pct} %`}</span>
           </div>`
         : html`<div class="slider"></div>`}
+      <span class="sr" role="status">${this.rang === "reload" ? "Tablette rechargée" : this.rang === "fully" ? "Fully Kiosk redémarre" : ""}</span>
       <div class="tbtns">
         ${t.reload
           ? html`<button class="btn" type="button" @click=${async () => (await pressButton(t.reload!), this.flash("reload"))}>
@@ -813,7 +825,7 @@ export class Kh3Systeme extends Page {
       ${b
         ? html`<div class="ch">
               <span class="ico teal ${running ? "kh-pulse" : ""}">${icon("backup")}</span>
-              <span class="grow"><span class="h">Sauvegarde</span><span class="st">${sub}</span></span>
+              <span class="grow"><span class="h">Sauvegarde</span><span class="st" aria-live="polite">${sub}</span></span>
             </div>
             ${valid(next) ? html`<div class="st">Prochaine : ${dayTime.format(new Date(next!))}</div>` : nothing}
             <div class="acts">

@@ -7,8 +7,9 @@ import { entityName } from "../../rooms.ts";
 import { EntitiesController, store } from "../../store.ts";
 import type { HassEntity } from "../../types.ts";
 import { jellyfinItems } from "../data.ts";
-import { icon } from "../icons.ts";
+import { icon, liveIcon } from "../icons.ts";
 import { Page } from "../page.ts";
+import { playerCard, playerStyles } from "../player.ts";
 
 const OFF = new Set(["off", "unavailable", "standby", "unknown"]);
 const REPEAT_AFTER_MS = 400;
@@ -47,6 +48,7 @@ export class Kh3Medias extends Page {
 
   static styles = [
     ...Page.styles,
+    playerStyles,
     css`
       :host {
         container-type: inline-size;
@@ -100,6 +102,110 @@ export class Kh3Medias extends Page {
         background: var(--surf2);
         scroll-snap-align: start;
       }
+      .feature {
+        flex: none;
+        height: 100%;
+        aspect-ratio: 16 / 9;
+        max-width: 80%;
+        border-radius: 14px;
+        position: relative;
+        overflow: hidden;
+        text-align: left;
+        color: #fff;
+        background: var(--surf2);
+        scroll-snap-align: start;
+      }
+      .feature img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .feature .ft {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 3px;
+        padding: 14px;
+        background: linear-gradient(to top, rgba(8, 10, 18, 0.88) 0%, rgba(8, 10, 18, 0.55) 35%, rgba(8, 10, 18, 0.12) 65%, transparent 85%);
+        min-width: 0;
+      }
+      .tag-new {
+        align-self: flex-start;
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 99px;
+        background: linear-gradient(90deg, #aa5cc3, #00a4dc);
+        font-size: 11px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .facts {
+        display: flex;
+        gap: 5px;
+        margin-top: 6px;
+        flex-wrap: wrap;
+      }
+      .fact {
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.16);
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .rate {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 1;
+        height: 22px;
+        padding: 0 7px;
+        border-radius: 99px;
+        background: rgba(8, 10, 18, 0.65);
+        font-size: 11px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .poster > .rate {
+        inset: 8px 8px auto auto;
+        padding: 0 7px;
+        background: rgba(8, 10, 18, 0.65);
+      }
+      .tvs {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .tvrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 14px;
+        background: var(--surf2);
+      }
+      .tvrow.on {
+        background: var(--violetTint);
+      }
+      .tvrow .rb {
+        width: 40px;
+        height: 40px;
+        background: var(--surf);
+      }
+      .tvrow[aria-disabled="true"] {
+        opacity: 0.55;
+      }
       .poster img {
         position: absolute;
         inset: 0;
@@ -117,6 +223,25 @@ export class Kh3Medias extends Page {
         display: flex;
         gap: 16px;
         padding: 12px;
+        container-type: inline-size;
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      .controls .rb {
+        width: 40px;
+        height: 40px;
+      }
+      @container (max-width: 470px) {
+        .player .cover {
+          max-height: 120px;
+        }
+        .controls .vol {
+          display: none;
+        }
       }
       .cover {
         height: 100%;
@@ -142,6 +267,7 @@ export class Kh3Medias extends Page {
         background: var(--violet);
       }
       .play {
+        flex: none;
         width: 50px;
         height: 50px;
         border-radius: 999px;
@@ -283,59 +409,30 @@ export class Kh3Medias extends Page {
         <span style="display:flex;flex-direction:column;justify-content:center;gap:4px"><span class="h">Rien en lecture</span>
           <span class="st">Lance de la musique depuis Spotify ou une enceinte.</span></span></article>`;
     }
-    const a = s.attributes, id = s.entity_id;
-    const art = a.entity_picture as string | undefined;
-    const dur = Number(a.media_duration), pos = Number(a.media_position), upd = Date.parse(a.media_position_updated_at ?? "");
-    const at = s.state === "playing" && !isNaN(upd) ? pos + (Date.now() - upd) / 1000 : pos;
-    const progress = dur > 0 && !isNaN(at) ? Math.min(100, (at / dur) * 100) : 0;
-    const mmss = (sec: number) => (isNaN(sec) ? "" : `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`);
-    const where = [a.app_name ?? entityName(store.hass!, id, config), a.source].filter(Boolean).join(", ");
-    return html`<article class="card player" aria-label="Lecture en cours">
-      ${art ? html`<img class="cover" src=${art} alt="" width="172" height="172" decoding="async" />` : html`<span class="cover">${icon("speaker", 40)}</span>`}
-      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
-        <span class="st ell" style="display:flex;align-items:center;gap:6px">${s.state === "playing" ? html`<span class="kh-eq" aria-hidden="true" style="color:#1db954"><i></i><i></i><i></i></span>` : nothing}${where}</span>
-        <span class="num ell" style="font-size:24px;font-weight:700;line-height:1.15">${a.media_title}</span>
-        <span class="ell" style="font-size:14px;color:var(--muted)">${[a.media_artist, a.media_album_name].filter(Boolean).join(", ")}</span>
-        <span style="flex:1"></span>
-        <span class="bar"><i style="width:${progress}%"></i></span>
-        <span class="num st" style="display:flex;justify-content:space-between"><span>${mmss(at)}</span><span>${mmss(dur)}</span></span>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="rb" style="background:none" aria-label="Précédent" @click=${() => media(id, "media_previous_track")}>${icon("prev")}</button>
-          <button class="play" aria-label=${s.state === "playing" ? "Pause" : "Lecture"} @click=${() => media(id, "media_play_pause")}>${icon(s.state === "playing" ? "pause" : "play")}</button>
-          <button class="rb" style="background:none" aria-label="Suivant" @click=${() => media(id, "media_next_track")}>${icon("next")}</button>
-          <span style="flex:1"></span>
-          <button class="rb" aria-label="Moins fort" @click=${() => media(id, "volume_down")}>${icon("minus", 18)}</button>
-          <button class="rb" aria-label="Plus fort" @click=${() => media(id, "volume_up")}>${icon("plus", 18)}</button>
-        </div>
-      </div>
-    </article>`;
+    return html`<article class="card player" style="padding:0" aria-label="Lecture en cours">${playerCard(s.entity_id)}</article>`;
   }
 
+  /** Every TV as a row: name, what it shows, power; volume while it is on. */
   private tvs() {
     const hass = store.hass!;
     const tvs = config.home.tvs.map((id) => store.get(id)).filter((s): s is HassEntity => !!s);
-    const on = tvs.filter((s) => !OFF.has(s.state));
-    const main = on[0] ?? tvs[0];
-    if (!main) return nothing;
-    const name = entityName(hass, main.entity_id, config);
-    const isOn = !OFF.has(main.state);
-    const others = tvs.filter((s) => s !== main);
-    return html`<article class="card tv ${isOn ? "on" : ""}" aria-label="Télévisions">
-      <div style="display:flex;align-items:center;gap:10px"><span class="ico" style=${isOn ? "background:var(--violet);color:#fff" : ""}>${icon("tv")}</span>
-        <span style="min-width:0"><span class="nm ell">${name}</span><span class="st ell" style="display:block">${isOn ? (main.attributes.app_name ?? main.attributes.source ?? "Allumée") : stateLabel(hass, main)}</span></span></div>
-      <span style="flex:1"></span>
-      <div style="display:flex;gap:6px">
-        <button class="rb" aria-label="${isOn ? "Éteindre" : "Allumer"} ${name}" @click=${() => media(main.entity_id, isOn ? "turn_off" : "turn_on")}>${icon("power", 18)}</button>
-        ${isOn
-          ? html`<button class="rb" aria-label="Moins fort" @click=${() => media(main.entity_id, "volume_down")}>${icon("minus", 18)}</button>
-              <button class="rb" aria-label="Plus fort" @click=${() => media(main.entity_id, "volume_up")}>${icon("plus", 18)}</button>`
-          : nothing}
-      </div>
-      ${others.map((o) => {
-        const oOn = !OFF.has(o.state);
-        const n = entityName(hass, o.entity_id, config);
-        return html`<button class="st" style="text-align:left;display:flex;align-items:center;gap:6px;min-height:28px" @click=${() => media(o.entity_id, oOn ? "turn_off" : "turn_on")}>
-          ${icon("power", 14)}${n} ${oOn ? "allumée" : "éteinte"}</button>`;
+    if (!tvs.length) return nothing;
+    return html`<article class="card tvs" aria-label="Télévisions">
+      <h2 class="h" style="margin:0 0 4px">Télévisions</h2>
+      ${tvs.map((t) => {
+        const on = !OFF.has(t.state);
+        const gone = t.state === "unavailable";
+        const name = entityName(hass, t.entity_id, config);
+        return html`<div class="tvrow ${on ? "on" : ""}" aria-disabled=${gone ? "true" : "false"}>
+          <span class="ico" style=${on ? "background:var(--violet);color:#fff" : ""}>${liveIcon("tv", on)}</span>
+          <span style="flex:1;min-width:0"><span class="nm ell">${name}</span>
+            <span class="st ell" style="display:block">${gone ? "Hors ligne" : on ? (t.attributes.app_name ?? t.attributes.source ?? "Allumée") : "Éteinte"}</span></span>
+          ${on
+            ? html`<button class="rb" aria-label="Moins fort" @click=${() => media(t.entity_id, "volume_down")}>${icon("minus", 18)}</button>
+                <button class="rb" aria-label="Plus fort" @click=${() => media(t.entity_id, "volume_up")}>${icon("plus", 18)}</button>`
+            : nothing}
+          ${gone ? nothing : html`<button class="rb" aria-label="${on ? "Éteindre" : "Allumer"} ${name}" @click=${() => media(t.entity_id, on ? "turn_off" : "turn_on")}>${icon("power", 18)}</button>`}
+        </div>`;
       })}
     </article>`;
   }
@@ -391,7 +488,7 @@ export class Kh3Medias extends Page {
         const vol = Math.round(Number(s?.attributes.volume_level ?? 0) * 100);
         const gone = !s || s.state === "unavailable";
         return html`<div class="speaker">
-          <span class="ico ${active ? "on" : ""}">${icon("speaker", 18)}</span>
+          <span class="ico ${active ? "on" : ""}">${liveIcon("speaker", s?.state === "playing", 18)}</span>
           <span style="width:110px;flex:none;min-width:0"><span class="nm ell" style="font-size:13px">${name}</span>
             <span class="st ell" style="display:block">${gone ? "Hors ligne" : active ? (s!.attributes.media_title ?? stateLabel(hass, s)) : "Libre"}</span></span>
           <input type="range" min="0" max="100" step="5" .value=${String(vol)} ?disabled=${gone} aria-label="Volume de ${name}"
@@ -402,17 +499,49 @@ export class Kh3Medias extends Page {
     </section>`;
   }
 
+  /**
+   * A shelf: the newest title as a wide « à la une » card on its backdrop,
+   * then the others as posters. Episodes of the same series are grouped.
+   */
   private shelf(title: string, entity: string, sub: string) {
-    const items = jellyfinItems(entity);
+    const groups = new Map<string, { item: Record<string, any>; count: number }>();
+    for (const i of jellyfinItems(entity)) {
+      const g = groups.get(i.title);
+      if (g) g.count++;
+      else groups.set(i.title, { item: i, count: 1 });
+    }
+    const list = [...groups.values()];
+    const [first, ...rest] = list;
+    const rating = (i: Record<string, any>) => (i.rating ? String(i.rating).replace(/[★☆]/g, "").trim() : "");
+    const line = (i: Record<string, any>) => [i.number, i.episode].filter(Boolean).join(", ") || (i.aired ?? "").slice(0, 4);
+    const extra = (n: number, film: boolean) => (n > 1 ? `${n} nouveaux ${film ? "films" : "épisodes"}` : "");
+    const film = /film/i.test(title);
     return html`<section class="card shelf" aria-label=${title}>
       <div style="display:flex;align-items:baseline;gap:10px"><h2 class="h">${title}</h2><span class="st">${sub}</span></div>
-      ${items.length
-        ? html`<div class="hs">${items.map(
-            (i) => html`<button class="poster" @click=${() => openMediaItem(i)} aria-label=${i.title}>
-              ${i.poster ? html`<img src=${i.poster} alt="" loading="lazy" decoding="async" />` : nothing}
-              <span><b class="ell" style="display:block;font-size:13px">${i.title}</b><span class="ell" style="display:block;font-size:11px;opacity:.85">${i.number || (i.aired ?? "").slice(0, 4)}</span></span>
-            </button>`,
-          )}</div>`
+      ${first
+        ? html`<div class="hs">
+            <button class="feature" @click=${() => openMediaItem(first.item)} aria-label="${first.item.title}, à la une">
+              ${first.item.fanart || first.item.poster ? html`<img src=${first.item.fanart || first.item.poster} alt="" width="480" height="270" fetchpriority="high" decoding="async" />` : nothing}
+              <span class="ft">
+                <span class="tag-new">Nouveau</span>
+                <b class="ell" style="display:block;font-size:20px;line-height:1.2">${first.item.title}</b>
+                <span class="ell" style="display:block;font-size:13px;opacity:.85">${line(first.item)}${extra(first.count, film) ? ` · ${extra(first.count, film)}` : ""}</span>
+                <span class="facts">
+                  ${rating(first.item) ? html`<span class="fact"><span style="color:#f5b83d;display:flex">${icon("star", 12)}</span>${rating(first.item)}</span>` : nothing}
+                  ${first.item.runtime ? html`<span class="fact">${first.item.runtime} min</span>` : nothing}
+                  ${first.item.genres ? html`<span class="fact">${String(first.item.genres).split(",")[0]}</span>` : nothing}
+                </span>
+              </span>
+            </button>
+            ${rest.map(
+              ({ item: i, count }) => html`<button class="poster" @click=${() => openMediaItem(i)} aria-label=${i.title}>
+                ${i.poster ? html`<img src=${i.poster} alt="" width="200" height="300" loading="lazy" decoding="async" />` : nothing}
+                ${rating(i) ? html`<span class="rate"><span style="color:#f5b83d;display:flex">${icon("star", 11)}</span>${rating(i)}</span>` : nothing}
+                <span><b class="ell" style="display:block;font-size:13px">${i.title}</b>
+                  <span class="ell" style="display:block;font-size:11px;opacity:.85">${count > 1 ? extra(count, film) : line(i)}</span></span>
+              </button>`,
+            )}
+          </div>`
         : html`<p class="empty">Rien de nouveau.</p>`}
     </section>`;
   }
@@ -426,7 +555,7 @@ export class Kh3Medias extends Page {
       return s && (s.state === "playing" || (config.home.tvs.includes(s.entity_id) && !OFF.has(s.state)));
     }).length;
     return html`
-      <div class="top"><h1 class="page-title">Médias</h1><span class="st" style="font-size:14px">${playing ? `${playing} en lecture` : "Rien en lecture"}</span></div>
+      <div class="top"><h1 class="page-title">Médias</h1><span class="st" style="font-size:14px">${playing ? `${playing} en lecture` : this.nowPlaying()?.state === "paused" ? "En pause" : "Rien en lecture"}</span></div>
       <div class="layout">
         <section class="playing" aria-label="En lecture">${this.player(this.nowPlaying())}${this.tvs()}</section>
         ${series ? this.shelf("Séries", series.entity, "ajoutées sur Jellyfin") : nothing}

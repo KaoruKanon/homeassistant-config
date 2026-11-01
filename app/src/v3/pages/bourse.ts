@@ -517,6 +517,7 @@ export class Kh3Bourse extends Page {
           overscroll-behavior-x: contain;
           margin: 0 -16px;
           padding: 2px 16px;
+          scroll-padding-inline: 16px;
         }
         .vals::-webkit-scrollbar {
           display: none;
@@ -731,7 +732,7 @@ export class Kh3Bourse extends Page {
         ${prev ? html`<span><i style="background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 7px)"></i>Période précédente, même départ</span>` : nothing}
       </div>
       ${!drawn.length
-        ? html`<div class="center plot"><p class="empty">${this.loading ? "Chargement de l'historique…" : "Pas encore d'historique pour cette période."}</p></div>`
+        ? html`<div class="center plot"><p class="empty" role="status">${this.loading ? "Chargement de l'historique…" : "Pas encore d'historique pour cette période."}</p></div>`
         : html`<div class="plot">
             <div class="yaxis st num" aria-hidden="true"><span>${fmtY(hi)}</span><span>${fmtY((hi + lo) / 2)}</span><span>${fmtY(lo)}</span></div>
             <div class="area">
@@ -764,8 +765,9 @@ export class Kh3Bourse extends Page {
 
   private insights(m: ReturnType<Kh3Bourse["model"]>) {
     const { per, single, lines, drawn } = m;
-    if (!drawn.length) return nothing;
     type Tile = { l: string; v: string; d: string; c?: string };
+    // Until the history arrives, the tiles keep their room (no shift below).
+    if (!drawn.length) return this.tiles([0, 1, 2, 3].map(() => ({ l: "\u00a0", v: "\u00a0", d: "\u00a0" })));
     const tone = (n?: number) => (n === undefined ? "" : n >= 0 ? "var(--teal)" : "var(--red)");
     let tiles: Tile[];
     if (single) {
@@ -813,6 +815,10 @@ export class Kh3Bourse extends Page {
         { l: "Ensemble", ...together },
       ];
     }
+    return this.tiles(tiles);
+  }
+
+  private tiles(tiles: { l: string; v: string; d: string; c?: string }[]) {
     return html`<section class="insights" aria-label="À retenir">
       ${tiles.map((t) => html`<div class="ins">
         <span class="st" style="font-weight:600">${t.l}</span>

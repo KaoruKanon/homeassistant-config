@@ -24,6 +24,7 @@ Deux panneaux, déclarés en `panel_custom` dans `configuration.yaml` et servis 
 
 | Panneau | URL | Contenu |
 |---|---|---|
+| Maison V3 | `/maison-v3` | la nouvelle version, en préparation sur l'instance de dev : nouveau design, pages Climat, Bourse et Famille |
 | Maison | `/maison-v2` | le front-end principal (V2) : tuiles « bento », scènes illustrées, plan 2D / 3D |
 | Maison V1 | `/maison` | l'accueil Mushroom refait, gardé temporairement avant d'être retiré |
 
@@ -38,6 +39,30 @@ Le plan de l'appartement, en 2D et en 3D :
 <img src="/images/kaoru-home/pc-plan-2d.jpg" width="49%"> <img src="/images/kaoru-home/pc-plan-3d.jpg" width="49%">
 
 La carte des positions et l'agenda sont floutés sur les captures.
+
+### Maison V3
+
+Une réécriture du design, page par page, d'après des maquettes validées avant d'écrire le code. Même organisation et mêmes fonctions que la V2, en Lit natif, sans aucun composant `ha-*` de Home Assistant. Mode kiosque pour la tablette : `/maison-v3?kiosk` (cache la barre latérale de Home Assistant), `?kiosk=0` pour en sortir.
+
+<img src="/images/kaoru-home/v3/tablet-accueil.jpg" width="100%">
+
+<img src="/images/kaoru-home/v3/mobile-accueil.jpg" height="500"> <img src="/images/kaoru-home/v3/mobile-maison.jpg" height="500"> <img src="/images/kaoru-home/v3/mobile-piece.jpg" height="500"> <img src="/images/kaoru-home/v3/mobile-climat.jpg" height="500"> <img src="/images/kaoru-home/v3/mobile-medias.jpg" height="500"> <img src="/images/kaoru-home/v3/mobile-meteo.jpg" height="500"> <img src="/images/kaoru-home/v3/mobile-energie.jpg" height="500"> <img src="/images/kaoru-home/v3/mobile-bourse.jpg" height="500"> <img src="/images/kaoru-home/v3/mobile-famille.jpg" height="500"> <img src="/images/kaoru-home/v3/mobile-systeme.jpg" height="500">
+
+<img src="/images/kaoru-home/v3/tablet-plan-2d.jpg" width="49%"> <img src="/images/kaoru-home/v3/tablet-plan-3d.jpg" width="49%">
+
+<img src="/images/kaoru-home/v3/tablet-climat.jpg" width="49%"> <img src="/images/kaoru-home/v3/tablet-medias.jpg" width="49%">
+<img src="/images/kaoru-home/v3/tablet-energie.jpg" width="49%"> <img src="/images/kaoru-home/v3/tablet-systeme.jpg" width="49%">
+
+* **Un cadre stable, une zone vivante** : en haut l'heure, les personnes et les badges ; à droite la météo (grenouille et trois jours), la température des pièces, l'énergie et les raccourcis. Au milieu, les appareils (lumières favorites, PC, TV, filtrés par pièce) et **« En ce moment »** : ce qui se passe, rangé par priorité dans une grille fixe de 4 × 2 cases, page par page au swipe (musique, fenêtre ouverte, ventilateur, trottinette en charge, TV allumée, agenda, dernier ajout Jellyfin).
+* **Navigation** : un rail de neuf entrées sur la tablette et le PC (Accueil, Maison, Climat, Médias, Météo, Énergie, Bourse, Famille, Système), quatre onglets et « Plus » sur le téléphone.
+* **Maison** : le plan en 2D (une couleur par pièce) ou en 3D, et la liste des pièces ; une pièce montre ses lumières (toute la carte allume, curseur et couleurs), ses médias, ses ouvertures et son climat.
+* **Climat** : la maison et le dehors sur un même graphe, une courbe par pièce avec température et humidité, les ventilateurs.
+* **Médias** : la lecture en cours (pochette fondue dans la carte), les TV, les séries et films ajoutés sur Jellyfin, la télécommande de la box avec les logos des applis, les enceintes.
+* **Bourse** : une ou plusieurs valeurs, de 1 jour à 5 ans, la période précédente en pointillés, et ce qu'il faut retenir (meilleure et pire séance, écart, corrélation).
+* **Famille** : les personnes et les objets suivis sur une carte MapLibre au style VersaTiles, comme celle de Home Assistant 2026.10, téléchargée seulement en ouvrant la page.
+* **Système** : Internet, Home Assistant (processeur, mémoire, disque), mises à jour, sauvegarde, tablette, batteries faibles, et le choix du thème.
+* **Design** : thème clair et quatre thèmes sombres (Ardoise, Forêt, Océan, Graphite), choisis par écran ; icônes animées quand l'appareil est actif (écran qui scintille, ventilateur qui tourne, enceinte qui émet, prise qui charge), arrêtées si le système demande moins d'animations. Les popups (personnes, ouvertures, alarme, Wi-Fi, PC, lumières) suivent le même design.
+* **Tailles d'écran** : tout l'accueil tient sur la tablette 1280 × 800 sans défilement ; sur le téléphone (jusqu'à 354 px de large), une colonne avec des cartes à faire défiler.
 
 ### Maison V2 : les pages
 
@@ -113,6 +138,45 @@ Chaque page de la V2 :
 * Système est plombée par la carte native de Home Assistant (MapLibre), dessinée sans GPU par Chrome sans écran pendant la mesure.
 * La colonne Lovelace date du 23 octobre 2026, avant sa suppression : même script, même profil, avec ses 28 ressources HACS et `card-mod`.
 * L'essentiel du temps restant est celui du frontend de Home Assistant lui-même, commun aux trois. Kaoru Home charge environ 70 Ko gzip pour afficher l'accueil (Lit et composants communs compris) ; les autres pages arrivent à la demande, et three.js (150 Ko gzip) seulement pour le plan 3D.
+
+#### V2 → V3
+
+Mesurées le 1er novembre 2026 sur l'instance de dev, dans les mêmes conditions pour les deux versions. Chargement à froid de l'accueil, profil tablette, processeur ralenti 4 fois, médiane de 5 mesures :
+
+| | Maison V2 | Maison V3 |
+|---|---|---|
+| Premier vrai contenu affiché | 3,30 s | 3,00 s |
+| Temps de blocage | 1,48 s | 1,09 s |
+| JavaScript téléchargé | 1 671 Ko | 1 583 Ko |
+| Dont modules ajoutés (`/local`, images comprises) | 440 Ko | 418 Ko |
+| Éléments dans la page | 1 131 | 830 |
+
+Lighthouse 12, médiane de 3 :
+
+| Accueil | Maison V2 | Maison V3 |
+|---|---|---|
+| Performance, mobile | 71 | 73 |
+| Performance, ordinateur | 93 | 97 |
+| Temps de blocage, mobile | 1,5 s | 0,9 s |
+| Accessibilité | 84 | 98 |
+
+Chaque page de la V3 :
+
+| Page | Mobile | Ordinateur | Décalage de mise en page |
+|---|---|---|---|
+| Accueil | 73 | 97 | 0 |
+| Maison (plan) | 79 | 99 | 0 |
+| Une pièce | 79 | 98 | 0,007 |
+| Climat | 77 | 97 | 0,014 |
+| Médias | 76 | 99 | 0,006 |
+| Météo | 64 | 98 | 0,004 |
+| Énergie | 77 | 98 | 0,011 |
+| Bourse | 79 | 99 | 0,01 |
+| Famille | 66 | 74 | 0,001 |
+| Système | 79 | 100 | 0,007 |
+
+* Famille porte la carte MapLibre, dessinée sans GPU par Chrome sans écran pendant la mesure (comme Système en V2).
+* La V3 ne télécharge rien de la V1 ni de la V2 : ses pages, les popups, la carte (MapLibre) et la 3D (three.js) sont des chunks séparés, chargés à la demande.
 
 ### Développer
 

@@ -268,6 +268,8 @@ export const config: KaoruHomeConfig = {
       { entity: "light.switch_wall_cuisine", name: "Cuisine", icon: "mdi:silverware-fork-knife" },
       { entity: "light.switch_wall_toilette", name: "Toilette", icon: "mdi:toilet" },
       { entity: "light.switch_wall_salle_de_bain", name: "Salle de bain", icon: "mdi:shower" },
+      { entity: "light.lampe_japonaise", name: "Lampe japonaise", icon: "mdi:floor-lamp" },
+      { entity: "light.yeelight_stripe", name: "Bandeau LED", icon: "mdi:led-strip-variant" },
     ],
     computers: [
       {

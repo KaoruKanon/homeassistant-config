@@ -8,6 +8,9 @@ import { defineConfig, type Plugin } from "vite";
 const PAGE_ONLY = /\/src\/(v2\/[^/]+|v3\/.+|weather-utils|views\/((media|weather|energy|system)-view|page)|components\/(box-remote|posters|energy-devices|light-pill|gauge))\.ts$/;
 // Maison V1 and what only it uses: its own chunk, never downloaded by V2.
 const V1_ONLY = /\/src\/(v1\/[^/]+|views\/(home|room|rooms)-view|components\/(hero|light-card|room-card))\.ts$/;
+// What every panel needs (data, actions, dialogs); the rest of V1/V2 splits on its own,
+// so Maison V3 never downloads their components.
+const SHARED = /\/src\/(main|store|actions|config|rooms|house|format|cache|types|components\/(gestures|toast|confirm-dialog|brand-icons)|popups\/open)\.ts$/;
 // Loaded on first use (a tap, a page): the details popups, the map, the Sankey, the page tiles.
 const ON_DEMAND = /\/src\/(popups\/(index|details)|components\/(mini-map|sankey|tile))\.ts$/;
 
@@ -50,11 +53,15 @@ export default defineConfig({
         manualChunks: (id) =>
           id.includes("node_modules/three/")
             ? "three"
-            : PAGE_ONLY.test(id) || ON_DEMAND.test(id)
+            : /node_modules\/(maplibre-gl|@maplibre|@versatiles)\//.test(id)
+              ? "maplibre" // the V3 map: own chunk, imported when a map is first shown
+              : /\/src\/components\/(popup|media-card|sparkline)\.ts$/.test(id)
+                ? "popup" // the popup shell and what popups show: shared by every panel, never inside V1's chunk
+              : PAGE_ONLY.test(id) || ON_DEMAND.test(id)
               ? undefined
               : V1_ONLY.test(id)
                 ? "v1"
-                : id.includes("/src/") || id.includes("node_modules")
+                : SHARED.test(id) || id.includes("node_modules")
                   ? "core"
                   : undefined,
       },

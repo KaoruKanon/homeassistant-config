@@ -3,8 +3,8 @@ import { setFanOscillation, setFanSpeed, setInputNumber, toggle } from "../../ac
 import { config } from "../../config.ts";
 import type { Room } from "../../rooms.ts";
 import { EntitiesController, store } from "../../store.ts";
-import { f0, f1, history, linePath, minutes, num, resample, type Point } from "../data.ts";
-import { icon } from "../icons.ts";
+import { f0, f1, history, linePath, minutes, num, resample, smoothSeries, type Point } from "../data.ts";
+import { icon, liveIcon } from "../icons.ts";
 import { Page } from "../page.ts";
 
 /** One colour per room sensor, the same everywhere it is drawn. */
@@ -69,7 +69,7 @@ export class Kh3Climat extends Page {
   }
 
   private async load(): Promise<void> {
-    const ids = this.climateRooms().flatMap((r) => [r.temperature!, r.humidity].filter((x): x is string => !!x));
+    const ids = [...this.climateRooms().flatMap((r) => [r.temperature!, r.humidity].filter((x): x is string => !!x)), config.home.outdoorTemperature].filter((x): x is string => !!x);
     const res = await history(ids, this.hours);
     if (res) this.series = res;
   }
@@ -90,6 +90,79 @@ export class Kh3Climat extends Page {
         gap: 14px;
         align-items: start;
       }
+      .main {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+      }
+      .house-head {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      .house-head .legend {
+        margin-left: auto;
+      }
+      .legend i {
+        display: block;
+        width: 14px;
+        height: 3px;
+        border-radius: 2px;
+      }
+      .house-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 170px;
+        gap: 16px;
+        align-items: stretch;
+      }
+      .house-chart {
+        position: relative;
+        padding-left: 30px;
+        display: flex;
+        flex-direction: column;
+      }
+      .house-chart svg {
+        width: 100%;
+        height: 150px;
+      }
+      .yaxis {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 150px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        font-size: 11px;
+      }
+      .house-axis {
+        margin-top: 4px;
+      }
+      .house-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .house-stats div {
+        border-radius: 14px;
+        background: var(--surf2);
+        padding: 8px 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .house-stats b {
+        font-size: 20px;
+        font-weight: 700;
+      }
+      @container (max-width: 640px) {
+        .house-body {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
       .rooms {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -100,7 +173,7 @@ export class Kh3Climat extends Page {
         flex-direction: column;
         gap: 8px;
         text-align: left;
-        min-height: 230px;
+        min-height: 196px;
       }
       .room .head {
         display: flex;
@@ -141,10 +214,37 @@ export class Kh3Climat extends Page {
         font-size: 20px;
         font-weight: 700;
       }
-      svg.curve {
-        width: 100%;
-        height: 72px;
+      .chart {
+        position: relative;
         flex: 1;
+        min-height: 72px;
+        display: block;
+        margin-right: 6px;
+      }
+      svg.curve {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      /* The latest reading: a dot with a soft ring at the end of the curve. */
+      .now-dot {
+        position: absolute;
+        right: -5px;
+        width: 10px;
+        height: 10px;
+        margin-top: -5px;
+        border-radius: 99px;
+        background: var(--c);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 25%, transparent);
+      }
+      .axis {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        opacity: 0.8;
+        margin-top: -4px;
       }
       .legend {
         display: flex;
@@ -237,8 +337,8 @@ export class Kh3Climat extends Page {
     const c = comfort(t, h);
     const now = Date.now(), from = now - this.hours * 3600_000;
     const buckets = this.hours === 24 ? 48 : 84;
-    const temps = resample(this.series[r.temperature!] ?? [], from, now, buckets);
-    const hums = r.humidity ? resample(this.series[r.humidity] ?? [], from, now, buckets) : [];
+    const temps = smoothSeries(resample(this.series[r.temperature!] ?? [], from, now, buckets), this.hours === 24 ? 1 : 2);
+    const hums = r.humidity ? smoothSeries(resample(this.series[r.humidity] ?? [], from, now, buckets), this.hours === 24 ? 1 : 2) : [];
     const tv = temps.filter((v): v is number => v !== undefined);
     const hv = hums.filter((v): v is number => v !== undefined);
     const W = 200, H = 60;
@@ -250,16 +350,19 @@ export class Kh3Climat extends Page {
     const tPts = tv.length ? scale(temps, tlo - 0.5, thi + 0.5) : [];
     const hPts = hv.length ? scale(hums, Math.min(...hv) - 2, Math.max(...hv) + 2) : [];
     const line = linePath(tPts);
-    return html`<a class="card room" href="${this.p.prefix}/maison/${r.id}" aria-label="${r.name} : ${f1(t)} degrés${h !== undefined ? `, ${f0(h)} % d'humidité` : ""}">
+    return html`<a class="card room" href="${this.p.prefix}/maison/${r.id}" aria-label="${r.name} : ${t !== undefined ? `${f1(t)} degrés` : "pas de mesure"}${h !== undefined ? `, ${f0(h)} % d'humidité` : ""}">
       <span class="head"><span class="dot" style="background:${color}"></span><span class="nm ell">${r.name}</span>
         ${c ? html`<span class="tag" style=${TONE[c.tone]}>${c.label}</span>` : nothing}</span>
       <span class="vals"><span class="t num">${t !== undefined ? `${f1(t)}°` : "—"}</span>
         ${h !== undefined ? html`<span class="hum num">${icon("drop", 16)}${f0(h)} %</span>` : nothing}</span>
-      <svg class="curve" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Évolution sur ${this.hours === 24 ? "24 heures" : "7 jours"}">
-        ${tPts.length
-          ? svgPaths(line, `${line} L${W} ${H} L0 ${H} Z`, linePath(hPts), color)
-          : nothing}
-      </svg>
+      <span class="chart">
+        <svg class="curve" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Évolution sur ${this.hours === 24 ? "24 heures" : "7 jours"}">
+          <path d="M0 ${H / 2} H${W}" stroke="var(--muted)" stroke-opacity="0.18" stroke-dasharray="2 4" vector-effect="non-scaling-stroke" fill="none"></path>
+          ${tPts.length ? svgPaths(line, `${line} L${tPts.at(-1)!.x} ${H} L${tPts[0].x} ${H} Z`, linePath(hPts), color, r.id) : nothing}
+        </svg>
+        ${tPts.length ? html`<span class="now-dot" style="top:${(tPts.at(-1)!.y / H) * 100}%;--c:${color}" aria-hidden="true"></span>` : nothing}
+      </span>
+      <span class="st num axis"><span>${this.hours === 24 ? "−24 h" : "−7 j"}</span><span>maint.</span></span>
       <span class="st num" style="display:flex;justify-content:space-between">
         <span>${tv.length ? `${f1(tlo)}° à ${f1(thi)}°` : "Pas d'historique"}</span>
         <span>${hv.length ? `humidité ${f0(Math.min(...hv))} à ${f0(Math.max(...hv))} %` : ""}</span>
@@ -284,9 +387,9 @@ export class Kh3Climat extends Page {
           const t = num(timer);
           return html`<div class="fan ${on ? "on" : ""}">
             <div style="display:flex;align-items:center;gap:10px">
-              <span class="ico" style=${on ? "background:var(--teal);color:#06221e" : ""}>${on ? fanSpin() : icon("fan")}</span>
+              <span class="ico" style=${on ? "background:var(--teal);color:#06221e" : ""}>${liveIcon("fan", on)}</span>
               <span style="flex:1;min-width:0"><span class="nm ell">${name || "Ventilateur"}</span><span class="st">${on ? `En marche, ${pct} %` : s?.state === "unavailable" ? "Hors ligne" : "Arrêté"}</span></span>
-              <button class="switch" role="switch" aria-checked=${on ? "true" : "false"} aria-label="Ventilateur" @click=${() => toggle(id, "le ventilateur")}></button>
+              <button class="switch" role="switch" aria-checked=${on ? "true" : "false"} aria-label=${name === "Ventilateur" ? name : `Ventilateur ${name}`} @click=${() => toggle(id, "le ventilateur")}></button>
             </div>
             ${on
               ? html`<div class="speeds" role="group" aria-label="Vitesse">
@@ -300,7 +403,7 @@ export class Kh3Climat extends Page {
                 ${timer
                   ? html`<div style="display:flex;align-items:center;gap:10px">
                       <button class="rb" style="background:var(--surf)" aria-label="Moins de temps" @click=${() => setInputNumber(timer, Math.max(0, (t ?? 0) - 15))}>${icon("minus", 18)}</button>
-                      <span style="flex:1;text-align:center"><span class="num" style="display:block;font-size:24px;font-weight:700">${t ? minutes(t) : "Sans arrêt"}</span><span class="st">${t ? "avant l'arrêt" : "minuterie"}</span></span>
+                      <span style="flex:1;text-align:center" aria-live="polite"><span class="num" style="display:block;font-size:24px;font-weight:700">${t ? minutes(t) : "Sans arrêt"}</span><span class="st">${t ? "avant l'arrêt" : "minuterie"}</span></span>
                       <button class="rb" style="background:var(--surf)" aria-label="Plus de temps" @click=${() => setInputNumber(timer, (t ?? 0) + 15)}>${icon("plus", 18)}</button>
                     </div>`
                   : nothing}`
@@ -332,6 +435,66 @@ export class Kh3Climat extends Page {
     </section>`;
   }
 
+  /**
+   * The whole flat against the outside: average indoor temperature, outdoor
+   * temperature (same scale) and average indoor humidity (its own scale).
+   */
+  private house() {
+    const rooms = this.climateRooms();
+    const now = Date.now(), from = now - this.hours * 3600_000;
+    const n = this.hours === 24 ? 72 : 112;
+    const avg = (ids: string[]) => {
+      const cols = ids.map((id) => smoothSeries(resample(this.series[id] ?? [], from, now, n), 1));
+      return Array.from({ length: n }, (_, i) => {
+        const v = cols.map((c) => c[i]).filter((x): x is number => x !== undefined);
+        return v.length ? v.reduce((a, b) => a + b, 0) / v.length : undefined;
+      });
+    };
+    const inside = avg(rooms.map((r) => r.temperature!));
+    const hum = avg(rooms.map((r) => r.humidity).filter((x): x is string => !!x));
+    const out = config.home.outdoorTemperature ? smoothSeries(resample(this.series[config.home.outdoorTemperature] ?? [], from, now, n), 1) : [];
+    const temps = [...inside, ...out].filter((v): v is number => v !== undefined);
+    const hv = hum.filter((v): v is number => v !== undefined);
+    const W = 600, H = 150;
+    const lo = Math.floor(Math.min(...temps) - 1), hi = Math.ceil(Math.max(...temps) + 1);
+    const y = (v: number) => H - 6 - ((v - lo) / Math.max(hi - lo, 1)) * (H - 14);
+    const hlo = Math.min(...hv) - 3, hhi = Math.max(...hv) + 3;
+    const yh = (v: number) => H - 6 - ((v - hlo) / Math.max(hhi - hlo, 1)) * (H - 14);
+    const path = (vals: (number | undefined)[], f: (v: number) => number) =>
+      linePath(vals.map((v, i) => (v === undefined ? undefined : { x: (i / (n - 1)) * W, y: f(v) })).filter((p): p is { x: number; y: number } => !!p));
+    const pin = path(inside, y), pout = path(out, y), phum = hv.length ? path(hum, yh) : "";
+    const lastIn = inside.filter((v) => v !== undefined).at(-1), lastOut = out.filter((v) => v !== undefined).at(-1);
+    const outs = out.filter((v): v is number => v !== undefined);
+    const ticks = [hi, (hi + lo) / 2, lo];
+    return html`<section class="card house" aria-label="Maison et dehors">
+      <div class="house-head">
+        <h2 class="h">Maison et dehors</h2>
+        <span class="legend"><span><i style="background:var(--teal)"></i>Intérieur</span><span><i style="background:var(--blue)"></i>Dehors</span>
+          <span><i style="border-top:2px dashed var(--muted);height:0"></i>Humidité</span></span>
+      </div>
+      <div class="house-body">
+        <div class="house-chart">
+          <span class="yaxis num st">${ticks.map((t) => html`<span>${f0(t)}°</span>`)}</span>
+          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Températures intérieure et extérieure et humidité sur ${this.hours === 24 ? "24 heures" : "7 jours"}">
+            <defs><linearGradient id="g-house" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--teal);stop-opacity:.28"></stop><stop offset="1" style="stop-color:var(--teal);stop-opacity:0"></stop></linearGradient></defs>
+            ${[0.25, 0.5, 0.75].map((f) => svg`<path d="M0 ${H * f} H${W}" stroke="var(--muted)" stroke-opacity="0.15" stroke-dasharray="2 5" vector-effect="non-scaling-stroke"></path>`)}
+            ${pin ? svg`<path d="${pin} L${W} ${H} L0 ${H} Z" fill="url(#g-house)"></path>` : nothing}
+            ${phum ? svg`<path d=${phum} fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.7" vector-effect="non-scaling-stroke"></path>` : nothing}
+            ${pout ? svg`<path d=${pout} fill="none" stroke="var(--blue)" stroke-width="2.4" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>` : nothing}
+            ${pin ? svg`<path d=${pin} fill="none" stroke="var(--teal)" stroke-width="2.8" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>` : nothing}
+          </svg>
+          <span class="st num axis house-axis"><span>${this.hours === 24 ? "−24 h" : "−7 j"}</span><span>${this.hours === 24 ? "−12 h" : "−3 j"}</span><span>maint.</span></span>
+        </div>
+        <div class="house-stats">
+          <div><span class="st">Intérieur</span><b class="num" style="color:var(--teal)">${f1(lastIn)}°</b></div>
+          <div><span class="st">Dehors</span><b class="num" style="color:var(--blue)">${f1(lastOut)}°</b></div>
+          <div><span class="st">Écart</span><b class="num">${lastIn !== undefined && lastOut !== undefined ? `${f1(lastIn - lastOut)}°` : "—"}</b></div>
+          <div><span class="st">Dehors, min–max</span><b class="num" style="font-size:15px">${outs.length ? `${f1(Math.min(...outs))}° à ${f1(Math.max(...outs))}°` : "—"}</b></div>
+        </div>
+      </div>
+    </section>`;
+  }
+
   render() {
     if (!store.hass || !this.p) return nothing;
     const rooms = this.climateRooms();
@@ -351,9 +514,11 @@ export class Kh3Climat extends Page {
         </div>
       </div>
       <div class="layout">
+        <div class="main">${this.house()}
         <section class="rooms" aria-label="Pièces">
           ${rooms.length ? rooms.map((r, i) => this.roomCard(r, ROOM_COLORS[i % ROOM_COLORS.length])) : html`<p class="empty">Aucun thermomètre rattaché à une pièce.</p>`}
         </section>
+        </div>
         <div class="side">${this.fans()}${this.tips()}</div>
       </div>
     `;
@@ -361,12 +526,12 @@ export class Kh3Climat extends Page {
 }
 customElements.define("kh3-climat", Kh3Climat);
 
-function svgPaths(line: string, area: string, hum: string, color: string) {
-  return svg`${svgArea(area, color)}${hum ? svgLine(hum, "var(--muted)", true) : nothing}${svgLine(line, color, false)}`;
+function svgPaths(line: string, area: string, hum: string, color: string, id: string) {
+  // The area fades out towards the bottom: no hard edge against the card.
+  return svg`<defs><linearGradient id="g-${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color=${color} stop-opacity="0.32"></stop><stop offset="1" stop-color=${color} stop-opacity="0"></stop></linearGradient></defs>
+    <path d=${area} fill="url(#g-${id})"></path>${hum ? svgLine(hum, "var(--muted)", true) : nothing}${svgLine(line, color, false)}`;
 }
 
-const svgArea = (d: string, color: string) => svg`<path d=${d} fill=${color} opacity="0.16"></path>`;
 const svgLine = (d: string, color: string, dashed: boolean) =>
-  svg`<path d=${d} fill="none" stroke=${color} stroke-width=${dashed ? 1.6 : 2.5} stroke-dasharray=${dashed ? "4 3" : "none"} vector-effect="non-scaling-stroke" opacity=${dashed ? 0.8 : 1}></path>`;
-const fanSpin = () =>
-  html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">${svg`<g class="kh-spin kh-fast"><path d="M12 10c0-4 1-7 4-7s2 4-2 7M14 12c4 0 7 1 7 4s-4 2-7-2M12 14c0 4-1 7-4 7s-2-4 2-7M10 12c-4 0-7-1-7-4s4-2 7 2"></path></g>`}</svg>`;
+  svg`<path d=${d} fill="none" stroke=${color} stroke-width=${dashed ? 1.6 : 2.6} stroke-dasharray=${dashed ? "4 4" : "none"} stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" opacity=${dashed ? 0.7 : 1}></path>`;

@@ -1,15 +1,16 @@
 import { html, nothing } from "lit";
 import { openMoreInfo, pressButton, refresh, ringPhone, setAlarm, setNumber, toggle, triggerAutomation, type AlarmMode } from "../actions.ts";
-import "../components/mini-map.ts";
 import "../components/sparkline.ts";
-import { openPopup, refreshPopup } from "../components/popup.ts";
+import { action, bigSlider, glyph, label, openPopup, refreshPopup, row, toneOf } from "../components/popup.ts";
 import { config, type Computer, type Favorite } from "../config.ts";
 import { ago, alarmLook, formatNumber, isActive, isUnavailable, stateLabel } from "../format.ts";
 import { store } from "../store.ts";
 import type { HassEntity } from "../types.ts";
+import "../v3/map.ts";
+import { objectIcon, type MapMarker, type MapZone } from "../v3/map.ts";
 
-// Details popups, rebuilt from the old browser_mod popups (popup/*.yaml).
-// Downloaded on the first tap, through ./open.ts.
+// Details popups, rebuilt from the old browser_mod popups (popup/*.yaml),
+// in the V3 design. Downloaded on the first tap, through ./open.ts.
 
 export { ago, alarmLook };
 
@@ -17,29 +18,25 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const st = (id?: string) => (id ? store.hass?.states[id] : undefined);
 
-function row(icon: string, color: string, label: string, value: string, sub?: string, onClick?: () => void) {
-  const content = html`<span class="shape" style="--rgb: var(--rgb-${color})"><ha-icon icon=${icon}></ha-icon></span>
-    <div><div class="primary">${label}</div>${sub ? html`<div class="secondary">${sub}</div>` : nothing}</div>
-    <span class="value">${value}</span>`;
-  return onClick ? html`<button class="row" @click=${onClick}>${content}</button>` : html`<div class="row">${content}</div>`;
-}
+const sinceText = (iso?: string) => (iso ? `depuis ${ago(iso).replace("il y a ", "")}` : "");
 
 /** One figure: icon, label, value (greyed when unavailable). */
-function stat(icon: string, color: string, label: string, s?: HassEntity) {
+function stat(iconName: string, color: string, text: string, s?: HassEntity) {
   const off = isUnavailable(s);
-  return html`<div class="stat" style=${off ? "opacity:.6" : ""}>
-    <span class="shape" style="--rgb: var(--rgb-${color})"><ha-icon icon=${icon}></ha-icon></span>
-    <span class="secondary">${label}</span>
-    <b>${off ? "Indisponible" : stateLabel(store.hass!, s)}</b>
+  return html`<div class="stat ${off ? "off" : ""} t-${toneOf(color)}">
+    <span class="top"><span class="ico">${glyph(iconName, 18)}</span><span class="st ell">${text}</span></span>
+    <b class="num ell">${off ? "Indisponible" : stateLabel(store.hass!, s)}</b>
   </div>`;
 }
 
-function bar(label: string, entity: string) {
+/** A usage meter (CPU, RAM, disk...); a tap asks for a fresh value. */
+function meter(text: string, entity: string) {
   const v = Number(st(entity)?.state);
-  const color = isNaN(v) ? "grey" : v > 85 ? "red" : v > 65 ? "orange" : "green";
-  return html`<button class="bar" style="--rgb: var(--rgb-${color})" title="Actualiser" @click=${() => refresh([entity])}>
-    <span class="label"><span>${label}</span><span>${isNaN(v) ? "—" : `${formatNumber(v, 0)} %`}</span></span>
-    <span class="track"><span class="fill" style="display:block; width:${isNaN(v) ? 0 : Math.min(100, v)}%"></span></span>
+  const color = isNaN(v) ? "grey" : v > 85 ? "red" : v > 65 ? "amber" : "teal";
+  return html`<button class="meter t-${color}" type="button" aria-label="${text} : ${isNaN(v) ? "inconnu" : `${formatNumber(v, 0)} %`}. Actualiser"
+    @click=${() => refresh([entity])}>
+    <span class="top" aria-hidden="true"><span>${text}</span><span class="num">${isNaN(v) ? "—" : `${formatNumber(v, 0)} %`}</span></span>
+    <span class="track" aria-hidden="true"><span class="fill" style="width:${isNaN(v) ? 0 : Math.min(100, v)}%"></span></span>
   </button>`;
 }
 
@@ -47,40 +44,52 @@ function bar(label: string, entity: string) {
 export function openComputer(c: Computer): void {
   openPopup({
     title: c.name,
-    icon: "mdi:desktop-tower-monitor",
+    icon: "monitor",
     color: "blue",
+    subtitle: () => {
+      const s = st(c.entity);
+      return s ? `${isActive(s) ? "Allumé" : "Éteint"} ${sinceText(s.last_changed)}` : undefined;
+    },
     watch: [c.entity, c.busy, c.uptime, c.lock, c.camera, ...(c.stats ?? []).map((s) => s.entity)].filter((x): x is string => !!x),
     body: () => {
       const s = st(c.entity);
       const on = isActive(s);
+      const busy = isActive(st(c.busy));
       const locked = isActive(st(c.lock));
       const cam = st(c.camera);
       return html`
-        ${row("mdi:power", on ? "green" : "grey", on ? "Allumé" : "Éteint", "", s ? `depuis ${ago(s.last_changed).replace("il y a ", "")}` : "")}
-        ${on && c.stats?.length ? html`<div class="grid2">${c.stats.map((x) => bar(x.label, x.entity))}</div>` : nothing}
-        ${on && c.uptime ? row("mdi:timer-sand", "indigo", "Allumé depuis", stateLabel(store.hass!, st(c.uptime))) : nothing}
+        ${row({
+          icon: "power",
+          color: on ? "green" : "grey",
+          label: busy ? "Démarrage ou arrêt en cours…" : on ? "Allumé" : "Éteint",
+          sub: s ? sinceText(s.last_changed) : undefined,
+          lit: on,
+          big: true,
+        })}
+        ${on && c.stats?.length ? html`<div class="grid2">${c.stats.map((x) => meter(x.label, x.entity))}</div>` : nothing}
+        ${on && c.uptime ? row({ icon: "timer", color: "indigo", label: "Allumé depuis", value: stateLabel(store.hass!, st(c.uptime)) }) : nothing}
         ${c.lock
-          ? row(locked ? "mdi:lock" : "mdi:lock-open-variant", locked ? "red" : "grey", "Verrou", locked ? "Activé" : "Désactivé",
-              "Empêche l'extinction depuis Home Assistant", () => toggle(c.lock!, "le verrou"))
+          ? row({
+              icon: locked ? "lock" : "unlock",
+              color: locked ? "red" : "grey",
+              label: "Verrou",
+              sub: "Empêche l'extinction depuis Home Assistant",
+              checked: locked,
+              onClick: () => toggle(c.lock!, "le verrou"),
+            })
           : nothing}
         ${on && cam && !isUnavailable(cam)
-          ? html`<button title="Nouvelle capture" @click=${() => c.screenshot && triggerAutomation(c.screenshot)}>
-              <img class="shot" src=${cam.attributes.entity_picture} alt="Capture d'écran de ${c.name}" />
+          ? html`<button class="shot" type="button" aria-label="Nouvelle capture d'écran de ${c.name}" @click=${() => c.screenshot && triggerAutomation(c.screenshot)}>
+              <img src=${cam.attributes.entity_picture} alt="Capture d'écran de ${c.name}" />
+              ${c.screenshot ? html`<span class="cap" aria-hidden="true">${glyph("camera", 14)}Nouvelle capture</span>` : nothing}
             </button>`
           : nothing}
-        <div class="grid2">
+        <div class="acts">
           ${on
-            ? html`${c.sleep
-                ? html`<button class="action" style="--rgb: var(--rgb-indigo)" @click=${() => toggle(c.sleep!, `la veille de ${c.name}`)}>
-                    <ha-icon icon="mdi:power-sleep"></ha-icon>Mettre en veille</button>`
-                : nothing}
-              ${c.reboot
-                ? html`<button class="action" style="--rgb: var(--rgb-orange)" @click=${() => toggle(c.reboot!, `le redémarrage de ${c.name}`)}>
-                    <ha-icon icon="mdi:restart"></ha-icon>Redémarrer</button>`
-                : nothing}`
+            ? html`${c.sleep ? action("Mettre en veille", "moon", "indigo", () => toggle(c.sleep!, `la veille de ${c.name}`)) : nothing}
+              ${c.reboot ? action("Redémarrer", "refresh", "orange", () => toggle(c.reboot!, `le redémarrage de ${c.name}`)) : nothing}`
             : c.wake
-              ? html`<button class="action" style="--rgb: var(--rgb-green)" @click=${() => toggle(c.wake!, c.name)}>
-                  <ha-icon icon="mdi:power"></ha-icon>Démarrer ${c.name}</button>`
+              ? action(`Démarrer ${c.name}`, "power", "green", () => toggle(c.wake!, c.name), true)
               : nothing}
         </div>
       `;
@@ -88,39 +97,7 @@ export function openComputer(c: Computer): void {
   });
 }
 
-/** Person: where, since when, GPS and Wi-Fi, history link, "find my phone". */
-export function openPerson(personKey: string): void {
-  const id = `person.${personKey}`;
-  const phone = config.people[personKey]?.phone;
-  openPopup({
-    title: capitalize(st(id)?.attributes.friendly_name ?? personKey),
-    icon: "mdi:account",
-    color: "green",
-    watch: [id, phone?.tracker, phone?.ping].filter((x): x is string => !!x),
-    body: () => {
-      const p = st(id);
-      const home = p?.state === "home";
-      const gps = st(phone?.tracker);
-      const wifi = st(phone?.ping);
-      return html`
-        ${row(home ? "mdi:home-account" : "mdi:map-marker-account", home ? "green" : "red", home ? "À la maison" : stateLabel(store.hass!, p), "",
-          p ? `depuis ${ago(p.last_changed).replace("il y a ", "")}` : "")}
-        ${gps ? row("mdi:crosshairs-gps", "blue", "GPS", stateLabel(store.hass!, gps), ago(gps.last_changed)) : nothing}
-        ${wifi ? row("mdi:wifi", isActive(wifi) ? "green" : "grey", "Wi-Fi de la maison", isActive(wifi) ? "Connecté" : "Absent") : nothing}
-        ${where(p, gps)}
-        <div class="grid2">
-          ${directions(p, gps)}
-          ${phone?.notify
-            ? html`<button class="action" style="--rgb: var(--rgb-red)" @click=${() => ringPhone(phone.notify!)}>
-                <ha-icon icon="mdi:cellphone-sound"></ha-icon>Trouver le téléphone</button>`
-            : nothing}
-        </div>
-      `;
-    },
-  });
-}
-
-/** Map of where an entity (person or tracker) is, with its photo or icon. */
+/** Position of an entity (person or tracker), if it has one. */
 function coords(...states: (HassEntity | undefined)[]) {
   for (const s of states) {
     const lat = Number(s?.attributes.latitude), lon = Number(s?.attributes.longitude);
@@ -129,39 +106,119 @@ function coords(...states: (HassEntity | undefined)[]) {
   return undefined;
 }
 
-function where(main?: HassEntity, fallback?: HassEntity) {
-  // The entity that has a position (the person, else its phone's GPS tracker).
-  const located = [main, fallback].find((s) => coords(s));
-  return located ? html`<kh-mini-map .entities=${[located.entity_id]}></kh-mini-map>` : nothing;
+/** The home zone, drawn on the maps. */
+function homeZone(): MapZone[] {
+  const z = st("zone.home");
+  const c = coords(z);
+  return c ? [{ lat: c.lat, lon: c.lon, radius: Number(z!.attributes.radius) || 100, label: "Maison" }] : [];
+}
+
+/** The shared V3 map with one marker (and the home zone). */
+function where(marker?: MapMarker) {
+  return marker
+    ? html`<kh3-map class="pmap" label="Carte : ${marker.label}" reset-label="Recentrer" .markers=${[marker]} .zones=${homeZone()}></kh3-map>`
+    : nothing;
 }
 
 function directions(main?: HassEntity, fallback?: HassEntity) {
   const c = coords(main, fallback);
   return c
-    ? html`<a class="action" style="--rgb: var(--rgb-blue); text-decoration:none; color:inherit" target="_blank" rel="noopener"
-        href="https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lon}"><ha-icon icon="mdi:directions"></ha-icon>Itinéraire</a>`
+    ? html`<a class="act t-blue" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lon}"
+        >${glyph("directions", 18)}Itinéraire</a
+      >`
     : nothing;
 }
 
-/** A tracked object (Tile tag, phone...): where it is, since when, its accuracy. */
-export function openTracker(id: string, icon = "mdi:map-marker"): void {
-  const t = config.system.trackers.find((x) => x.entity === id);
+/** Person: where, since when, GPS and Wi-Fi, map, directions, "find my phone". */
+export function openPerson(personKey: string): void {
+  const id = `person.${personKey}`;
+  const phone = config.people[personKey]?.phone;
+  const name = () => capitalize(String(st(id)?.attributes.friendly_name ?? personKey));
+  let rung = false;
   openPopup({
-    title: t?.name ?? capitalize(String(st(id)?.attributes.friendly_name ?? id)),
-    icon: t?.icon ?? icon,
+    title: name(),
+    icon: "user",
+    color: "green",
+    picture: () => {
+      const p = st(id);
+      return { src: p?.attributes.entity_picture as string | undefined, initial: name().charAt(0), home: p?.state === "home" };
+    },
+    subtitle: () => {
+      const p = st(id);
+      return p ? `${p.state === "home" ? "À la maison" : stateLabel(store.hass!, p)} ${sinceText(p.last_changed)}` : undefined;
+    },
+    watch: [id, phone?.tracker, phone?.ping, "zone.home"].filter((x): x is string => !!x),
+    body: () => {
+      const p = st(id);
+      const home = p?.state === "home";
+      const gps = st(phone?.tracker);
+      const wifi = st(phone?.ping);
+      const c = coords(p, gps);
+      return html`
+        ${row({
+          icon: home ? "home" : "pin",
+          color: home ? "green" : "amber",
+          label: home ? "À la maison" : stateLabel(store.hass!, p),
+          sub: p ? sinceText(p.last_changed) : undefined,
+          lit: true,
+          big: true,
+        })}
+        ${c
+          ? where({ id, lat: c.lat, lon: c.lon, label: name(), kind: "person", image: p?.attributes.entity_picture as string | undefined, home })
+          : nothing}
+        ${gps ? row({ icon: "gps", color: "blue", label: "GPS", sub: ago(gps.last_changed), value: stateLabel(store.hass!, gps) }) : nothing}
+        ${wifi ? row({ icon: "wifi", color: isActive(wifi) ? "green" : "grey", label: "Wi-Fi de la maison", value: isActive(wifi) ? "Connecté" : "Absent" }) : nothing}
+        <div class="acts">
+          ${directions(p, gps)}
+          ${phone?.notify
+            ? html`${action(rung ? "Ça sonne" : "Trouver le téléphone", rung ? "check" : "bell", "red", () => {
+                  void ringPhone(phone.notify!);
+                  rung = true;
+                  refreshPopup();
+                })}
+                <span class="sr" aria-live="polite">${rung ? `Le téléphone de ${name()} sonne` : ""}</span>`
+            : nothing}
+        </div>
+      `;
+    },
+  });
+}
+
+/** A tracked object (Tile tag, phone...): where it is, since when, its accuracy. */
+export function openTracker(id: string, mdi = "mdi:map-marker"): void {
+  const t = config.system.trackers.find((x) => x.entity === id);
+  const name = t?.name ?? capitalize(String(st(id)?.attributes.friendly_name ?? id));
+  const iconName = objectIcon(t?.icon ?? mdi);
+  openPopup({
+    title: name,
+    icon: iconName,
     color: "orange",
-    watch: [id],
+    subtitle: () => {
+      const s = st(id);
+      return s ? `Vu ${ago((s.attributes.last_seen as string | undefined) ?? s.last_updated)}` : undefined;
+    },
+    watch: [id, "zone.home"],
     body: () => {
       const s = st(id);
       if (!s) return nothing;
       const home = s.state === "home";
+      const lost = !!s.attributes.is_lost;
       const acc = Number(s.attributes.gps_accuracy);
+      const c = coords(s);
       return html`
-        ${row(home ? "mdi:home-map-marker" : "mdi:map-marker-radius", home ? "green" : "orange", home ? "À la maison" : s.state === "not_home" ? "Ailleurs" : stateLabel(store.hass!, s), "",
-          `vu ${ago((s.attributes.last_seen as string | undefined) ?? s.last_updated)}${isFinite(acc) ? `, précision ${formatNumber(acc, 0)} m` : ""}`)}
-        ${where(s)}
-        ${s.attributes.is_lost ? row("mdi:alert", "red", "Signalé perdu", "") : nothing}
-        <div class="grid2">${directions(s)}</div>
+        ${row({
+          icon: home ? "home" : "pin",
+          color: home ? "green" : "orange",
+          label: home ? "À la maison" : s.state === "not_home" ? "Ailleurs" : stateLabel(store.hass!, s),
+          sub: `vu ${ago((s.attributes.last_seen as string | undefined) ?? s.last_updated)}${isFinite(acc) ? `, précision ${formatNumber(acc, 0)} m` : ""}`,
+          lit: true,
+          big: true,
+        })}
+        ${lost ? row({ icon: "alert", color: "red", label: "Signalé perdu", lit: true }) : nothing}
+        ${c
+          ? where({ id, lat: c.lat, lon: c.lon, label: name, kind: "object", icon: iconName, home, tone: lost ? "red" : home ? "teal" : "amber" })
+          : nothing}
+        <div class="acts">${directions(s)}</div>
       `;
     },
   });
@@ -171,15 +228,16 @@ export function openTracker(id: string, icon = "mdi:map-marker"): void {
 export function openThermometer(spec: Extract<Favorite, { type: "thermometer" }>): void {
   openPopup({
     title: spec.name,
-    icon: "mdi:thermometer",
-    color: "green",
+    icon: "thermo",
+    color: "amber",
     watch: [spec.temperature, spec.humidity, spec.battery].filter((x): x is string => !!x),
     body: () => html`
       <div class="stats">
-        ${stat("mdi:thermometer", "orange", "Température", st(spec.temperature))}
-        ${spec.humidity ? stat("mdi:water-percent", "light-blue", "Humidité", st(spec.humidity)) : nothing}
-        ${spec.battery ? stat("mdi:battery", "green", "Pile", st(spec.battery)) : nothing}
+        ${stat("thermo", "orange", "Température", st(spec.temperature))}
+        ${spec.humidity ? stat("drop", "blue", "Humidité", st(spec.humidity)) : nothing}
+        ${spec.battery ? stat("battery", "green", "Pile", st(spec.battery)) : nothing}
       </div>
+      ${label("24 heures")}
       <kh-sparkline
         .entities=${[
           { entity: spec.temperature, label: "Température", color: "var(--rgb-orange)", unit: "°C" },
@@ -194,23 +252,29 @@ export function openThermometer(spec: Extract<Favorite, { type: "thermometer" }>
 export function openOpenings(ids: string[]): void {
   openPopup({
     title: "Fenêtres et portes",
-    icon: "mdi:window-open-variant",
+    icon: "window",
     color: "red",
+    subtitle: () => {
+      const n = ids.filter((id) => isActive(st(id))).length;
+      return n ? `${n} ouverte${n > 1 ? "s" : ""}` : "Tout est fermé";
+    },
     watch: ids,
     body: () =>
       html`${ids
         .map((id) => st(id))
-        .filter((s) => !!s)
+        .filter((s): s is HassEntity => !!s)
         .sort((a, b) => Number(isActive(b)) - Number(isActive(a)))
         .map((s) =>
-          row(
-            isActive(s) ? "mdi:window-open-variant" : "mdi:window-closed-variant",
-            isActive(s) ? "red" : "green",
-            (s!.attributes.friendly_name as string).replaceAll("_", " "),
-            stateLabel(store.hass!, s),
-            ago(s!.last_changed),
-            () => openMoreInfo(document.body, s!.entity_id),
-          ),
+          row({
+            icon: s.entity_id.includes("door") || s.attributes.device_class === "door" ? "door" : "window",
+            color: isActive(s) ? "red" : "green",
+            label: String(s.attributes.friendly_name ?? s.entity_id).replaceAll("_", " "),
+            sub: ago(s.last_changed),
+            value: stateLabel(store.hass!, s),
+            lit: isActive(s),
+            chevron: true,
+            onClick: () => openMoreInfo(document.body, s.entity_id),
+          }),
         )}`,
   });
 }
@@ -219,29 +283,31 @@ export function openOpenings(ids: string[]): void {
 export function openWifiQr(): void {
   openPopup({
     title: "Wi-Fi de la maison",
-    icon: "mdi:qrcode",
+    icon: "wifi",
     color: "teal",
+    subtitle: () => "Pour les invités",
     watch: [],
     body: () => html`
-      <img class="shot" style="background:#fff; padding:16px; box-sizing:border-box; max-width:320px; justify-self:center" src=${config.home.wifiQr} alt="QR code du Wi-Fi" />
-      <div class="muted" style="text-align:center">Scanne le code avec l'appareil photo pour rejoindre le Wi-Fi.</div>
+      <div class="qr"><img src=${config.home.wifiQr} alt="QR code du Wi-Fi" /></div>
+      <p class="since" style="text-align:center">Scanne le code avec l'appareil photo pour rejoindre le Wi-Fi.</p>
     `,
   });
 }
 
 /** A Jellyfin item: artwork, summary, rating, genres, runtime. */
 export function openMediaItem(item: Record<string, any>): void {
+  const meta = [item.number, item.episode, item.rating, item.runtime ? `${item.runtime} min` : ""]
+    .concat(String(item.genres ?? "").split(/,\s*/))
+    .filter(Boolean);
   openPopup({
     title: item.title,
-    icon: "mdi:filmstrip-box-multiple",
+    icon: "film",
     color: "purple",
     watch: [],
     body: () => html`
-      ${item.fanart || item.poster ? html`<img class="shot" style="max-height:260px" src=${item.fanart || item.poster} alt="" />` : nothing}
-      <div class="secondary">
-        ${[item.number, item.episode, item.rating, item.runtime ? `${item.runtime} min` : "", item.genres].filter(Boolean).join(", ")}
-      </div>
-      ${item.summary ? html`<p style="margin:0; line-height:1.5">${item.summary}</p>` : nothing}
+      ${item.fanart || item.poster ? html`<img class="cover" src=${item.fanart || item.poster} alt="" />` : nothing}
+      ${meta.length ? html`<div class="chips">${meta.map((m) => html`<span class="chip">${m}</span>`)}</div>` : nothing}
+      ${item.summary ? html`<p class="text">${item.summary}</p>` : nothing}
     `,
   });
 }
@@ -252,40 +318,54 @@ export function openTablet(): void {
   if (!t) return;
   openPopup({
     title: t.name,
-    icon: "mdi:tablet",
+    icon: "tablet",
     color: "indigo",
     watch: [t.screen, t.brightness, t.screensaver, t.plugged, t.battery, t.memory, t.storage].filter((x): x is string => !!x),
     body: () => {
       const hass = store.hass!;
       const screenOn = isActive(st(t.screen));
       const bright = Number(st(t.brightness)?.state);
+      const plugged = isActive(st(t.plugged));
       return html`
-        ${row("mdi:tablet", screenOn ? "indigo" : "grey", "Écran", screenOn ? "Allumé" : "Éteint", "", () => toggle(t.screen, "l'écran"))}
+        ${row({ icon: "tablet", color: "indigo", label: "Écran", sub: screenOn ? "Allumé" : "Éteint", checked: screenOn, onClick: () => toggle(t.screen, "l'écran"), big: true })}
         ${t.brightness && !isNaN(bright)
-          ? html`<label class="bar" style="--rgb: var(--rgb-amber)">
-              <span class="label"><span>Luminosité</span><span>${Math.round((bright / 255) * 100)} %</span></span>
-              <input type="range" min="0" max="255" .value=${String(bright)} style="width:100%"
-                @change=${(e: Event) => setNumber(t.brightness!, Number((e.target as HTMLInputElement).value))} />
-            </label>`
+          ? bigSlider({
+              label: "Luminosité",
+              icon: "sun",
+              min: 0,
+              max: 255,
+              raw: bright,
+              pct: (v) => (v / 255) * 100,
+              on: true,
+              onChange: (v) => setNumber(t.brightness!, v),
+            })
           : nothing}
-        ${t.screensaver ? row("mdi:power-sleep", isActive(st(t.screensaver)) ? "purple" : "grey", "Économiseur d'écran", isActive(st(t.screensaver)) ? "Actif" : "Inactif", "", () => toggle(t.screensaver!, "l'économiseur")) : nothing}
-        ${t.battery ? row(isActive(st(t.plugged)) ? "mdi:battery-charging" : "mdi:battery", "green", "Batterie", stateLabel(hass, st(t.battery)), isActive(st(t.plugged)) ? "Branchée" : "Sur batterie") : nothing}
-        <div class="grid2">${t.memory ? bar("Mémoire", t.memory) : nothing}${t.storage ? bar("Stockage", t.storage) : nothing}</div>
-        <div class="grid2">
-          ${t.reload ? html`<button class="action" style="--rgb: var(--rgb-blue)" @click=${() => pressButton(t.reload!)}><ha-icon icon="mdi:refresh"></ha-icon>Recharger</button>` : nothing}
-          ${t.restartBrowser ? html`<button class="action" style="--rgb: var(--rgb-orange)" @click=${() => pressButton(t.restartBrowser!)}><ha-icon icon="mdi:restart"></ha-icon>Redémarrer le navigateur</button>` : nothing}
+        ${t.screensaver
+          ? row({
+              icon: "moon",
+              color: "purple",
+              label: "Économiseur d'écran",
+              sub: isActive(st(t.screensaver)) ? "Actif" : "Inactif",
+              checked: isActive(st(t.screensaver)),
+              onClick: () => toggle(t.screensaver!, "l'économiseur"),
+            })
+          : nothing}
+        ${t.battery ? row({ icon: plugged ? "plug" : "battery", color: "green", label: "Batterie", sub: plugged ? "Branchée" : "Sur batterie", value: stateLabel(hass, st(t.battery)) }) : nothing}
+        ${t.memory || t.storage ? html`<div class="grid2">${t.memory ? meter("Mémoire", t.memory) : nothing}${t.storage ? meter("Stockage", t.storage) : nothing}</div>` : nothing}
+        <div class="acts">
+          ${t.reload ? action("Recharger", "refresh", "blue", () => pressButton(t.reload!)) : nothing}
+          ${t.restartBrowser ? action("Redémarrer le navigateur", "power", "orange", () => pressButton(t.restartBrowser!)) : nothing}
         </div>
       `;
     },
   });
 }
 
-
 const ALARM_MODES: { mode: AlarmMode; bit: number; label: string; icon: string }[] = [
-  { mode: "arm_away", bit: 2, label: "Absence", icon: "mdi:shield-lock" },
-  { mode: "arm_home", bit: 1, label: "Maison", icon: "mdi:shield-home" },
-  { mode: "arm_night", bit: 4, label: "Nuit", icon: "mdi:shield-moon" },
-  { mode: "arm_vacation", bit: 32, label: "Vacances", icon: "mdi:shield-airplane" },
+  { mode: "arm_away", bit: 2, label: "Absence", icon: "leave" },
+  { mode: "arm_home", bit: 1, label: "Maison", icon: "home" },
+  { mode: "arm_night", bit: 4, label: "Nuit", icon: "moon" },
+  { mode: "arm_vacation", bit: 32, label: "Vacances", icon: "sun" },
 ];
 
 /** Alarm: its state, the arming modes it supports, disarm, and a keypad when it needs a code. */
@@ -293,8 +373,12 @@ export function openAlarm(id: string): void {
   let code = "";
   openPopup({
     title: capitalize(String(st(id)?.attributes.friendly_name ?? "Alarme")),
-    icon: "mdi:shield-home",
+    icon: "shield",
     color: "red",
+    subtitle: () => {
+      const s = st(id);
+      return s ? `${alarmLook(s.state).label} ${sinceText(s.last_changed)}` : undefined;
+    },
     watch: [id],
     body: () => {
       const s = st(id);
@@ -314,27 +398,25 @@ export function openAlarm(id: string): void {
         refreshPopup();
       };
       return html`
-        ${row(look.icon, look.color, look.label, "", `depuis ${ago(s.last_changed).replace("il y a ", "")}`)}
+        ${row({ icon: look.icon, color: look.color, label: look.label, sub: sinceText(s.last_changed), lit: look.color !== "grey", big: true })}
         ${needsCode
-          ? html`<div class="code" aria-live="polite">${code ? "•".repeat(code.length) : html`<span class="muted">Code</span>`}</div>
+          ? html`<div class="code" role="status" aria-live="polite" aria-label=${code ? `${code.length} chiffre${code.length > 1 ? "s" : ""} saisi${code.length > 1 ? "s" : ""}` : "Code vide"}>
+                ${code ? "•".repeat(code.length) : html`<span class="ph">Code</span>`}
+              </div>
               ${format === "number"
-                ? html`<div class="keypad">
+                ? html`<div class="keypad" role="group" aria-label="Clavier du code">
                     ${["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0"].map(
-                      (k) => html`<button class="action" style="--rgb: var(--rgb-grey)" aria-label=${k === "⌫" ? "Effacer" : k} @click=${() => key(k)}>
-                        ${k === "⌫" ? html`<ha-icon icon="mdi:backspace-outline"></ha-icon>` : k}</button>`,
+                      (k) => html`<button class="key" type="button" aria-label=${k === "⌫" ? "Effacer" : k} @click=${() => key(k)}>
+                        ${k === "⌫" ? glyph("backspace", 24) : k}</button>`,
                     )}
                   </div>`
-                : html`<input class="code-input" type="password" autocomplete="off" placeholder="Code" .value=${code}
+                : html`<input class="code-input" type="password" autocomplete="off" placeholder="Code" aria-label="Code de l'alarme" .value=${code}
                     @input=${(e: Event) => (code = (e.target as HTMLInputElement).value)} />`}`
           : nothing}
         ${armed
-          ? html`<button class="action" style="--rgb: var(--rgb-orange)" @click=${() => send("disarm")}>
-              <ha-icon icon="mdi:shield-off-outline"></ha-icon>Désarmer</button>`
+          ? action("Désarmer", "shieldOff", "orange", () => send("disarm"))
           : html`<div class="grid2">
-              ${ALARM_MODES.filter((m) => features & m.bit).map(
-                (m) => html`<button class="action" style="--rgb: var(--rgb-green)" @click=${() => send(m.mode)}>
-                  <ha-icon icon=${m.icon}></ha-icon>${m.label}</button>`,
-              )}
+              ${ALARM_MODES.filter((m) => features & m.bit).map((m) => action(m.label, m.icon, "green", () => send(m.mode)))}
             </div>`}
       `;
     },

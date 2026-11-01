@@ -1,4 +1,4 @@
-import { css, html, nothing, type PropertyValues, type TemplateResult } from "lit";
+import { css, html, nothing, type TemplateResult } from "lit";
 import { ringPhone } from "../../actions.ts";
 import { config } from "../../config.ts";
 import { ago } from "../../format.ts";
@@ -7,14 +7,10 @@ import { EntitiesController, store } from "../../store.ts";
 import type { HassEntity, HomeAssistant } from "../../types.ts";
 import { f0, f1, num } from "../data.ts";
 import { icon } from "../icons.ts";
+import { objectIcon, type MapMarker } from "../map.ts";
 import { Page } from "../page.ts";
 import { isDark } from "../theme.ts";
 
-const TILE = 256;
-const MAX_ZOOM = 17;
-const MIN_ZOOM = 3;
-/** Markers closer than this (px) are drawn as one group. */
-const MERGE_PX = 44;
 const timeFmt = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const dayFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "long" });
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
@@ -31,13 +27,7 @@ interface Spot {
   picture?: string;
   icon: string;
   mdi: string;
-}
-
-/** Web Mercator: world pixel coordinates at a zoom level. */
-function project(lat: number, lon: number, z: number): [number, number] {
-  const s = TILE * 2 ** z;
-  const r = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180;
-  return [((lon + 180) / 360) * s, ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * s];
+  lost?: boolean;
 }
 
 /** Distance in km (haversine). */
@@ -51,17 +41,6 @@ function km(a: [number, number], b: [number, number]): number {
 function position(s?: HassEntity): [number, number] | undefined {
   const lat = Number(s?.attributes.latitude), lon = Number(s?.attributes.longitude);
   return s?.attributes.latitude !== undefined && isFinite(lat) && isFinite(lon) ? [lat, lon] : undefined;
-}
-
-/** MDI name from the config to a V3 line icon. */
-function objectIcon(mdi: string): string {
-  if (/key/.test(mdi)) return "key";
-  if (/wallet/.test(mdi)) return "wallet";
-  if (/camera/.test(mdi)) return "camera";
-  if (/bike|bicycle/.test(mdi)) return "bike";
-  if (/scooter/.test(mdi)) return "scooter";
-  if (/phone|cellphone/.test(mdi)) return "phone";
-  return "pin";
 }
 
 /** "18:12", "hier 18:12", "lundi", "12 oct." for the start of a state. */
@@ -85,27 +64,19 @@ function placeLabel(s: HassEntity): string {
 }
 
 /**
- * Famille: where everyone is. A light map of OpenStreetMap tiles (plain
- * images, no map library) with the family's avatars and tracked objects;
- * the people (home or away, phone battery, "Faire sonner") and the objects
- * on the side. On phones the people come first, then the map, then the objects.
+ * Famille: where everyone is. The shared V3 map (CARTO tiles like Home
+ * Assistant's map; drag, pinch, wheel) with the family's avatars and tracked
+ * objects; the people (home or away, phone battery, "Faire sonner") and the
+ * objects on the side. On phones the people come first, then the map, then the objects.
  */
 export class Kh3Famille extends Page {
-  static properties = { ...Page.properties, size: { state: true }, zoomOffset: { state: true }, rung: { state: true } };
-  /** Map box in CSS pixels. */
-  declare size: { w: number; h: number };
-  /** Zoom chosen with the +/- buttons, relative to the zoom that fits everyone. */
-  declare zoomOffset: number;
+  static properties = { ...Page.properties, rung: { state: true } };
   /** Person whose phone was just asked to ring. */
   declare rung?: string;
-  private observer?: ResizeObserver;
-  private observed?: Element;
   private rungTimer = 0;
 
   constructor() {
     super();
-    this.size = { w: 0, h: 0 };
-    this.zoomOffset = 0;
     new EntitiesController(this, () => this.watched());
   }
 
@@ -130,30 +101,9 @@ export class Kh3Famille extends Page {
     ].filter((x): x is string => !!x);
   }
 
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.observer = new ResizeObserver(([e]) => {
-      const w = Math.round(e.contentRect.width), h = Math.round(e.contentRect.height);
-      if (w !== this.size.w || h !== this.size.h) this.size = { w, h };
-    });
-  }
-
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.observer?.disconnect();
-    this.observed = undefined;
     window.clearTimeout(this.rungTimer);
-  }
-
-  protected updated(changed: PropertyValues): void {
-    super.updated(changed);
-    // The map box is re-created when the layout changes (phone, no positions): watch the current one.
-    const map = this.renderRoot.querySelector(".map") ?? undefined;
-    if (map !== this.observed && this.observer) {
-      this.observer.disconnect();
-      if (map) this.observer.observe(map);
-      this.observed = map;
-    }
   }
 
   static styles = [
@@ -286,118 +236,13 @@ export class Kh3Famille extends Page {
 
       /* Map. */
       .map {
+        display: block;
         position: relative;
         overflow: hidden;
         border-radius: 22px;
         background: var(--surf2);
         height: 300px;
         isolation: isolate;
-      }
-      .tiles {
-        position: absolute;
-        inset: 0;
-      }
-      .tiles img {
-        position: absolute;
-        width: 256px;
-        height: 256px;
-        user-select: none;
-        pointer-events: none;
-      }
-      .tiles.dark img {
-        filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.5);
-      }
-      .zone {
-        position: absolute;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--teal) 18%, transparent);
-        border: 2px solid color-mix(in srgb, var(--teal) 60%, transparent);
-        transform: translate(-50%, -50%);
-        pointer-events: none;
-      }
-      .group {
-        position: absolute;
-        transform: translate(-50%, -50%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-      }
-      .stack {
-        display: flex;
-        align-items: center;
-      }
-      .stack > * + * {
-        margin-left: -12px;
-      }
-      .mk {
-        width: 48px;
-        height: 48px;
-        border-radius: 999px;
-        overflow: hidden;
-        display: grid;
-        place-items: center;
-        background: var(--violetTint);
-        color: var(--violet);
-        font-weight: 700;
-        font-size: 17px;
-        border: 3px solid var(--surf);
-        box-shadow: var(--shadow);
-      }
-      .mk img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .mk.obj-mk {
-        width: 44px;
-        height: 44px;
-        border-radius: 14px;
-        background: var(--tealTint);
-        color: var(--teal);
-      }
-      .mk.obj-mk svg {
-        width: 20px;
-        height: 20px;
-      }
-      .tag {
-        height: 28px;
-        padding: 0 10px;
-        border-radius: 99px;
-        background: var(--surf);
-        font-size: 12px;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        white-space: nowrap;
-        box-shadow: var(--shadow);
-      }
-      .zoom {
-        position: absolute;
-        right: 12px;
-        top: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        z-index: 1;
-      }
-      .zoom .rb {
-        background: var(--surf);
-        box-shadow: var(--shadow);
-      }
-      .attr {
-        position: absolute;
-        right: 8px;
-        bottom: 8px;
-        font-size: 11px;
-        color: var(--ink);
-        background: var(--surf);
-        padding: 3px 8px;
-        border-radius: 8px;
-        z-index: 1;
-      }
-      .attr a {
-        text-decoration: underline;
       }
       .nomap {
         display: grid;
@@ -469,104 +314,41 @@ export class Kh3Famille extends Page {
       const s = hass.states[t.entity];
       const pos = position(s);
       if (!s || !pos) continue;
-      out.push({ id: t.entity, kind: "object", key: t.entity, name: t.name, lat: pos[0], lon: pos[1], home: s.state === "home", icon: objectIcon(t.icon), mdi: t.icon });
+      out.push({ id: t.entity, kind: "object", key: t.entity, name: t.name, lat: pos[0], lon: pos[1], home: s.state === "home", icon: objectIcon(t.icon), mdi: t.icon, lost: !!s.attributes.is_lost });
     }
     return out;
   }
 
-  /** Highest zoom where every point (and the home zone) fits the box. */
-  private fitZoom(points: [number, number][], w: number, h: number): number {
-    if (points.length < 2) return 16;
-    for (let z = MAX_ZOOM; z > MIN_ZOOM; z--) {
-      const px = points.map(([la, lo]) => project(la, lo, z));
-      const xs = px.map((p) => p[0]), ys = px.map((p) => p[1]);
-      if (Math.max(...xs) - Math.min(...xs) <= w - 120 && Math.max(...ys) - Math.min(...ys) <= h - 120) return Math.min(z, 16);
-    }
-    return MIN_ZOOM;
-  }
-
   // ---- Map ----
 
-  private marker(s: Spot): TemplateResult {
-    const where = s.home ? "à la maison" : "ailleurs";
-    if (s.kind === "person") {
-      return html`<button class="mk" type="button" aria-label="${s.name}, ${where}" @click=${() => openPerson(s.key)}>
-        ${s.picture ? html`<img src=${s.picture} alt="" width="48" height="48" loading="lazy" decoding="async" />` : s.name.charAt(0)}
-      </button>`;
-    }
-    return html`<button class="mk obj-mk" type="button" aria-label="${s.name}, ${where}" @click=${() => openTracker(s.id, s.mdi)}>${icon(s.icon)}</button>`;
-  }
-
   private map(hass: HomeAssistant, spots: Spot[]): TemplateResult {
-    const zone = hass.states["zone.home"];
-    const home = position(zone);
-    const { w, h } = this.size;
     if (!spots.length) {
       return html`<section class="map nomap" aria-label="Carte">
         <div>${icon("pin", 28)}<p>Aucune position connue pour l'instant.</p></div>
       </section>`;
     }
-    const pts: [number, number][] = spots.map((s) => [s.lat, s.lon]);
-    if (home) pts.push(home);
-    const fit = this.fitZoom(pts, w || 600, h || 400);
-    const z = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM + 1, fit + this.zoomOffset));
-    // Centre: middle of everyone's box.
-    const px = pts.map(([la, lo]) => project(la, lo, z));
-    const cx = (Math.min(...px.map((p) => p[0])) + Math.max(...px.map((p) => p[0]))) / 2;
-    const cy = (Math.min(...px.map((p) => p[1])) + Math.max(...px.map((p) => p[1]))) / 2;
-    const left = cx - w / 2, top = cy - h / 2;
-    const n = 2 ** z;
-    const tiles: TemplateResult[] = [];
-    if (w && h) {
-      for (let ty = Math.floor(top / TILE); ty <= Math.floor((top + h) / TILE); ty++) {
-        if (ty < 0 || ty >= n) continue;
-        for (let tx = Math.floor(left / TILE); tx <= Math.floor((left + w) / TILE); tx++) {
-          const x = ((tx % n) + n) % n;
-          tiles.push(html`<img src="https://tile.openstreetmap.org/${z}/${x}/${ty}.png" alt="" width="256" height="256" loading="lazy" decoding="async"
-            referrerpolicy="strict-origin-when-cross-origin" style="left:${Math.round(tx * TILE - left)}px;top:${Math.round(ty * TILE - top)}px" />`);
-        }
-      }
-    }
-    // Groups of markers that would overlap.
-    const groups: { x: number; y: number; items: Spot[] }[] = [];
-    for (const s of spots) {
-      const [x, y] = project(s.lat, s.lon, z);
-      const g = groups.find((g) => Math.hypot(g.x - x, g.y - y) < MERGE_PX);
-      if (g) g.items.push(s);
-      else groups.push({ x, y, items: [s] });
-    }
-    let zoneEl: TemplateResult | typeof nothing = nothing;
-    if (home) {
-      const [zx, zy] = project(home[0], home[1], z);
-      const metersPerPx = (156543.03 * Math.cos((home[0] * Math.PI) / 180)) / n;
-      const d = Math.max(24, (2 * (Number(zone!.attributes.radius) || 100)) / metersPerPx);
-      zoneEl = html`<span class="zone" style="left:${zx - left}px;top:${zy - top}px;width:${d}px;height:${d}px"></span>`;
-    }
+    const zone = hass.states["zone.home"];
+    const home = position(zone);
+    const markers: MapMarker[] = spots.map((s) => ({
+      id: s.id,
+      lat: s.lat,
+      lon: s.lon,
+      label: s.name,
+      kind: s.kind,
+      image: s.picture,
+      icon: s.icon,
+      home: s.home,
+      tone: s.kind === "object" ? (s.lost ? "red" : s.home ? "teal" : "amber") : undefined,
+      onClick: s.kind === "person" ? () => openPerson(s.key) : () => openTracker(s.id, s.mdi),
+    }));
     const dark = isDark(this.p.theme, matchMedia("(prefers-color-scheme: dark)").matches);
-    return html`<section class="map" aria-label="Carte des positions">
-      <div class="tiles ${dark ? "dark" : ""}" aria-hidden="true">${tiles}</div>
-      ${zoneEl}
-      ${w
-        ? groups.map((g) => {
-            const people = g.items.filter((s) => s.kind === "person");
-            const objects = g.items.filter((s) => s.kind === "object");
-            const allHome = g.items.every((s) => s.home);
-            return html`<div class="group" style="left:${g.x - left}px;top:${g.y - top}px">
-              ${people.length ? html`<div class="stack">${people.map((s) => this.marker(s))}</div>` : nothing}
-              ${objects.length ? html`<div class="stack">${objects.map((s) => this.marker(s))}</div>` : nothing}
-              ${allHome && people.length ? html`<span class="tag" aria-hidden="true">Maison</span>` : nothing}
-            </div>`;
-          })
-        : nothing}
-      <div class="zoom">
-        <button class="rb" type="button" aria-label="Zoomer" ?disabled=${z >= MAX_ZOOM + 1} @click=${() => this.zoomOffset++}>${icon("plus")}</button>
-        <button class="rb" type="button" aria-label="Dézoomer" ?disabled=${z <= MIN_ZOOM} @click=${() => this.zoomOffset--}>${icon("minus")}</button>
-        ${this.zoomOffset
-          ? html`<button class="rb" type="button" aria-label="Voir tout le monde" @click=${() => (this.zoomOffset = 0)}>${icon("people")}</button>`
-          : nothing}
-      </div>
-      <span class="attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span>
-    </section>`;
+    return html`<kh3-map
+      class="map"
+      label="Carte des positions"
+      .markers=${markers}
+      .zones=${home ? [{ lat: home[0], lon: home[1], radius: Number(zone!.attributes.radius) || 100, label: "Maison" }] : []}
+      .dark=${dark}
+    ></kh3-map>`;
   }
 
   // ---- People and objects ----
@@ -611,7 +393,8 @@ export class Kh3Famille extends Page {
       </button>
       ${phone?.notify
         ? html`<button class="btn ${this.rung === key ? "done" : ""}" type="button" aria-label="Faire sonner le téléphone de ${name}"
-            @click=${() => this.ring(key, phone.notify!)}>${icon(this.rung === key ? "check" : "bell", 16)}${this.rung === key ? "Ça sonne" : "Faire sonner"}</button>`
+            @click=${() => this.ring(key, phone.notify!)}>${icon(this.rung === key ? "check" : "bell", 16)}${this.rung === key ? "Ça sonne" : "Faire sonner"}</button>
+            <span class="sr" aria-live="polite">${this.rung === key ? `Le téléphone de ${name} sonne` : ""}</span>`
         : nothing}
     </div>`;
   }

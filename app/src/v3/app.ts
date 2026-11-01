@@ -11,7 +11,7 @@ import type { PanelRoute } from "../types.ts";
 import { f0, f1, num } from "./data.ts";
 import "./home.ts";
 import { icon } from "./icons.ts";
-import { goTo } from "./nav.ts";
+import { goTo, installDragScroll } from "./nav.ts";
 import { isDark, loadFonts, loadTheme, themeShared, themeStyle, ui, type ThemeChoice } from "./theme.ts";
 
 /** Pages after the home one, each its own chunk, loaded on first visit. */
@@ -22,7 +22,6 @@ const PAGES: Record<string, () => Promise<unknown>> = {
   meteo: () => import("./pages/meteo.ts"),
   energie: () => import("./pages/energie.ts"),
   bourse: () => import("./pages/bourse.ts"),
-  listes: () => import("./pages/listes.ts"),
   famille: () => import("./pages/famille.ts"),
   systeme: () => import("./pages/systeme.ts"),
 };
@@ -41,7 +40,6 @@ const NAV: NavEntry[] = [
   { path: "meteo", label: "Météo", icon: "cloud" },
   { path: "energie", label: "Énergie", icon: "bolt" },
   { path: "bourse", label: "Bourse", icon: "trend" },
-  { path: "listes", label: "Listes", icon: "list" },
   { path: "famille", label: "Famille", icon: "people" },
   { path: "systeme", label: "Système", icon: "gear" },
 ];
@@ -100,6 +98,21 @@ export class Kh3App extends LitElement {
       }
       main {
         min-width: 0;
+      }
+      /* Skip link: off screen until focused from the keyboard. */
+      .skip {
+        position: absolute;
+        z-index: 10;
+        left: 16px;
+        top: -80px;
+        padding: 12px 16px;
+        border-radius: 14px;
+        background: var(--surf);
+        box-shadow: var(--shadow);
+        font-weight: 600;
+      }
+      .skip:focus-visible {
+        top: 16px;
       }
       :host([phone]) main {
         padding: max(16px, env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom));
@@ -187,6 +200,9 @@ export class Kh3App extends LitElement {
         border-radius: 28px 28px 0 0;
         background: var(--surf);
         color: var(--ink);
+        max-height: 90dvh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
       }
       dialog[open] {
         animation: rise 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -219,8 +235,11 @@ export class Kh3App extends LitElement {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
       }
-      .more a {
+      .more a,
+      .more button {
         display: flex;
+        text-align: left;
+        min-width: 0;
         flex-direction: column;
         gap: 10px;
         padding: 14px;
@@ -248,13 +267,32 @@ export class Kh3App extends LitElement {
     window.addEventListener("kh3-theme", this.onTheme);
     installPressFeedback(this.renderRoot as ShadowRoot);
     this.documentMeta(true);
+    this.undrag = installDragScroll();
+    this.kiosk();
   }
 
   /**
    * While V3 is shown: pinch-zoom allowed (HA's page forbids it) and a page
    * description; HA's own values come back when leaving the panel.
    */
+  /**
+   * `?kiosk` hides Home Assistant's sidebar on this screen (wall tablet),
+   * `?kiosk=0` brings it back; HA remembers the choice per browser.
+   */
+  private kiosk(): void {
+    const v = new URLSearchParams(location.search).get("kiosk");
+    if (v === null) return;
+    const dock = v === "0" ? "docked" : "always_hidden";
+    try {
+      localStorage.setItem("dockedSidebar", JSON.stringify(dock));
+    } catch {
+      /* still applied for this visit */
+    }
+    this.dispatchEvent(new CustomEvent("hass-dock-sidebar", { detail: { dock }, bubbles: true, composed: true }));
+  }
+
   private savedViewport?: string;
+  private undrag?: () => void;
   private documentMeta(on: boolean): void {
     const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
     if (vp) {
@@ -279,6 +317,7 @@ export class Kh3App extends LitElement {
     window.removeEventListener("kh3-theme", this.onTheme);
     themeShared(undefined, false);
     this.documentMeta(false);
+    this.undrag?.();
     cancelConfirmation();
   }
 
@@ -349,6 +388,12 @@ export class Kh3App extends LitElement {
     goTo(url.pathname);
   }
 
+  /** Skip link: focus the page (fragment links do not reach into the shadow root). */
+  private skip = (e: Event) => {
+    e.preventDefault();
+    this.renderRoot.querySelector<HTMLElement>("main")?.focus();
+  };
+
   private toggleMenu = () => this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
 
   private page(section: string, sub: string | undefined, prefix: string) {
@@ -362,7 +407,7 @@ export class Kh3App extends LitElement {
     if (!load) return html`<p class="empty">Cette page n'existe pas. <a href=${prefix}>Revenir à l'accueil</a></p>`;
     if (!this.loaded.has(section)) {
       load().then(() => (this.loaded.add(section), this.requestUpdate()));
-      return html`<div class="loading" aria-busy="true"></div>`;
+      return html`<div class="loading" role="status" aria-busy="true"><span class="sr">Chargement…</span></div>`;
     }
     const props = { prefix, model, rooms, phone: this.phone, sub, theme: this.theme, person };
     switch (section) {
@@ -380,8 +425,6 @@ export class Kh3App extends LitElement {
         return html`<kh3-energie .p=${props}></kh3-energie>`;
       case "bourse":
         return html`<kh3-bourse .p=${props}></kh3-bourse>`;
-      case "listes":
-        return html`<kh3-listes .p=${props}></kh3-listes>`;
       case "famille":
         return html`<kh3-famille .p=${props}></kh3-famille>`;
       case "systeme":
@@ -405,8 +448,6 @@ export class Kh3App extends LitElement {
         const c = Number(s?.attributes.regularMarketChangePercent);
         return isNaN(c) ? "Valeurs suivies" : `S&P 500 ${c >= 0 ? "+" : "−"}${f1(Math.abs(c))} %`;
       }
-      case "listes":
-        return "Courses, tâches";
       case "famille": {
         const away = Object.values(store.hass?.states ?? {}).filter((s) => s.entity_id.startsWith("person.") && !config.people[s.entity_id.slice(7)]?.device && s.state !== "home").length;
         return away ? `${away} absent${away > 1 ? "s" : ""}` : "Tout le monde est là";
@@ -428,25 +469,26 @@ export class Kh3App extends LitElement {
     const others = NAV.filter((n) => !TABS.includes(n.path));
     return html`
       <div class="shell" @click=${this.navigate}>
+        <a class="skip" href="#contenu" @click=${this.skip}>Aller au contenu</a>
         ${this.phone
           ? html`<nav class="tabs" aria-label="Navigation">
               ${NAV.filter((n) => TABS.includes(n.path)).map((n) => this.link(n, prefix, section))}
               <button aria-haspopup="dialog" aria-current=${TABS.includes(section) ? nothing : "page"}
                 @click=${() => this.renderRoot.querySelector("dialog")?.showModal()}>${icon("more", 22)}Plus</button>
             </nav>
-            <dialog aria-label="Plus" @click=${(e: MouseEvent) => e.target === e.currentTarget && (e.currentTarget as HTMLDialogElement).close()}>
+            <dialog aria-labelledby="kh3-more-t" @click=${(e: MouseEvent) => e.target === e.currentTarget && (e.currentTarget as HTMLDialogElement).close()}>
               <div class="grip" aria-hidden="true"></div>
-              <div class="sheet-head"><h2 class="page-title" style="font-size:22px">Plus</h2>
+              <div class="sheet-head"><h2 class="page-title" id="kh3-more-t" style="font-size:22px">Plus</h2>
                 <button class="rb" aria-label="Fermer" @click=${() => this.renderRoot.querySelector("dialog")?.close()}>${icon("close", 18)}</button></div>
               <nav class="more" aria-label="Autres pages">
                 ${others.map((n) => html`<a href=${`${prefix}/${n.path}`} aria-current=${n.path === section ? "page" : nothing}>
                   <span class="ico" style="background:var(--surf);color:var(--ink)">${icon(n.icon, 22)}</span>
                   <span><b style="display:block;font-size:15px">${n.label}</b><span class="st">${this.summary(n.path)}</span></span>
                 </a>`)}
-                <a href="#" @click=${(e: Event) => (e.preventDefault(), this.renderRoot.querySelector("dialog")?.close(), this.toggleMenu())}>
+                <button type="button" @click=${() => (this.renderRoot.querySelector("dialog")?.close(), this.toggleMenu())}>
                   <span class="ico" style="background:var(--surf);color:var(--ink)">${icon("haLogo", 22)}</span>
                   <span><b style="display:block;font-size:15px">Home Assistant</b><span class="st">Paramètres, historique</span></span>
-                </a>
+                </button>
               </nav>
             </dialog>`
           : html`<nav class="rail" aria-label="Navigation">
@@ -455,7 +497,7 @@ export class Kh3App extends LitElement {
               <span class="spacer"></span>
               ${this.link(NAV.find((n) => n.path === "systeme")!, prefix, section)}
             </nav>`}
-        <main>${keyed(`${section}/${sub ?? ""}`, html`<div class="page">${this.page(section, sub, prefix)}</div>`)}</main>
+        <main id="contenu" tabindex="-1">${keyed(`${section}/${sub ?? ""}`, html`<div class="page">${this.page(section, sub, prefix)}</div>`)}</main>
       </div>
     `;
   }

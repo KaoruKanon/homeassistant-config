@@ -89,17 +89,17 @@ export interface CalEvent {
   calendar: string;
 }
 
-/** Today's events of the given calendars (REST calendar API, else the next event of each). */
-export async function todayEvents(ids: string[]): Promise<CalEvent[]> {
+/** Events of the given calendars from today over `days` days (REST calendar API, else the next event of each). */
+export async function todayEvents(ids: string[], days = 1): Promise<CalEvent[]> {
   const hass = store.hass as any;
   // Only calendars that exist (a removed one answers 400 and pollutes the console).
   ids = ids.filter((id) => hass?.states[id] && hass.states[id].state !== "unavailable");
   if (!hass || !ids.length) return [];
   const from = new Date();
   from.setHours(0, 0, 0, 0);
-  const to = new Date(from.getTime() + 86400000);
+  const to = new Date(from.getTime() + days * 86400000);
   if (typeof hass.callApi === "function") {
-    const list = await cached(`cal3|${ids.join()}|${from.toDateString()}`, async () => {
+    const list = await cached(`cal3|${days}|${ids.join()}|${from.toDateString()}`, async () => {
       const all = await Promise.all(
         ids.map((id) =>
           (hass.callApi("GET", `calendars/${id}?start=${encodeURIComponent(from.toISOString())}&end=${encodeURIComponent(to.toISOString())}`) as Promise<any[]>)
@@ -132,24 +132,6 @@ export async function todayEvents(ids: string[]): Promise<CalEvent[]> {
       calendar: s.entity_id,
     }))
     .filter((e) => e.start < to);
-}
-
-export interface TodoItem {
-  uid: string;
-  summary: string;
-  status: "needs_action" | "completed";
-}
-
-/** Items of a to-do list (shopping list…). */
-export async function todoItems(id: string): Promise<TodoItem[]> {
-  const conn = store.hass?.connection;
-  if (!conn) return [];
-  try {
-    const res = await conn.sendMessagePromise<{ items: TodoItem[] }>({ type: "todo/item/list", entity_id: id });
-    return res.items ?? [];
-  } catch {
-    return [];
-  }
 }
 
 /** Calendars shown on the home view: the person's favourites, else every calendar. */
@@ -240,4 +222,24 @@ export function resample(points: Point[], from: number, to: number, buckets: num
     out[i] = last;
   }
   return out;
+}
+
+/**
+ * Ready-to-draw series: the gaps before the first and after the last reading
+ * hold the nearest value (the curve spans the whole width), then a light
+ * moving average takes off the steps of sensors that report by 0.1°.
+ */
+export function smoothSeries(vals: (number | undefined)[], radius = 1): (number | undefined)[] {
+  const first = vals.findIndex((v) => v !== undefined);
+  if (first < 0) return vals;
+  const filled = vals.map((v, i) => v ?? (i < first ? vals[first] : undefined));
+  for (let i = 1; i < filled.length; i++) if (filled[i] === undefined) filled[i] = filled[i - 1];
+  return filled.map((_, i) => {
+    let sum = 0, n = 0;
+    for (let k = Math.max(0, i - radius); k <= Math.min(filled.length - 1, i + radius); k++) {
+      sum += filled[k]!;
+      n++;
+    }
+    return sum / n;
+  });
 }

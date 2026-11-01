@@ -22,7 +22,7 @@ const allTargets = {
   "kaoru-home-v3": { path: "/maison-v3", ready: ["KH3-HOME"] },
 };
 
-const targets = only ? { [only]: allTargets[only] } : allTargets;
+const targets = only ? Object.fromEntries(only.split(",").map((n) => [n, allTargets[n]])) : allTargets;
 
 const observe = `
   window.__kh = { tbt: 0, longTasks: 0 };

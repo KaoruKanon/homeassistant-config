@@ -1,16 +1,18 @@
-import { LitElement, css, html, nothing, svg, type TemplateResult } from "lit";
+import { LitElement, css, html, nothing, type TemplateResult } from "lit";
 import { isPending, media, openMoreInfo, runScript, setBrightness, setInputNumber, setLights, toggle } from "../actions.ts";
 import { config, type Computer } from "../config.ts";
 import { brightnessPercent, isUnavailable, stateLabel } from "../format.ts";
 import { openAlarm, openComputer, openMediaItem, openOpenings, openPerson, openWifiQr } from "../popups/open.ts";
-import { entityName, matches, type HouseModel, type Room } from "../rooms.ts";
+import { entityName, type HouseModel, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { forecastDays } from "../weather-utils.ts";
 import { goTo } from "./nav.ts";
 import { energyHours, f0, f1, homeCalendars, jellyfinItems, minutes, num, since, todayEvents, type CalEvent } from "./data.ts";
-import { icon, lightIcon, weatherIcon, weatherKind } from "./icons.ts";
+import { icon, liveIcon, lightIcon, weatherIcon, weatherKind } from "./icons.ts";
 import { Gesture } from "./page.ts";
 import { ui } from "./theme.ts";
+import { playerCard, playerStyles } from "./player.ts";
+import { jellyfinLogo } from "../components/brand-icons.ts";
 
 const openLight = (id: string) => void import("../popups/details.ts").then((m) => m.openLight(id));
 
@@ -23,7 +25,6 @@ interface NowCard {
   tint?: string;
 }
 
-const CELLS_PER_PAGE = 8;
 const timeFmt = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
@@ -125,13 +126,14 @@ export class Kh3Home extends LitElement {
 
   /** Agenda and Linky history: fetched once, then every 5 minutes. */
   private async loadSlow(): Promise<void> {
-    const [events, energy] = await Promise.all([todayEvents(homeCalendars(this.person)), energyHours()]);
+    const [events, energy] = await Promise.all([todayEvents(homeCalendars(this.person), 7), energyHours()]);
     this.events = events;
     if (energy) this.energy = energy;
   }
 
   static styles = [
     ui,
+    playerStyles,
     css`
       :host {
         display: block;
@@ -277,6 +279,7 @@ export class Kh3Home extends LitElement {
         opacity: 0.75;
       }
       .group-head {
+        height: 20px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -289,7 +292,10 @@ export class Kh3Home extends LitElement {
         font-size: 13px;
         font-weight: 600;
         color: var(--amberInk);
-        padding: 6px 0;
+        line-height: 20px;
+        /* 44 px hit area in a 20 px box: the heading row never changes height. */
+        padding: 12px 0;
+        margin: -12px 0;
       }
       .tiles {
         display: grid;
@@ -395,13 +401,164 @@ export class Kh3Home extends LitElement {
         height: 1px;
         scroll-snap-align: start;
       }
+      .scroller {
+        container-type: inline-size;
+      }
       .cells {
         display: grid;
-        grid-auto-flow: column dense;
+        grid-auto-flow: column;
+        grid-auto-columns: calc((100cqw - 36px) / 4);
         grid-template-rows: repeat(2, minmax(0, 1fr));
-        grid-auto-columns: calc((100% - 36px) / 4);
         gap: 12px;
         height: 100%;
+      }
+      .jelly {
+        gap: 10px;
+      }
+      .jelly.one {
+        padding: 0;
+      }
+      .dyn.jelly {
+        padding: 0;
+        position: relative;
+      }
+      .jf {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        overflow: hidden;
+        background: var(--surf2);
+        text-align: left;
+        color: #fff;
+      }
+      .jf img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      /* Eased fade to the card at the bottom, as on the player. */
+      .jf::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, transparent 35%, rgba(8, 10, 18, 0.08) 45%, rgba(8, 10, 18, 0.25) 55%,
+          rgba(8, 10, 18, 0.5) 66%, rgba(8, 10, 18, 0.74) 78%, rgba(8, 10, 18, 0.9) 90%);
+      }
+      .jf-logo {
+        position: absolute;
+        z-index: 1;
+        top: 10px;
+        left: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 32px;
+        height: 32px;
+        justify-content: center;
+        border-radius: 99px;
+        background: rgba(8, 10, 18, 0.6);
+      }
+      .jf-text {
+        position: absolute;
+        z-index: 1;
+        inset: auto 0 56px 0;
+        padding: 0 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .jf-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 6px;
+      }
+      .jf-watch {
+        position: absolute;
+        z-index: 2;
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        height: 38px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(90deg, #aa5cc3, #00a4dc);
+      }
+      .jelly:not(:has(.jf-watch)) .jf-text {
+        bottom: 12px;
+      }
+      /* Phone: a short card, laid out like the player but mirrored: the
+         poster, as tall as the card, on the left and fading into it to the
+         right; logo in its corner, text and « Regarder » beside it. */
+      .carousel .jelly {
+        width: calc(100vw - 32px);
+        max-width: 520px;
+      }
+      .carousel .jf {
+        background: var(--surf);
+        color: var(--ink);
+      }
+      .carousel .jf::after {
+        display: none;
+      }
+      .carousel .jf img {
+        right: auto;
+        width: 150px;
+        --fade: linear-gradient(to left, transparent 0%, rgba(0, 0, 0, 0.03) 10%, rgba(0, 0, 0, 0.1) 20%, rgba(0, 0, 0, 0.22) 30%,
+          rgba(0, 0, 0, 0.38) 40%, rgba(0, 0, 0, 0.56) 50%, rgba(0, 0, 0, 0.73) 60%, rgba(0, 0, 0, 0.87) 70%, rgba(0, 0, 0, 0.96) 80%, #000 90%);
+        -webkit-mask-image: var(--fade);
+        mask-image: var(--fade);
+      }
+      .carousel .jf-logo {
+        top: 8px;
+        left: 8px;
+        width: 28px;
+        height: 28px;
+      }
+      .carousel .jf-text {
+        inset: 12px 12px auto 118px;
+        padding: 0;
+      }
+      .carousel .jf-text b,
+      .carousel .jf-text span {
+        text-shadow: 0 1px 8px var(--surf);
+      }
+      .carousel .fact {
+        background: color-mix(in srgb, var(--surf2) 85%, transparent);
+        color: var(--ink);
+        flex: none;
+      }
+      /* One row: a badge that does not fit wraps out of sight, whole. */
+      .carousel .jf-facts {
+        height: 22px;
+        overflow: hidden;
+      }
+      .carousel .jf-watch {
+        left: 118px;
+        right: 12px;
+        bottom: 12px;
+        height: 36px;
+      }
+      .fact {
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.16);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
       }
       .dyn {
         border-radius: 18px;
@@ -438,20 +595,11 @@ export class Kh3Home extends LitElement {
         width: 38px;
         height: 38px;
       }
-      .media {
-        flex-direction: row;
-        gap: 14px;
-        padding: 12px;
-      }
-      .cover {
-        height: 100%;
-        aspect-ratio: 1;
-        border-radius: 12px;
-        flex: none;
-        object-fit: cover;
-        background: var(--surf2);
+      .dyn.media {
+        padding: 0;
       }
       .bar {
+        display: block;
         height: 4px;
         border-radius: 99px;
         background: var(--surf2);
@@ -460,7 +608,7 @@ export class Kh3Home extends LitElement {
       .bar i {
         display: block;
         height: 100%;
-        background: var(--violet);
+        background: var(--brand, var(--violet));
         border-radius: 99px;
       }
       .play {
@@ -491,6 +639,12 @@ export class Kh3Home extends LitElement {
         padding: 0;
         color: #fff;
         background: var(--surf2);
+        border-radius: 12px;
+        overflow: hidden;
+        min-height: 0;
+        width: 100%;
+        height: 100%;
+        text-align: left;
       }
       .poster img {
         position: absolute;
@@ -506,10 +660,10 @@ export class Kh3Home extends LitElement {
         background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
       }
       .quiet {
-        grid-column: span 2;
-        grid-row: span 2;
         justify-content: center;
         align-items: flex-start;
+        background: transparent;
+        border: 1.5px dashed color-mix(in srgb, var(--muted) 35%, transparent);
       }
 
       /* Right column. */
@@ -645,7 +799,14 @@ export class Kh3Home extends LitElement {
       .sc-dots {
         display: flex;
         justify-content: center;
-        gap: 5px;
+        gap: 0;
+        margin: -10px 0 -12px;
+      }
+      .sc-dots button {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
       }
       .sc-dots i {
         width: 5px;
@@ -666,12 +827,91 @@ export class Kh3Home extends LitElement {
       .phone .clock .t {
         font-size: 34px;
       }
+      /* Phone: clock and people stay on one line; the date gives way first. */
+      .phone .clock {
+        flex: 1;
+        min-width: 0;
+        gap: 10px;
+      }
+      .phone .clock > span {
+        min-width: 0;
+      }
+      .phone .clock .d,
+      .phone .clock .g {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .phone header {
+        row-gap: 14px;
+      }
+      @container (max-width: 380px) {
+        .phone .clock .t {
+          font-size: 30px;
+        }
+        .phone .clock .d {
+          font-size: 12px;
+        }
+        .phone .clock .g {
+          font-size: 13px;
+        }
+        .phone .avatar {
+          width: 34px;
+          height: 34px;
+        }
+        .phone .people {
+          gap: 6px;
+        }
+        .phone .chip .ico {
+          width: 24px;
+          height: 24px;
+        }
+        .phone .chip .ico svg {
+          width: 15px;
+          height: 15px;
+        }
+        .phone .chip .v {
+          font-size: 12px;
+        }
+        .phone .chip .l {
+          font-size: 10.5px;
+        }
+      }
+      /* Phone: the state chips as a grid aligned on the cards, all visible. */
       .phone .chips {
         order: 3;
-        flex-basis: 100%;
-        justify-content: flex-start;
-        margin: 0 -16px;
-        padding: 0 16px;
+        flex: none;
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        overflow: visible;
+        margin: 0;
+        padding: 0;
+      }
+      .phone .chip {
+        min-width: 0;
+        height: 52px;
+        padding: 0 8px 0 5px;
+        gap: 6px;
+        border-radius: 16px;
+      }
+      .phone .chip .ico {
+        width: 28px;
+        height: 28px;
+      }
+      .phone .chip .ico svg {
+        width: 17px;
+        height: 17px;
+      }
+      .phone .chip > span:last-child {
+        min-width: 0;
+      }
+      .phone .chip .v {
+        font-size: 12.5px;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .phone .people {
         margin-left: auto;
@@ -712,6 +952,11 @@ export class Kh3Home extends LitElement {
       .carousel .dyn.w2 {
         width: 310px;
       }
+      .carousel .dyn.media {
+        width: calc(100vw - 32px);
+        max-width: 520px;
+        padding: 0;
+      }
       .phone .weather {
         min-height: 180px;
       }
@@ -720,7 +965,7 @@ export class Kh3Home extends LitElement {
         height: 72px;
       }
       @container (max-width: 1100px) {
-        .wall .chip:nth-of-type(n + 4) {
+        .wall .chip:nth-child(n + 4) {
           display: none;
         }
       }
@@ -736,19 +981,24 @@ export class Kh3Home extends LitElement {
     const open = num(h.windowsOpen) ?? 0;
     const alarm = h.alarm ? hass.states[h.alarm] : undefined;
     const timer = h.timer ? hass.states[h.timer] : undefined;
-    const timerOn = !!timer && timer.state !== "unknown" && timer.state !== "unavailable" && timer.state !== "0";
+    // The sensor says "Pas de timer" (or 0) when nothing runs: only a time counts as running.
+    const timerOn = !!timer && /\d/.test(timer.state) && timer.state !== "0";
     const avg = num(h.temperature);
-    const chip = (ico: string, label: string, value: string, look: string, onClick?: () => void) =>
-      html`<button class="chip" @click=${onClick}><span class="ico" style=${look}>${icon(ico)}</span><span><span class="l">${label}</span><span class="v">${value}</span></span></button>`;
+    const hums = this.model.rooms.map((r) => num(r.humidity)).filter((v): v is number => v !== undefined);
+    const hum = hums.length ? hums.reduce((x, y) => x + y, 0) / hums.length : undefined;
+    const chip = (ico: string, label: string, value: string, look: string, onClick?: () => void) => {
+      const body = html`<span class="ico" style=${look}>${liveIcon(ico, (ico === "window" && open > 0) || (ico === "timer" && timerOn))}</span><span><span class="l">${label}</span><span class="v">${value}</span></span>`;
+      return onClick ? html`<button class="chip" @click=${onClick}>${body}</button>` : html`<div class="chip">${body}</div>`;
+    };
     const off = "background:var(--surf2);color:var(--muted)";
     const persons = Object.values(hass.states).filter((s) => s.entity_id.startsWith("person.") && !config.people[s.entity_id.slice(7)]?.device);
     return html`<header>
       <div class="clock">
-        <span class="t num" aria-label="Heure">${timeFmt.format(this.now)}</span>
+        <time class="t num" datetime=${this.now.toISOString()}>${timeFmt.format(this.now)}</time>
         <span><span class="d" style="display:block">${dateFmt.format(this.now).replace(/^./, (c) => c.toUpperCase())}</span><span class="g">${greeting(this.now.getHours())}</span></span>
       </div>
       <div class="chips hs" role="group" aria-label="État de la maison">
-        ${chip("thermo", "Climat", avg !== undefined ? `${f1(avg)}°` : "—", "background:var(--tealTint);color:var(--teal)", () => goTo(`${this.prefix}/climat`))}
+        ${chip("thermo", "Climat", avg !== undefined ? `${f1(avg)}°${hum !== undefined ? `  ${f0(hum)} %` : ""}` : "—", "background:var(--tealTint);color:var(--teal)", () => goTo(`${this.prefix}/climat`))}
         ${chip("bulb", "Lumières", lightsOn ? `${f0(lightsOn)} allumée${lightsOn > 1 ? "s" : ""}` : "Éteintes", lightsOn ? "background:var(--amber);color:#3a2400" : off, () => goTo(`${this.prefix}/maison`))}
         ${chip("window", "Ouvertures", open ? `${f0(open)} ouverte${open > 1 ? "s" : ""}` : "Fermées", open ? "background:var(--red);color:#fff" : off, () => openOpenings(this.model.rooms.flatMap((r) => r.openings)))}
         ${alarm ? chip("shield", "Alarme", stateLabel(hass, alarm), alarm.state === "disarmed" ? off : "background:var(--redTint);color:var(--red)", () => openAlarm(alarm.entity_id)) : nothing}
@@ -802,7 +1052,7 @@ export class Kh3Home extends LitElement {
       aria-pressed=${on ? "true" : "false"} aria-label="${name}, ${gone ? "hors ligne" : on ? `allumée à ${pct} %` : "éteinte"}"
       @pointerdown=${g.down} @pointermove=${g.move} @pointerup=${g.up} @pointercancel=${g.cancel} @click=${g.click} @keydown=${g.key} @contextmenu=${g.contextmenu}>
       <span class="fill" style="width:${on || preview ? pct : 0}%"></span>
-      <span class="ico">${icon(ico)}</span>
+      <span class="ico">${liveIcon(ico, on)}</span>
       <span style="min-width:0"><span class="nm ell">${name}</span><span class="st ell" style="display:block">${gone ? "Hors ligne" : on || preview ? `${pct} %` : "Éteinte"}</span></span>
     </button>`;
   }
@@ -814,7 +1064,7 @@ export class Kh3Home extends LitElement {
     const g = this.gesture(`c:${c.entity}`, () => toggle(c.entity, c.name), () => openComputer(c));
     return html`<button class="tile dev ${on ? "on" : ""}" aria-label="${c.name}, ${waiting ? "en cours" : on ? "allumé" : "éteint"}"
       @pointerdown=${g.down} @pointermove=${g.move} @pointerup=${g.up} @pointercancel=${g.cancel} @click=${g.click} @keydown=${g.key} @contextmenu=${g.contextmenu}>
-      <span class="ico">${icon("monitor")}</span>
+      <span class="ico">${liveIcon("monitor", on)}</span>
       <span style="min-width:0"><span class="nm ell">${c.name}</span><span class="st ell" style="display:block">${waiting ? (on ? "S'arrête…" : "Démarre…") : on ? "Allumé" : "Éteint"}</span></span>
       ${waiting ? html`<span class="busy" aria-hidden="true"></span>` : nothing}
     </button>`;
@@ -828,7 +1078,7 @@ export class Kh3Home extends LitElement {
     const g = this.gesture(`t:${id}`, () => s && s.state !== "unavailable" && media(id, on ? "turn_off" : "turn_on"), () => openMoreInfo(this, id));
     return html`<button class="tile dev ${on ? "on" : ""}" aria-disabled=${isUnavailable(s) ? "true" : "false"} aria-label="${name}, ${on ? "allumée" : "éteinte"}"
       @pointerdown=${g.down} @pointermove=${g.move} @pointerup=${g.up} @pointercancel=${g.cancel} @click=${g.click} @keydown=${g.key} @contextmenu=${g.contextmenu}>
-      <span class="ico">${icon("tv")}</span>
+      <span class="ico">${liveIcon("tv", on)}</span>
       <span style="min-width:0"><span class="nm ell">${name}</span><span class="st ell" style="display:block">${isUnavailable(s) ? "Hors ligne" : on ? (app ?? "Allumée") : "Éteinte"}</span></span>
     </button>`;
   }
@@ -838,7 +1088,7 @@ export class Kh3Home extends LitElement {
     const anyOn = h.lights.some((l) => store.get(l.entity)?.state === "on");
     const room = this.filter === "fav" ? undefined : this.rooms.find((r) => r.id === this.filter);
     return html`<section class="devices ${this.phone ? "" : "card"}" aria-label="Appareils">
-      <div class="hs filters" role="toolbar" aria-label="Pièces">
+      <div class="hs filters" role="group" aria-label="Pièces">
         <button class="pill" aria-pressed=${this.filter === "fav" ? "true" : "false"} @click=${() => (this.filter = "fav")}>${icon("star", 16)}Favoris</button>
         <a class="pill" href="${this.prefix}/maison">${icon("plan", 16)}Plan</a>
         ${this.rooms.map((r) => {
@@ -895,7 +1145,7 @@ export class Kh3Home extends LitElement {
       const out = num(h.outdoorTemperature);
       cards.push({
         key: "window", w: 1, h: 1, tint: "background:var(--redTint)",
-        body: () => html`<div class="top"><span class="ico kh-pulse" style="background:var(--red);color:#fff">${icon("window")}</span>
+        body: () => html`<div class="top"><span class="ico" style="background:var(--red);color:#fff">${liveIcon("window", true)}</span>
             <span class="nm ell">${open.length > 1 ? `${open.length} fenêtres` : `Fenêtre ${open[0].room.toLowerCase()}`}</span></div>
           <span class="grow"></span><span class="big num" style="color:var(--red)">${since(oldest.last_changed)}</span>
           <span class="st">ouverte${out !== undefined ? `, ${f1(out)}° dehors` : ""}</span>`,
@@ -905,7 +1155,7 @@ export class Kh3Home extends LitElement {
     // 2. Media playing (Spotify, a speaker).
     const players = [h.spotify, ...config.media.speakers].filter((x): x is string => !!x);
     const playing = players.map((id) => store.get(id)).find((s) => s && (s.state === "playing" || s.state === "paused") && s.attributes.media_title);
-    if (playing) cards.push({ key: "media", w: 2, h: 1, body: () => this.mediaCard(playing.entity_id) });
+    if (playing) cards.push({ key: "media", w: 2, h: 1, body: () => playerCard(playing.entity_id) as TemplateResult });
 
     // 3. Rare devices you can drive from here.
     for (const fan of config.energyPage.fans) {
@@ -915,12 +1165,12 @@ export class Kh3Home extends LitElement {
       const t = num(timer);
       cards.push({
         key: fan, w: 1, h: 1,
-        body: () => html`<div class="top"><span class="ico" style="background:var(--tealTint);color:var(--teal)">${svgFan()}</span>
+        body: () => html`<div class="top"><span class="ico" style="background:var(--tealTint);color:var(--teal)">${liveIcon("fan", true)}</span>
             <span style="min-width:0"><span class="nm ell">Ventilateur</span><span class="st">${s.attributes.percentage ? `${s.attributes.percentage} %` : "En marche"}</span></span></div>
           <span class="grow"></span>
           ${timer
             ? html`<div class="ctl"><button class="rb" aria-label="Moins de temps" @click=${() => setInputNumber(timer, Math.max(0, (t ?? 0) - 15))}>${icon("minus", 18)}</button>
-                <span class="num grow" style="text-align:center;font-weight:700">${t ? minutes(t) : "Sans arrêt"}</span>
+                <span class="num grow" style="text-align:center;font-weight:700" aria-live="polite">${t ? minutes(t) : "Sans arrêt"}</span>
                 <button class="rb" aria-label="Plus de temps" @click=${() => setInputNumber(timer, (t ?? 0) + 15)}>${icon("plus", 18)}</button></div>`
             : html`<button class="btn" @click=${() => toggle(fan, "Ventilateur")}>Arrêter</button>`}`,
       });
@@ -931,55 +1181,44 @@ export class Kh3Home extends LitElement {
       const w = num(spare.power);
       cards.push({
         key: "spare", w: 1, h: 1,
-        body: () => html`<div class="top"><span class="ico kh-pulse" style="background:var(--yellowTint);color:var(--yellowInk)">${icon("scooter")}</span>
+        body: () => html`<div class="top"><span class="ico" style="background:var(--yellowTint);color:var(--yellowInk)">${liveIcon("scooter", true)}</span>
             <span style="min-width:0"><span class="nm ell">${spare.name}</span><span class="st">${w !== undefined ? `En charge, ${f0(w)} W` : "En charge"}</span></span></div>
           <span class="grow"></span>
           <div class="ctl"><button class="rb" aria-label="Moins de temps" @click=${() => runScript(spare.decrement)}>${icon("minus", 18)}</button>
-            <span class="num grow" style="text-align:center;font-weight:700">${minutes(left)}</span>
+            <span class="num grow" style="text-align:center;font-weight:700" aria-live="polite">${minutes(left)}</span>
             <button class="rb" aria-label="Plus de temps" @click=${() => runScript(spare.increment)}>${icon("plus", 18)}</button></div>`,
       });
     }
 
-    // 4. Today's agenda.
-    if (this.events.length) {
-      const shown = this.events.slice(0, 4);
+    // 4. The agenda: always there; today's events, else the next ones.
+    {
+      const midnight = new Date(this.now);
+      midnight.setHours(24, 0, 0, 0);
+      const today = this.events.filter((e) => e.start < midnight);
+      const shown = (today.length ? today : this.events).slice(0, 4);
+      const more = (today.length ? today : this.events).length - shown.length;
+      const dayFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric" });
+      const when = (e: CalEvent) =>
+        e.start < midnight ? (e.allDay ? "Aujourd'hui" : timeFmt.format(e.start)) : `${dayFmt.format(e.start).replace(".", "")}${e.allDay ? "" : `, ${timeFmt.format(e.start)}`}`;
       cards.push({
         key: "agenda", w: 1, h: 2,
-        body: () => html`<div class="top"><span class="ico" style="background:var(--blueTint);color:var(--blue)">${icon("calendar")}</span><span class="nm">Agenda</span></div>
-          ${shown.map((e) => html`<div class="ev"><i></i><span style="min-width:0"><span class="st num" style="font-weight:600;display:block">${e.allDay ? "Journée" : timeFmt.format(e.start)}</span>
+        body: () => html`<div class="top"><span class="ico" style="background:var(--blueTint);color:var(--blue)">${icon("calendar")}</span><span class="nm ell">Agenda</span></div>
+          ${today.length ? nothing : html`<span class="st">${this.events.length ? "Rien aujourd'hui, ensuite :" : "Rien cette semaine"}</span>`}
+          ${shown.map((e) => html`<div class="ev"><i></i><span style="min-width:0"><span class="st num" style="font-weight:600;display:block">${when(e)}</span>
             <span class="ell" style="display:block;font-size:13px;font-weight:600">${e.title}</span></span></div>`)}
           <span class="grow"></span>
-          ${this.events.length > 4 ? html`<span class="st" style="color:var(--blue);font-weight:600">+${this.events.length - 4} autre${this.events.length > 5 ? "s" : ""}</span>` : nothing}`,
+          ${more > 0 ? html`<span class="st" style="color:var(--blue);font-weight:600">+${more} autre${more > 1 ? "s" : ""}</span>` : nothing}`,
       });
     }
 
-    // 5. Lights on outside the favourites.
-    const fav = new Set(h.lights.map((l) => l.entity));
-    const elsewhere = this.model.rooms
-      .flatMap((r) => r.lights.map((id) => ({ id, room: r })))
-      .filter((l) => !fav.has(l.id) && !matches(l.id, config.hide) && store.get(l.id)?.state === "on");
-    if (elsewhere.length) {
-      cards.push({
-        key: "elsewhere", w: 1, h: elsewhere.length > 2 ? 2 : 1,
-        body: () => html`<div class="top"><span class="ico" style="background:var(--amber);color:#3a2400">${icon("bulb")}</span><span class="nm ell">Allumé ailleurs</span></div>
-          ${elsewhere.slice(0, 5).map((l) => {
-            const pct = brightnessPercent(store.get(l.id));
-            return html`<div style="display:flex;justify-content:space-between;gap:6px;font-size:13px;font-weight:600">
-              <span class="ell">${entityName(hass, l.id, config, l.room.name)} <span class="st">${l.room.name}</span></span><span class="num st">${pct !== undefined ? `${pct} %` : ""}</span></div>`;
-          })}
-          <span class="grow"></span>
-          <button class="btn" style="background:var(--amberTint);color:var(--amberInk)" @click=${() => setLights(elsewhere.map((l) => l.id), false)}>Éteindre</button>`,
-      });
-    }
-
-    // 6. A TV on (already a tile; the card adds the volume).
+    // 5. A TV on (already a tile; the card adds the volume).
     for (const tv of h.tvs) {
       const s = store.get(tv);
       if (!s || ["off", "unavailable", "standby", "unknown"].includes(s.state)) continue;
       const name = entityName(hass, tv, config);
       cards.push({
         key: tv, w: 1, h: 1,
-        body: () => html`<div class="top"><span class="ico" style="background:var(--violetTint);color:var(--violet)">${icon("tv")}</span>
+        body: () => html`<div class="top"><span class="ico" style="background:var(--violetTint);color:var(--violet)">${liveIcon("tv", true)}</span>
             <span style="min-width:0"><span class="nm ell">${name}</span><span class="st ell" style="display:block">${s.attributes.app_name ?? s.attributes.source ?? "Allumée"}</span></span></div>
           <span class="grow"></span>
           <div class="ctl"><button class="rb" aria-label="Éteindre ${name}" @click=${() => media(tv, "turn_off")}>${icon("power", 18)}</button>
@@ -990,60 +1229,102 @@ export class Kh3Home extends LitElement {
     return cards;
   }
 
-  private mediaCard(id: string) {
-    const s = store.get(id)!;
-    const a = s.attributes;
-    const art = a.entity_picture as string | undefined;
-    const dur = Number(a.media_duration), pos = Number(a.media_position);
-    const updated = Date.parse(a.media_position_updated_at ?? "");
-    const at = s.state === "playing" && !isNaN(updated) ? pos + (Date.now() - updated) / 1000 : pos;
-    const progress = dur > 0 && !isNaN(at) ? Math.min(100, (at / dur) * 100) : 0;
-    const where = [a.app_name ?? entityName(store.hass!, id, config), a.source].filter(Boolean).join(", ");
-    return html`${art ? html`<img class="cover" src=${art} alt="" decoding="async" />` : html`<span class="cover"></span>`}
-      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-        <span class="st ell" style="display:flex;align-items:center;gap:6px">${s.state === "playing" ? html`<span class="kh-eq" aria-hidden="true" style="color:#1db954"><i></i><i></i><i></i></span>` : nothing}${where}</span>
-        <span class="num ell" style="font-size:18px;font-weight:700;margin-top:2px">${a.media_title}</span>
-        <span class="st ell" style="font-size:13px">${a.media_artist ?? ""}</span>
-        <span class="grow"></span>
-        <span class="bar"><i style="width:${progress}%"></i></span>
-        <div class="ctl" style="justify-content:space-between;margin-top:8px">
-          <button class="rb" style="background:none" aria-label="Précédent" @click=${() => media(id, "media_previous_track")}>${icon("prev", 18)}</button>
-          <button class="play" aria-label=${s.state === "playing" ? "Pause" : "Lecture"} @click=${() => media(id, "media_play_pause")}>${icon(s.state === "playing" ? "pause" : "play", 18)}</button>
-          <button class="rb" style="background:none" aria-label="Suivant" @click=${() => media(id, "media_next_track")}>${icon("next", 18)}</button>
-          <button class="rb" aria-label="Moins fort" @click=${() => media(id, "volume_down")}>${icon("minus", 18)}</button>
-          <button class="rb" aria-label="Plus fort" @click=${() => media(id, "volume_up")}>${icon("plus", 18)}</button>
-        </div>
-      </div>`;
+  /** The last film or series added on Jellyfin (the newest of the two lists). */
+  private latestJellyfin(): Record<string, any> | undefined {
+    const all = [config.home.jellyfin, ...config.media.jellyfin.map((j) => j.entity)].flatMap((id) => jellyfinItems(id));
+    const when = (i: Record<string, any>) => Date.parse(i.airdate ?? i.aired ?? "") || 0;
+    return all.sort((a, b) => when(b) - when(a))[0];
   }
 
-  private poster(item: Record<string, any>, key: string) {
+  /**
+   * Jellyfin, like the player: the poster fills the card and fades into it at
+   * the bottom; the logo on top, title, facts and « Regarder » over it.
+   */
+  private jellyfinCard(item: Record<string, any>, place = "", cls = "") {
     const art = item.poster || item.fanart;
-    return html`<button class="dyn poster" data-k=${key} @click=${() => openMediaItem(item)} aria-label="${item.title}, ajouté sur Jellyfin">
-      ${art ? html`<img src=${art} alt="" loading="lazy" decoding="async" />` : nothing}
-      <span><b class="ell" style="display:block;font-size:13px">${item.title}</b><span class="ell" style="display:block;font-size:11px;opacity:.85">${item.number || (item.aired ?? "").slice(0, 4)}</span></span>
-    </button>`;
+    const sub = [item.number, item.episode].filter(Boolean).join(", ") || (item.aired ?? "").slice(0, 4);
+    const rating = item.rating ? String(item.rating).replace(/[★☆]/g, "").trim() : "";
+    const facts = [item.runtime ? `${item.runtime} min` : "", item.genres ? String(item.genres).split(",")[0] : ""].filter(Boolean);
+    return html`<div class="dyn jelly ${cls}" style=${place}>
+      <button class="jf" @click=${() => openMediaItem(item)} aria-label="${item.title}, ajouté sur Jellyfin">
+        ${art ? html`<img src=${art} alt="" width="200" height="300" loading="lazy" decoding="async" />` : nothing}
+        <span class="jf-logo">${jellyfinLogo(20)}</span>
+        <span class="jf-text">
+          <b class="ell" style="display:block;font-size:16px;line-height:1.2">${item.title}</b>
+          ${sub ? html`<span class="ell" style="display:block;font-size:12px;opacity:.85">${sub}</span>` : nothing}
+          <span class="jf-facts">
+            ${rating ? html`<span class="fact"><span style="color:#f5b83d;display:flex">${icon("star", 12)}</span>${rating}</span>` : nothing}
+            ${facts.map((f) => html`<span class="fact">${f}</span>`)}
+          </span>
+        </span>
+      </button>
+      ${item.deep_link
+        ? html`<a class="jf-watch" href=${item.deep_link} target="_blank" rel="noopener">${icon("play", 14)}Regarder</a>`
+        : nothing}
+    </div>`;
+  }
+
+  /**
+   * Places the cards in 2-row columns, in priority order, each at the first
+   * spot it fits (column by column). Returns each card's place and what is
+   * left free: whole free columns at the end, and single free cells.
+   */
+  private pack(cards: NowCard[]) {
+    const taken: boolean[][] = [];
+    const free = (c: number, r: number) => !taken[c]?.[r];
+    const take = (c: number, r: number) => ((taken[c] ??= [false, false])[r] = true);
+    const spots = new Map<string, { c: number; r: number; w: number; h: number }>();
+    let last = -1;
+    for (const card of cards) {
+      for (let c = 0; ; c++) {
+        let row = -1;
+        if (card.h === 2) row = free(c, 0) && free(c, 1) && (card.w === 1 || (free(c + 1, 0) && free(c + 1, 1))) ? 0 : -1;
+        else for (const r of [0, 1]) if (free(c, r) && (card.w === 1 || free(c + 1, r))) { row = r; break; }
+        if (row < 0) continue;
+        for (let dc = 0; dc < card.w; dc++) for (let dr = 0; dr < card.h; dr++) take(c + dc, row + dr);
+        spots.set(card.key, { c, r: row, w: card.w, h: card.h });
+        last = Math.max(last, c + card.w - 1);
+        break;
+      }
+    }
+    const used = last + 1;
+    const pages = Math.max(1, Math.ceil(used / 4));
+    const places = new Map<string, string>();
+    for (const [k, s] of spots) places.set(k, `grid-column:${s.c + 1} / span ${s.w};grid-row:${s.r + 1} / span ${s.h}`);
+    const tall = new Set([...spots].filter(([, s]) => s.h === 2).map(([k]) => k));
+    // Fixed cells (4 per page): cards keep their size. Whole free columns on a
+    // single page get one « Tout est calme » card.
+    const cols = pages * 4;
+    let firstFree = cols;
+    while (firstFree > 0 && free(firstFree - 1, 0) && free(firstFree - 1, 1)) firstFree--;
+    let calm = pages === 1 && firstFree < cols ? `grid-column:${firstFree + 1} / span ${cols - firstFree};grid-row:1 / span 2` : undefined;
+    // Else the longest free run in a row (e.g. under the player).
+    for (const r of [0, 1]) {
+      for (let c = 0; !calm && pages === 1 && c < cols; c++) {
+        let n = 0;
+        while (c + n < cols && free(c + n, r) && (r === 1 || !free(c + n, 1))) n++;
+        if (n >= 2) calm = `grid-column:${c + 1} / span ${n};grid-row:${r + 1}`;
+      }
+    }
+    return { places, pages, cols, calm, tall };
   }
 
   private nowZone() {
     const cards = this.nowCards();
-    const used = cards.reduce((n, c) => n + c.w * c.h, 0);
-    const pages = Math.max(1, Math.ceil(used / CELLS_PER_PAGE));
-    const seen = new Set<string>();
-    const items = [...jellyfinItems(config.home.jellyfin), ...config.media.jellyfin.flatMap((j) => jellyfinItems(j.entity))].filter((i) => !seen.has(i.title) && seen.add(i.title));
-    const free = this.phone ? 0 : pages * CELLS_PER_PAGE - used;
+    const latest = this.latestJellyfin();
     const label = cards.length === 0 ? "Rien de particulier" : `${cards.length} chose${cards.length > 1 ? "s" : ""}`;
-    const card = (c: NowCard) =>
-      html`<div class="dyn ${c.key === "media" ? "media" : ""} ${c.w === 2 ? "w2" : ""}" style="grid-column:span ${c.w};grid-row:span ${c.h};${c.tint ?? ""}">${c.body()}</div>`;
+    const card = (c: NowCard, place = "", grown = false) =>
+      html`<div class="dyn ${c.key === "media" ? "media" : ""} ${c.w === 2 ? "w2" : ""} ${grown && c.h === 1 ? "grown" : ""}" style="${place};${c.tint ?? ""}">${c.body()}</div>`;
     if (this.phone) {
       return html`<section class="now" aria-label="En ce moment">
-        <div class="now-head"><h2 class="h">En ce moment</h2><span class="st">${label}</span></div>
-        ${cards.length
-          ? html`<div class="hs carousel">${cards.map(card)}</div>`
-          : html`<div class="hs carousel">${items.slice(0, 6).map((i, n) => html`<div class="dyn poster" style="padding:0">${this.poster(i, `p${n}`)}</div>`)}</div>`}
+        <div class="now-head"><h2 class="h">En ce moment</h2><span class="st" aria-live="polite">${label}</span></div>
+        <div class="hs carousel">${cards.map((c) => card(c))}${latest ? this.jellyfinCard(latest, "", "w2") : nothing}</div>
       </section>`;
     }
+    const all: NowCard[] = latest ? [...cards, { key: "jellyfin", w: 1, h: 2, body: () => html`` }] : cards;
+    const { places, pages, calm, tall } = this.pack(all);
     return html`<section class="now" aria-label="En ce moment">
-      <div class="now-head"><h2 class="h">En ce moment</h2><span class="st">${label}</span><span style="flex:1"></span>
+      <div class="now-head"><h2 class="h">En ce moment</h2><span class="st" aria-live="polite">${label}</span><span style="flex:1"></span>
         ${pages > 1
           ? html`<div class="dots" aria-hidden="true">${Array.from({ length: pages }, (_, i) => html`<i class=${i === this.page ? "on" : ""}></i>`)}</div>
               <button class="rb" style="width:36px;height:36px;background:var(--surf)" aria-label=${this.page < pages - 1 ? "Voir la suite" : "Revenir au début"}
@@ -1053,11 +1334,12 @@ export class Kh3Home extends LitElement {
       <div class="scroller" @scroll=${this.onNowScroll}>
         ${Array.from({ length: pages }, (_, i) => html`<span class="anchor" style="left:calc(${i} * (100% + 12px))"></span>`)}
         <div class="cells">
-          ${cards.map(card)}
-          ${cards.length === 0 && !items.length
-            ? html`<div class="dyn quiet"><span class="ico" style="background:var(--tealTint);color:var(--teal)">${icon("check")}</span>
-                <span class="nm">Tout est calme</span><span class="st">Rien d'allumé ni d'ouvert qui demande ton attention.</span></div>`
-            : items.slice(0, free).map((i, n) => this.poster(i, `p${n}`))}
+          ${cards.map((c) => card(c, places.get(c.key), tall.has(c.key)))}
+          ${latest ? this.jellyfinCard(latest, places.get("jellyfin")) : nothing}
+          ${calm
+            ? html`<div class="dyn quiet" style=${calm}><span class="ico" style="background:var(--tealTint);color:var(--teal)">${icon("check")}</span>
+                <span class="nm">Tout est calme</span><span class="st">Rien d'autre d'allumé ou d'ouvert qui demande ton attention.</span></div>`
+            : nothing}
         </div>
       </div>
     </section>`;
@@ -1080,15 +1362,16 @@ export class Kh3Home extends LitElement {
     const hass = store.hass!;
     const w = config.weather.map((id) => hass.states[id]).find((s) => s && s.state !== "unavailable");
     const frog = config.home.frog ? hass.states[config.home.frog.image]?.state : undefined;
-    const t = num(config.home.outdoorTemperature) ?? Number(w?.attributes.temperature);
+    const t0 = num(config.home.outdoorTemperature) ?? Number(w?.attributes.temperature);
+    const t = Number.isFinite(t0) ? t0 : undefined;
     const days = forecastDays(3);
     const rain = config.home.nextRain ? hass.states[config.home.nextRain] : undefined;
     const rainAt = rain && !isNaN(Date.parse(rain.state)) ? Date.parse(rain.state) : undefined;
     const rainText = rainAt && rainAt - Date.now() < 3 * 3600_000 ? `Pluie vers ${timeFmt.format(new Date(rainAt))}` : "Pas de pluie dans l'heure";
-    return html`<a class="weather" href="${this.prefix}/meteo" aria-label="Météo : ${f1(t)} degrés, ${w ? stateLabel(hass, w) : ""}" style="min-height:${this.phone ? 180 : 212}px">
-      ${frog && frog !== "unknown" ? html`<img class="frog" src=${frog} alt="" decoding="async" fetchpriority="low" />` : nothing}
+    return html`<a class="weather" href="${this.prefix}/meteo" aria-label="Météo : ${[t !== undefined ? `${f1(t)} degrés` : "", w ? stateLabel(hass, w) : ""].filter(Boolean).join(", ")}" style="min-height:${this.phone ? 180 : 212}px">
+      ${frog && frog !== "unknown" ? html`<img class="frog" src=${frog} alt="" width="640" height="360" decoding="async" fetchpriority="low" />` : nothing}
       <span class="shade"></span>
-      <span class="now-t"><span class="temp num">${f1(t)}°</span>
+      <span class="now-t"><span class="temp num">${t !== undefined ? `${f1(t)}°` : "—"}</span>
         <span style="padding-bottom:4px"><span style="display:block;font-size:15px;font-weight:600">${w ? stateLabel(hass, w) : ""}</span>
           <span style="display:block;font-size:12px;opacity:.9">${rainText}</span></span></span>
       ${days.length
@@ -1132,7 +1415,7 @@ export class Kh3Home extends LitElement {
     const ySoFar = yday.slice(0, hour + 1).reduce((a, b) => a + b, 0);
     const delta = ySoFar > 0 && soFar > 0 ? ((soFar - ySoFar) / ySoFar) * 100 : undefined;
     const max = Math.max(0.05, ...today, ...yday);
-    return html`<a class="card energy" href="${this.prefix}/energie" aria-label="Énergie" style="padding:12px 14px">
+    return html`<a class="card energy" href="${this.prefix}/energie" aria-label="Énergie : ${f0(watts)} W maintenant, ${f1(kwh)} kWh aujourd'hui" style="padding:12px 14px">
       <span style="display:flex;align-items:center;gap:8px"><span style="color:var(--yellow);display:flex">${icon("boltFill", 18)}</span>
         <span class="h" style="font-size:15px">Énergie</span><span style="flex:1"></span>
         <span class="num" style="font-size:13px;font-weight:600">${f0(watts)} W</span><span class="st">maintenant</span></span>
@@ -1161,8 +1444,13 @@ export class Kh3Home extends LitElement {
     const pages = Math.ceil(items.length / 3);
     return html`<section class="shortcuts" aria-label="Raccourcis">
       <div class="hs" style="gap:8px;scroll-snap-type:x mandatory" @scroll=${this.onScScroll}>${items}</div>
-      ${pages > 1 ? html`<div class="sc-dots" aria-hidden="true">${Array.from({ length: pages }, (_, i) => html`<i class=${i === this.scPage ? "on" : ""}></i>`)}</div>` : nothing}
+      ${pages > 1 ? html`<div class="sc-dots" role="group" aria-label="Pages de raccourcis">${Array.from({ length: pages }, (_, i) => html`<button aria-label="Raccourcis, page ${i + 1}" aria-current=${i === this.scPage ? "true" : "false"} @click=${(e: Event) => this.scrollShortcuts(e, i)}><i class=${i === this.scPage ? "on" : ""}></i></button>`)}</div>` : nothing}
     </section>`;
+  }
+
+  private scrollShortcuts(e: Event, page: number): void {
+    const row = (e.currentTarget as HTMLElement).closest(".shortcuts")?.querySelector<HTMLElement>(".hs");
+    row?.scrollTo({ left: page * (row.clientWidth + 8), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
 
   private scPage = 0;
@@ -1178,17 +1466,16 @@ export class Kh3Home extends LitElement {
   render() {
     if (!store.hass || !this.model) return nothing;
     if (this.phone) {
-      return html`<div class="stack phone">
+      return html`<h1 class="sr">Accueil</h1><div class="stack phone">
         ${this.header()}
         ${this.nowZone()}
         ${this.devices()}
         ${this.weather()}
-        ${this.roomTemps()}
         ${this.energyCard()}
         ${this.shortcuts()}
       </div>`;
     }
-    return html`<div class="wall">
+    return html`<h1 class="sr">Accueil</h1><div class="wall">
       ${this.header()}
       ${this.devices()}
       ${this.nowZone()}
@@ -1197,10 +1484,3 @@ export class Kh3Home extends LitElement {
   }
 }
 customElements.define("kh3-home", Kh3Home);
-
-/** Fan icon whose blades turn (the fan is on whenever this is drawn). */
-function svgFan() {
-  return html`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-    ${svg`<g class="kh-spin kh-fast"><path d="M12 10c0-4 1-7 4-7s2 4-2 7M14 12c4 0 7 1 7 4s-4 2-7-2M12 14c0 4-1 7-4 7s-2-4 2-7M10 12c-4 0-7-1-7-4s4-2 7 2"></path></g>`}
-  </svg>`;
-}

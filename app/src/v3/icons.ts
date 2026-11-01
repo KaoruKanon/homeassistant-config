@@ -1,4 +1,4 @@
-import { html, svg, type SVGTemplateResult, type TemplateResult } from "lit";
+import { html, nothing, svg, type SVGTemplateResult, type TemplateResult } from "lit";
 
 // Line icons drawn on a 24 px grid, inline (no icon font, no HA component).
 // Strokes use currentColor; `fill: true` icons are solid shapes.
@@ -108,8 +108,8 @@ export function icon(name: string, size = 20, label?: string): TemplateResult {
     stroke-linecap="round"
     stroke-linejoin="round"
     role=${label ? "img" : "presentation"}
-    aria-hidden=${label ? "false" : "true"}
-    aria-label=${label ?? ""}
+    aria-hidden=${label ? nothing : "true"}
+    aria-label=${label ?? nothing}
   >
     ${body}
   </svg>`;
@@ -175,13 +175,13 @@ export function weatherIcon(kind: WeatherKind, size = 24): TemplateResult {
   let body: SVGTemplateResult;
   switch (kind) {
     case "rain":
-      body = svg`<path class="kh-glow" d=${high}></path><path class="kh-drop" d="M9 17l-1 2.5"></path><path class="kh-drop kh-d2" d="M13 17l-1 2.5"></path><path class="kh-drop kh-d3" d="M17 17l-1 2.5"></path>`;
+      body = svg`<path d=${high}></path><path class="kh-drop" d="M9 17l-1 2.5"></path><path class="kh-drop kh-d2" d="M13 17l-1 2.5"></path><path class="kh-drop kh-d3" d="M17 17l-1 2.5"></path>`;
       break;
     case "storm":
-      body = svg`<path class="kh-glow" d=${high}></path><path class="kh-pulse" d="M12 15l-2 4h3l-1 3"></path>`;
+      body = svg`<path d=${high}></path><path class="kh-pulse" d="M12 15l-2 4h3l-1 3"></path>`;
       break;
     case "snow":
-      body = svg`<path class="kh-glow" d=${high}></path><path class="kh-drop" d="M9 18h.01"></path><path class="kh-drop kh-d2" d="M13 19h.01"></path><path class="kh-drop kh-d3" d="M17 18h.01"></path>`;
+      body = svg`<path d=${high}></path><path class="kh-drop" d="M9 18h.01"></path><path class="kh-drop kh-d2" d="M13 19h.01"></path><path class="kh-drop kh-d3" d="M17 18h.01"></path>`;
       break;
     case "sun":
       body = svg`<circle cx="12" cy="12" r="4.5"></circle><g class="kh-spin"><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"></path></g>`;
@@ -190,14 +190,65 @@ export function weatherIcon(kind: WeatherKind, size = 24): TemplateResult {
       body = svg`<g class="kh-spin9"><path d="M9 2.5v1.5M3.5 9H2M4.4 4.4l1 1M13.6 4.4l-1 1"></path></g><circle cx="9" cy="9" r="3.2"></circle><path class="kh-drift" d="M9 20h8a3.5 3.5 0 0 0 .4-7A5 5 0 0 0 8 13a3.5 3.5 0 0 0 1 7z"></path>`;
       break;
     case "moon":
-      body = svg`<path class="kh-glow" d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path>`;
+      body = svg`<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path>`;
       break;
     case "fog":
       body = svg`<path class="kh-drift" d="M4 9h16M3 13h18M6 17h12"></path>`;
       break;
     default:
-      body = svg`<path class="kh-drift kh-glow" d=${cloud}></path>`;
+      body = svg`<path class="kh-drift" d=${cloud}></path>`;
   }
   return html`<svg width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+}
+
+/**
+ * Icons that move while their device is on: a PC or TV screen flickers, the
+ * fan turns, a playing speaker sends waves, the scooter charges, an open
+ * window swings, a running timer's hand turns, a lit light sparkles.
+ * Off, they are the plain icon.
+ */
+export function liveIcon(name: string, on: boolean, size = 20): TemplateResult {
+  if (!on) return icon(name, size);
+  let body: SVGTemplateResult | undefined;
+  switch (name) {
+    case "monitor":
+      body = svg`<rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path>
+        <rect class="kh-screen" x="5" y="6" width="14" height="8" rx="1" fill="currentColor" stroke="none" opacity=".35"></rect>
+        <path class="kh-scan" d="M5.5 8h13" stroke-width="1.2" opacity=".7"></path>`;
+      break;
+    case "tv":
+      body = svg`<rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M8 3l4 3 4-3"></path>
+        <rect class="kh-screen" x="5" y="8" width="14" height="8" rx="1" fill="currentColor" stroke="none" opacity=".35"></rect>
+        <path class="kh-scan" d="M5.5 10h13" stroke-width="1.2" opacity=".7"></path>`;
+      break;
+    case "fan":
+      body = svg`<g class="kh-spin kh-fast"><path d="M12 10c0-4 1-7 4-7s2 4-2 7M14 12c4 0 7 1 7 4s-4 2-7-2M12 14c0 4-1 7-4 7s-2-4 2-7M10 12c-4 0-7-1-7-4s4-2 7 2"></path></g>`;
+      break;
+    case "speaker":
+      body = svg`<rect x="4" y="3" width="10" height="18" rx="3"></rect><circle cx="9" cy="14" r="2.5"></circle>
+        <path class="kh-wave" d="M17 9a4 4 0 0 1 0 6"></path><path class="kh-wave kh-d2" d="M19.5 7a7 7 0 0 1 0 10"></path>`;
+      break;
+    case "scooter":
+      body = svg`<circle cx="5" cy="18" r="2.5"></circle><circle cx="19" cy="18" r="2.5"></circle><path d="M7.5 18h9M16 18l-3-12h3"></path>
+        <path class="kh-charge" d="M8 4l-2 4h3l-2 4" stroke-width="1.6"></path>`;
+      break;
+    case "window":
+      body = svg`<rect x="4" y="4" width="16" height="16" rx="1.5"></rect><path d="M12 4v16"></path>
+        <path class="kh-swing" d="M12 5l6 2v12l-6 0"></path>`;
+      break;
+    case "timer":
+      body = svg`<circle cx="12" cy="13" r="8"></circle><path d="M9 2h6"></path><path class="kh-hand" d="M12 13V8.5"></path>`;
+      break;
+    case "plug":
+      body = svg`<path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4"></path><path class="kh-charge" d="M12.5 10l-2 3h3l-2 3" stroke-width="1.4"></path>`;
+      break;
+    default: {
+      // Lights (and anything lit): the icon plus three small rays that twinkle.
+      const base = name in FILL ? FILL[name] : (STROKE[name] ?? STROKE.bulb);
+      body = svg`${base}<g class="kh-rays"><path d="M20 3.5l-1.2 1.2M22 8h-1.6M16.8 2v1.6"></path></g>`;
+    }
+  }
+  return html`<svg width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 }
