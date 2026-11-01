@@ -10,6 +10,7 @@ import { currentPerson, roomsFor } from "../rooms.ts";
 import { RegistryController, store } from "../store.ts";
 import { base, tokens } from "../styles.ts";
 import { isWall } from "./styles.ts";
+import { isKiosk } from "../kiosk.ts";
 import type { PanelRoute } from "../types.ts";
 import "./home.ts";
 
@@ -342,7 +343,7 @@ export class KhV2App extends LitElement {
           ${this.phone
             ? html`<button aria-haspopup="dialog" style="--c: var(--rgb-indigo)" aria-current=${elsewhere ? "page" : nothing}
                 @click=${() => this.more(prefix)}><ha-icon icon="mdi:dots-horizontal-circle-outline"></ha-icon>Plus</button>`
-            : this.narrow
+            : this.narrow || isKiosk() // kiosk: HA's sidebar is hidden, its menu opens from here
               ? html`<button aria-label="Menu Home Assistant" @click=${this.toggleMenu}><ha-icon icon="mdi:menu"></ha-icon></button>`
               : nothing}
         </nav>

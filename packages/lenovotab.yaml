@@ -84,8 +84,8 @@ automation:
       - action: browser_mod.navigate
         data:
           browser_id:
-            - 6c1e502969ee705227e70afe410e1349
-          path: /maison-v2
+            - tablet # the tablet's browser_mod ID (sensor.tablet_browser_path)
+          path: /maison-v2?kiosk
     mode: single
 
   - alias: tablet_screen_motion
