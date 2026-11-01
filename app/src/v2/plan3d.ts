@@ -1,20 +1,25 @@
 import { LitElement, css, html, nothing } from "lit";
 import {
+  ACESFilmicToneMapping,
   AdditiveBlending,
   AmbientLight,
   BufferGeometry,
   BoxGeometry,
   Color,
+  CanvasTexture,
   CylinderGeometry,
   DirectionalLight,
+  DoubleSide,
   Float32BufferAttribute,
   Group,
   HemisphereLight,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  PCFShadowMap,
   PCFSoftShadowMap,
   PerspectiveCamera,
+  PlaneGeometry,
   PointLight,
   Raycaster,
   RingGeometry,
@@ -38,7 +43,7 @@ import { openComputer } from "../popups/open.ts";
 import { entityName, type Room } from "../rooms.ts";
 import { EntitiesController, RegistryController, store } from "../store.ts";
 import { base } from "../styles.ts";
-import { FURNITURE, FURNITURE_3D, ROOMS, WALLS, freeSpot, planLights, type Spot } from "./plan-data.ts";
+import { FURNITURE, FURNITURE_3D, ROOMS, ROOM_HUES, WALLS, freeSpot, planLights, type Spot } from "./plan-data.ts";
 import { currentSky } from "./sky.ts";
 import { andon, computer, flatTv, gamingSetup, lino, model, speaker, standingFan } from "./plan3d-models.ts";
 
@@ -63,6 +68,87 @@ function slab(x: number, y: number, w: number, h: number, z: number, mat: MeshSt
 
 const mat = (color: string, extra: Partial<{ roughness: number; emissive: string; transparent: boolean; opacity: number }> = {}) =>
   new MeshStandardMaterial({ color, roughness: extra.roughness ?? 0.85, emissive: extra.emissive ?? "#000000", transparent: extra.transparent, opacity: extra.opacity ?? 1 });
+
+/**
+ * V3 walls: the box's vertices shaded, darker at the foot (a cheap ambient
+ * occlusion where wall meets floor) and a dark cap on top, so cut walls read
+ * as a section, like an architect's plan.
+ */
+function shadeWall(m: Mesh): Mesh {
+  const g = m.geometry;
+  const pos = g.getAttribute("position"), nrm = g.getAttribute("normal");
+  const h = (g as BoxGeometry).parameters.height;
+  const colors: number[] = [];
+  for (let i = 0; i < pos.count; i++) {
+    // (linear values: 0.06 is a dark warm grey on screen, 0.42 about two thirds)
+    if (nrm.getY(i) > 0.5) colors.push(0.062, 0.058, 0.054);
+    else {
+      const k = 0.42 + 0.58 * Math.min(1, (pos.getY(i) + h / 2) / Math.min(h, 90)); // dark foot, light from 90 cm up
+      colors.push(k, k, k);
+    }
+  }
+  g.setAttribute("color", new Float32BufferAttribute(colors, 3));
+  return m;
+}
+
+/**
+ * V3: soft darkening on the floor along every wall (contact shadow), all in
+ * one mesh: a strip each side of each wall, dark at the wall, clear 16 cm out.
+ */
+function wallContact(): Mesh {
+  const pos: number[] = [], col: number[] = [], idx: number[] = [];
+  const W = 20, A = 0.34, Y = 0.9;
+  const quad = (a: [number, number], b: [number, number], c: [number, number], d: [number, number]) => {
+    // a, b on the wall (dark), c, d away from it (clear)
+    const i = pos.length / 3;
+    for (const [x, z] of [a, b, c, d]) pos.push(x - CX, Y, z - CZ);
+    col.push(0, 0, 0, A, 0, 0, 0, A, 0, 0, 0, 0, 0, 0, 0, 0);
+    idx.push(i, i + 1, i + 2, i, i + 2, i + 3);
+  };
+  for (const [x, y, w, h] of WALLS) {
+    quad([x, y], [x + w, y], [x + w, y - W], [x, y - W]);
+    quad([x, y + h], [x + w, y + h], [x + w, y + h + W], [x, y + h + W]);
+    quad([x, y], [x, y + h], [x - W, y + h], [x - W, y]);
+    quad([x + w, y], [x + w, y + h], [x + w + W, y + h], [x + w + W, y]);
+  }
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(pos, 3));
+  g.setAttribute("color", new Float32BufferAttribute(col, 4));
+  g.setIndex(idx);
+  const m = new Mesh(g, new MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: DoubleSide }));
+  m.renderOrder = 1;
+  return m;
+}
+
+/** V3: a soft shadow under the whole flat, fading out on the card (no hard edge). */
+function groundShadow(): Mesh {
+  const c = document.createElement("canvas");
+  c.width = 128;
+  c.height = 224;
+  const x = c.getContext("2d")!;
+  x.filter = "blur(14px)";
+  x.fillStyle = "rgba(0,0,0,0.9)";
+  x.fillRect(30, 30, 68, 164);
+  const t = new CanvasTexture(c);
+  const m = new Mesh(new PlaneGeometry(690 * 1.45, 1235 * 1.22), new MeshBasicMaterial({ color: "#000000", alphaMap: t, transparent: true, opacity: 0.55, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.set(400 - CX, -7, 722 - CZ);
+  return m;
+}
+
+/** A CSS colour (a theme token's computed value) as a three.js colour, or the fallback. */
+function cssColor(v: string, fallback: string): Color {
+  const c = new Color();
+  try {
+    c.setStyle(v.trim() || fallback);
+  } catch {
+    c.set(fallback);
+  }
+  return c;
+}
+
+/** The flat's bounding box (scene units): what the default views frame. */
+const BOX = [55 - CX, 745 - CX, -6, WALL_H, 105 - CZ, 1340 - CZ] as const;
 
 interface Live {
   floors: Map<string, MeshStandardMaterial>;
@@ -102,9 +188,11 @@ type View = "overview" | "top";
  * TV / PC badges are HTML laid over the canvas. Renders on demand only.
  */
 export class KhPlan3d extends LitElement {
-  static properties = { rooms: { attribute: false }, prefix: {} };
+  static properties = { rooms: { attribute: false }, prefix: {}, v3: { type: Boolean, reflect: true } };
   declare rooms: Room[];
   declare prefix: string;
+  /** Maison V3 look (set by kh-floorplan): theme colours, toolbar in the plan's top row, softer rendering. */
+  declare v3: boolean;
 
   private renderer?: WebGLRenderer;
   private scene = new Scene();
@@ -113,6 +201,10 @@ export class KhPlan3d extends LitElement {
   private sun = new DirectionalLight("#fff4e0", 2.2);
   private hemi = new HemisphereLight("#cfe3ff", "#3a3020", 1.1);
   private ambient = new AmbientLight("#ffffff", 0.35);
+  /** V3: a soft fill from the viewer's side, so walls and furniture keep their shape at any sun. */
+  private fill = new DirectionalLight("#fff6ea", 0);
+  /** V3: the plinth under the flat, in the theme's colours. */
+  private plinth?: MeshStandardMaterial;
   private live?: Live;
   private picks: Object3D[] = [];
   private frame = 0;
@@ -134,6 +226,7 @@ export class KhPlan3d extends LitElement {
 
   constructor() {
     super();
+    this.v3 = false;
     new RegistryController(this);
     new EntitiesController(this, () => {
       const p = config.plan;
@@ -351,6 +444,151 @@ export class KhPlan3d extends LitElement {
         color: rgb(255 255 255 / 0.6);
         pointer-events: none;
       }
+      .view {
+        position: relative;
+      }
+
+      /* ---- Maison V3 (set by kh-floorplan): theme tokens; the toolbar is the plan's top row,
+         the canvas fills the rest of the frame. ---- */
+      :host([v3]) {
+        display: grid;
+        grid-template-rows: 44px minmax(0, 1fr);
+        font-family: var(--kh-font, "Instrument Sans", system-ui, sans-serif);
+      }
+      :host([v3]) .view {
+        min-height: 0;
+        overflow: hidden;
+        border-radius: 16px;
+      }
+      :host([v3]) canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 16px;
+        /* Close up, the scene fades out at the edges instead of being cut by a hard rectangle. */
+        mask-image: linear-gradient(to right, transparent, #000 18px, #000 calc(100% - 18px), transparent),
+          linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+        mask-composite: intersect;
+      }
+      :host([v3]) .tools {
+        position: static;
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 8px;
+        max-width: none;
+        min-width: 0;
+        padding: 0 112px 0 3px;
+        overflow: hidden;
+      }
+      :host([v3]) .seg {
+        flex: none;
+        display: inline-flex;
+        padding: 3px;
+        border-radius: 12px;
+        background: var(--surf2);
+      }
+      :host([v3]) .tools .seg button {
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 9px;
+        background: none;
+        font: 700 13px var(--kh-font, "Instrument Sans", system-ui, sans-serif);
+        color: var(--muted);
+      }
+      :host([v3]) .tools .seg button[aria-pressed="true"] {
+        background: var(--surf);
+        color: var(--ink);
+        box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+      }
+      :host([v3][narrow]) .tools {
+        gap: 6px;
+      }
+      :host([v3][narrow]) .tools .seg button {
+        padding: 0 9px;
+      }
+      .go {
+        position: absolute;
+        z-index: 1;
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        height: 40px;
+        padding: 0 18px;
+        border-radius: 999px;
+        background: var(--amber);
+        color: #3a2400;
+        font: 700 14px var(--kh-font, "Instrument Sans", system-ui, sans-serif);
+        white-space: nowrap;
+        box-shadow: 0 4px 16px rgb(0 0 0 / 0.22);
+      }
+      :host([v3]) .hint,
+      :host([v3]) .legend {
+        color: var(--muted);
+      }
+      :host([v3][narrow]) .hint {
+        display: none;
+      }
+      :host([v3]) .tag {
+        color: var(--ink);
+        text-shadow: none;
+        font: 700 13px var(--kh-font, "Instrument Sans", system-ui, sans-serif);
+        gap: 4px;
+      }
+      :host([v3]) .tag .name {
+        gap: 6px;
+        padding: 4px 11px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--surf) 90%, transparent);
+        box-shadow: 0 2px 10px rgb(0 0 0 / 0.16);
+      }
+      :host([v3]) .tag .name.with-t {
+        padding: 3px 3px 3px 11px;
+      }
+      :host([v3]) .tag .t {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--hue) 38%, var(--surf2));
+        color: var(--ink);
+        font-size: 12px;
+      }
+      :host([v3]) .bulb {
+        background: var(--surf);
+        color: var(--muted);
+        box-shadow: 0 2px 8px rgb(0 0 0 / 0.16);
+      }
+      :host([v3]) .bulb.on {
+        background: var(--amber);
+        color: #3a2400;
+      }
+      :host([v3]) .fix {
+        background: var(--surf);
+        border-color: color-mix(in srgb, var(--muted) 30%, transparent);
+        color: var(--muted);
+      }
+      :host([v3]) .fix.on {
+        background: var(--amber);
+        border-color: transparent;
+        color: #3a2400;
+        box-shadow: 0 0 14px color-mix(in srgb, var(--amber) 60%, transparent);
+      }
+      :host([v3]) .badge {
+        background: var(--surf);
+        border-color: color-mix(in srgb, var(--muted) 25%, transparent);
+        color: var(--ink);
+        box-shadow: 0 2px 10px rgb(0 0 0 / 0.16);
+      }
+      :host([v3]) .badge.pc.on {
+        background: var(--blue);
+        border-color: transparent;
+        color: #fff;
+      }
+      :host([v3]) .badge.tv.on {
+        background: var(--violet);
+        border-color: transparent;
+        color: #fff;
+      }
     `,
   ];
 
@@ -373,7 +611,7 @@ export class KhPlan3d extends LitElement {
     this.scene.traverse((o) => {
       if (o instanceof Mesh) {
         o.geometry.dispose();
-        (o.material as MeshStandardMaterial).dispose();
+        for (const m of [o.material].flat() as MeshStandardMaterial[]) m.dispose();
       }
     });
     this.renderer?.dispose();
@@ -393,14 +631,21 @@ export class KhPlan3d extends LitElement {
     r.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // sharp enough, lighter on tablets
     r.outputColorSpace = SRGBColorSpace;
     r.shadowMap.enabled = true;
-    r.shadowMap.type = PCFSoftShadowMap;
+    r.setClearColor(0x000000, 0); // transparent: the card shows through, no edge around the view
+    if (this.v3) {
+      // Filmic tone mapping: lamps and sun patches roll off softly instead of clipping.
+      r.toneMapping = ACESFilmicToneMapping;
+      r.toneMappingExposure = 0.9;
+      r.shadowMap.type = PCFShadowMap;
+    } else r.shadowMap.type = PCFSoftShadowMap;
     this.build();
     // Seen from the salon's corner, high enough to take in the whole flat.
     this.camera.position.set(-1050, 1500, 1050);
     const c = new OrbitControls(this.camera, canvas);
     c.target.set(0, 0, 0);
     c.enableDamping = true;
-    c.dampingFactor = 0.08;
+    c.dampingFactor = this.v3 ? 0.1 : 0.08;
+    if (this.v3) c.rotateSpeed = 0.8;
     c.maxPolarAngle = Math.PI * 0.45;
     c.minDistance = 450;
     c.maxDistance = 3200;
@@ -425,6 +670,14 @@ export class KhPlan3d extends LitElement {
     this.sun.position.set(-500, 900, 300);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(1024, 1024);
+    if (this.v3) {
+      // Soft-edged shadows (PCF, a few texels wide), without acne on the floors.
+      this.sun.shadow.radius = 4;
+      this.sun.shadow.bias = -0.0006;
+      this.sun.shadow.normalBias = 1.5;
+      this.fill.position.set(-900, 1300, 500);
+      s.add(this.fill);
+    }
     const sc = this.sun.shadow.camera;
     sc.left = -800;
     sc.right = 800;
@@ -436,16 +689,25 @@ export class KhPlan3d extends LitElement {
     const live: Live = { floors: new Map(), floorBase: new Map(), lamps: new Map(), windows: new Map(), beams: [], tvs: new Map(), pcs: new Map(), fixtures: new Map(), sashes: new Map(), motion: new Map(), speakers: new Map(), fans: new Map(), cut: [] };
 
     // Ground slab under the flat.
-    const ground = slab(55, 105, 690, 1235, 6, mat("#1c2027"), -6);
+    const v3 = this.v3;
+    const ground = slab(55, 105, 690, 1235, 6, v3 ? (this.plinth = mat("#9aa0ab", { roughness: 0.95 })) : mat("#1c2027"), -6);
     ground.castShadow = false;
+    // V3: the lino runs on under the walls (door thresholds read as floor); sides in the theme's colours.
+    if (v3) {
+      const top = new MeshStandardMaterial({ color: "#e6ddd2", map: lino(), roughness: 0.9 });
+      ground.material = [this.plinth!, this.plinth!, top, this.plinth!, this.plinth!, this.plinth!];
+    }
     s.add(ground);
+    if (v3) s.add(groundShadow());
 
     for (const [id, p] of Object.entries(ROOMS)) {
       const pts = p.points.split(" ").map((xy) => xy.split(",").map(Number));
       const shape = new Shape();
       pts.forEach(([x, y], i) => (i ? shape.lineTo(x - CX, -(y - CZ)) : shape.moveTo(x - CX, -(y - CZ))));
-      // The same orange lino in every room; the temperature layer tints it.
-      const m = new MeshStandardMaterial({ color: "#ffffff", map: lino(), roughness: 0.8 });
+      // The same orange lino in every room; the temperature layer tints it. V3: a
+      // whisper of the room's own hue (as on the 2D plan), so rooms tell apart.
+      const base = v3 && ROOM_HUES[id] ? new Color("#ffffff").lerp(new Color(ROOM_HUES[id]), 0.2) : new Color("#ffffff");
+      const m = new MeshStandardMaterial({ color: base, map: lino(), roughness: v3 ? 0.88 : 0.8 });
       const floor = new Mesh(new ShapeGeometry(shape), m);
       floor.rotation.x = -Math.PI / 2;
       floor.position.y = 0.5;
@@ -454,9 +716,14 @@ export class KhPlan3d extends LitElement {
       s.add(floor);
       this.picks.push(floor);
       live.floors.set(id, m);
-      live.floorBase.set(id, new Color("#ffffff"));
+      live.floorBase.set(id, base);
       // Motion: a soft ring around the room's label.
-      const ring = new Mesh(new RingGeometry(45, 75, 48), new MeshBasicMaterial({ color: "#64b5f6", transparent: true, opacity: 0.45, depthWrite: false, blending: AdditiveBlending }));
+      const ring = new Mesh(
+        new RingGeometry(45, 75, 48),
+        v3
+          ? new MeshBasicMaterial({ color: "#2bb5a0", transparent: true, opacity: 0.4, depthWrite: false }) // V3 teal, as on the 2D plan
+          : new MeshBasicMaterial({ color: "#64b5f6", transparent: true, opacity: 0.45, depthWrite: false, blending: AdditiveBlending }),
+      );
       ring.rotation.x = -Math.PI / 2;
       ring.position.set(p.label[0] - CX, 1.5, p.label[1] - CZ);
       ring.visible = false;
@@ -470,12 +737,13 @@ export class KhPlan3d extends LitElement {
       }
     }
     // The cupboard behind the folding door.
-    s.add(slab(80, 639, 110, 341, 1, mat("#3a3f4b")));
+    s.add(slab(80, 639, 110, 341, 1, mat(v3 ? "#a9a196" : "#3a3f4b")));
 
     const walls = new Group();
-    const wallMat = mat("#d9d4cc", { roughness: 0.9 });
+    // V3: warm off-white plaster, shaded per vertex (dark foot, dark cap).
+    const wallMat = v3 ? new MeshStandardMaterial({ color: "#f4eee5", roughness: 0.92, vertexColors: true }) : mat("#d9d4cc", { roughness: 0.9 });
     const cutaway = (o: Mesh, x: number, y: number, w: number, h: number, height: number, lift = 0, hide = false) => {
-      walls.add(o);
+      walls.add(v3 ? shadeWall(o) : o);
       live.cut.push({ o, cx: x + w / 2 - CX, cz: y + h / 2 - CZ, h: height, lift, hide: hide || lift > 0 });
     };
     for (const [x, y, w, h] of WALLS) cutaway(slab(x, y, w, h, WALL_H, wallMat), x, y, w, h, WALL_H);
@@ -496,6 +764,7 @@ export class KhPlan3d extends LitElement {
       at = Math.max(at, b);
     }
     s.add(walls);
+    if (v3) s.add(wallContact());
 
     const pvc = mat("#f4f4f1", { roughness: 0.4 }), stone = mat("#e3e0da", { roughness: 0.5 }), handle = mat("#e9e9e6", { roughness: 0.3 });
     for (const [id, p] of Object.entries(ROOMS)) {
@@ -713,6 +982,17 @@ export class KhPlan3d extends LitElement {
     this.hemi.intensity = sky.ambient * 3;
     this.hemi.color.set(sky.window);
     this.ambient.intensity = sky.ambient;
+    if (this.v3) {
+      // The plinth in the theme's colours; a soft sky / warm bounce so the flat always reads on
+      // the card, and the fill light giving walls and furniture their shape.
+      const cs = getComputedStyle(this);
+      this.plinth?.color.copy(cssColor(cs.getPropertyValue("--surf2"), "#222a34").lerp(cssColor(cs.getPropertyValue("--muted"), "#9aa6b5"), 0.3));
+      this.hemi.intensity = (night ? 0.5 : 0.9) + sky.ambient * 2.4;
+      this.hemi.groundColor.set("#7a6450");
+      this.ambient.intensity = 0.1 + sky.ambient * 0.4;
+      this.fill.intensity = night ? 0.18 : 0.5;
+      this.renderer && (this.renderer.toneMappingExposure = night ? 1.05 : 0.9);
+    }
     // Sun patches: each window corner projected on the floor along the sunlight.
     const into = toSun.clone().negate();
     for (const { mesh, a, b, minX } of live.beams) {
@@ -739,7 +1019,16 @@ export class KhPlan3d extends LitElement {
       if (floor && baseColor) {
         floor.emissive.set(on ? "#3a2400" : "#000000");
         const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
-        floor.color.copy(this.layer === "temp" && !isNaN(t) ? tempColor(t) : baseColor);
+        const temp = this.layer === "temp" && !isNaN(t);
+        floor.color.copy(temp ? tempColor(t) : baseColor);
+        if (this.v3) {
+          // V3: the temperature colour plain (not multiplied by the orange lino), so it reads true.
+          const map = temp ? null : lino();
+          if (floor.map !== map) {
+            floor.map = map;
+            floor.needsUpdate = true;
+          }
+        }
       }
       const ring = live.motion.get(r.id);
       if (ring) ring.visible = r.motion.some((m) => isActive(hass.states[m]));
@@ -783,10 +1072,32 @@ export class KhPlan3d extends LitElement {
   private fit(): void {
     const r = this.renderer;
     if (!r) return;
+    if (this.v3) {
+      // V3: the canvas fills the frame kh-floorplan gives (below its top row).
+      const view = this.renderRoot.querySelector<HTMLElement>(".view");
+      const vw = view?.clientWidth || this.clientWidth || 600, vh = view?.clientHeight || 400;
+      this.narrow = vw < 600;
+      r.setSize(vw, Math.max(200, vh), false);
+      this.camera.aspect = vw / Math.max(200, vh);
+      this.camera.updateProjectionMatrix();
+      if (!this.moved && this.controls) {
+        const [pos, target] = this.home();
+        this.camera.position.copy(pos);
+        this.controls.target.copy(target);
+        this.controls.maxDistance = Math.max(3200, pos.distanceTo(target) * 1.5);
+      }
+      this.request();
+      return;
+    }
     const w = this.clientWidth || 600;
     this.narrow = w < 600;
     // Phones: a tall view along the length of the flat; wide screens: from the salon's corner.
-    const h = Math.round(this.narrow ? Math.min(w * 1.25, window.innerHeight * 0.62) : Math.min(w * 0.6, window.innerHeight * 0.62));
+    // A host that sets --plan3d-fill: 1 (Maison V3) gets the whole height left down to the bottom of the screen.
+    const fill = getComputedStyle(this).getPropertyValue("--plan3d-fill").trim() === "1";
+    const room = window.innerHeight - this.getBoundingClientRect().top - 28;
+    const h = Math.round(
+      fill && !this.narrow ? Math.max(320, room) : this.narrow ? Math.min(w * 1.25, window.innerHeight * 0.62) : Math.min(w * 0.6, window.innerHeight * 0.62),
+    );
     r.setSize(w, h, false);
     if (!this.moved) this.camera.position.copy(this.home()[0]);
     this.camera.aspect = w / h;
@@ -842,7 +1153,8 @@ export class KhPlan3d extends LitElement {
     const dir = this.camera.position.clone().sub(this.controls.target).normalize();
     if (dir.y < 0.45) dir.setY(0.45).normalize();
     this.focused = id;
-    this.moveTo(target.clone().add(dir.multiplyScalar(820)), target);
+    // V3 phones: a little further back, the portrait view is narrow.
+    this.moveTo(target.clone().add(dir.multiplyScalar(this.v3 && this.narrow ? 1250 : 820)), target);
   }
 
   /** Preset views: the whole flat from the salon's corner, or from above. */
@@ -854,13 +1166,66 @@ export class KhPlan3d extends LitElement {
     } catch {
       /* not kept */
     }
-    const [pos] = this.home();
-    this.moveTo(pos, new Vector3(0, 0, 0));
+    const [pos, target] = this.home();
+    this.moveTo(pos, target);
   }
 
-  private home(): [Vector3] {
-    if (this.view === "top") return [new Vector3(0, this.narrow ? 3100 : 2700, 1)];
-    return [new Vector3(...((this.narrow ? [0, 1550, 1150] : [-1050, 1500, 1050]) as [number, number, number]))];
+  /** The camera's place and aim for the current preset view. */
+  private home(): [Vector3, Vector3] {
+    if (this.v3) {
+      // V3: the flat turned as on the 2D plan (landscape: salon on the left, windows at the
+      // back; phones: salon at the top), framed to fill the canvas.
+      const top = this.view === "top";
+      const el = top ? 1.53 : this.narrow ? 0.98 : 0.8, az = top ? 0 : this.narrow ? 0.12 : 0.17;
+      const dir = this.narrow
+        ? new Vector3(-Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az))
+        : new Vector3(-Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az));
+      return this.framing(dir.normalize());
+    }
+    if (this.view === "top") return [new Vector3(0, this.narrow ? 3100 : 2700, 1), new Vector3()];
+    return [new Vector3(...((this.narrow ? [0, 1550, 1150] : [-1050, 1500, 1050]) as [number, number, number])), new Vector3()];
+  }
+
+  /**
+   * The camera seen along `dir` (from the target), at the distance where the
+   * whole flat fills the canvas with a small margin, aimed so it sits centred.
+   */
+  private framing(dir: Vector3): [Vector3, Vector3] {
+    const cam = this.camera.clone();
+    const corners: Vector3[] = [];
+    for (const x of [BOX[0], BOX[1]]) for (const y of [BOX[2], BOX[3]]) for (const z of [BOX[4], BOX[5]]) corners.push(new Vector3(x, y, z));
+    const target = new Vector3((BOX[0] + BOX[1]) / 2, 0, (BOX[4] + BOX[5]) / 2);
+    const MX = 0.95, MY = 0.92; // share of the canvas the flat may take, across and down
+    const place = (d: number) => {
+      cam.position.copy(target).addScaledVector(dir, d);
+      cam.lookAt(target);
+      cam.updateMatrixWorld();
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (const c of corners) {
+        const v = c.clone().project(cam);
+        x0 = Math.min(x0, v.x);
+        x1 = Math.max(x1, v.x);
+        y0 = Math.min(y0, v.y);
+        y1 = Math.max(y1, v.y);
+      }
+      return { x0, x1, y0, y1 };
+    };
+    let d = 2000;
+    for (let pass = 0; pass < 3; pass++) {
+      let lo = 150, hi = 12000;
+      for (let i = 0; i < 28; i++) {
+        const mid = (lo + hi) / 2, b = place(mid);
+        if (Math.max((b.x1 - b.x0) / 2 / MX, (b.y1 - b.y0) / 2 / MY) > 1) lo = mid;
+        else hi = mid;
+      }
+      d = hi;
+      // Centre the flat: move the aim by the offset of its projected box.
+      const b = place(d);
+      const halfH = Math.tan((cam.fov * Math.PI) / 360) * d, halfW = halfH * cam.aspect;
+      const right = new Vector3().setFromMatrixColumn(cam.matrixWorld, 0), up = new Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+      target.addScaledVector(right, ((b.x0 + b.x1) / 2) * halfW).addScaledVector(up, ((b.y0 + b.y1) / 2) * halfH);
+    }
+    return [target.clone().addScaledVector(dir, d), target];
   }
 
   private setLayer(l: "none" | "temp"): void {
@@ -979,15 +1344,30 @@ export class KhPlan3d extends LitElement {
     const hass = store.hass;
     const rooms = this.rooms ?? [];
     const taken = this.fixedButtons();
-    return html`<canvas aria-label="Vue 3D de l'appartement : glisser pour tourner, pincer pour zoomer"></canvas>
-      <div class="tools" role="toolbar" aria-label="Vue du plan 3D">
+    const v3 = this.v3;
+    const focusedName = rooms.find((r) => r.id === this.focused)?.name ?? "";
+    // V3: two segmented controls in the plan's top row (the 2D/3D switch sits on its right).
+    const tools = v3
+      ? html`<div class="tools" role="toolbar" aria-label="Vue du plan 3D">
+          <div class="seg">
+            <button aria-pressed=${String(this.view === "overview" && !this.focused)} @click=${() => this.setView("overview")}>Ensemble</button>
+            <button aria-pressed=${String(this.view === "top" && !this.focused)} @click=${() => this.setView("top")}>Dessus</button>
+          </div>
+          <div class="seg">
+            <button aria-pressed=${String(this.layer === "temp")} aria-label="Températures" @click=${() => this.setLayer(this.layer === "temp" ? "none" : "temp")}>${this.narrow ? "Temp." : "Températures"}</button>
+          </div>
+        </div>`
+      : html`<div class="tools" role="toolbar" aria-label="Vue du plan 3D">
         <button aria-pressed=${String(this.view === "overview" && !this.focused)} @click=${() => this.setView("overview")}><ha-icon icon="mdi:axis-arrow"></ha-icon><span>Ensemble</span></button>
         <button aria-pressed=${String(this.view === "top" && !this.focused)} @click=${() => this.setView("top")}><ha-icon icon="mdi:arrow-collapse-down"></ha-icon><span>Dessus</span></button>
         <button aria-pressed=${String(this.layer === "temp")} @click=${() => this.setLayer(this.layer === "temp" ? "none" : "temp")}><ha-icon icon="mdi:thermometer"></ha-icon><span>Températures</span></button>
         ${this.focused
-          ? html`<button class="open" @click=${() => this.openRoom(this.focused!)}><ha-icon icon="mdi:door-open"></ha-icon><span>Ouvrir ${rooms.find((r) => r.id === this.focused)?.name ?? ""}</span></button>`
+          ? html`<button class="open" @click=${() => this.openRoom(this.focused!)}><ha-icon icon="mdi:door-open"></ha-icon><span>Ouvrir ${focusedName}</span></button>`
           : nothing}
-      </div>
+      </div>`;
+    return html`${tools}<div class="view">
+      <canvas aria-label="Vue 3D de l'appartement : glisser pour tourner, pincer pour zoomer"></canvas>
+      ${v3 && this.focused ? html`<button class="go" @click=${() => this.openRoom(this.focused!)}>Ouvrir ${focusedName} →</button>` : nothing}
       ${this.layer === "temp" ? html`<div class="legend" aria-hidden="true"><span>16°</span><i></i><span>28°</span></div>` : nothing}
       <div class="overlay">
         ${hass && this.renderer
@@ -1004,12 +1384,12 @@ export class KhPlan3d extends LitElement {
               const lights = planLights(r);
               const on = lights.some((id) => isActive(hass.states[id]));
               const t = r.temperature ? Number(hass.states[r.temperature]?.state) : NaN;
-              return html`<div class="tag" style="left:${pos[0]}px; top:${pos[1]}px">
+              return html`<div class="tag" style="left:${pos[0]}px; top:${pos[1]}px; --hue:${ROOM_HUES[r.id] ?? "var(--muted)"}">
                 ${lights.length
                   ? html`<button class="bulb ${on ? "on" : ""}" aria-label=${on ? `Éteindre ${r.name}` : `Allumer ${r.name}`}
                       @click=${() => setLights(lights, !on)}><ha-icon icon=${on ? "mdi:lightbulb-on" : "mdi:lightbulb-outline"}></ha-icon></button>`
                   : nothing}
-                <span class="name">${r.name}${!isNaN(t) ? html`<span class="t">${formatNumber(t)}°</span>` : nothing}</span>
+                <span class="name ${isNaN(t) ? "" : "with-t"}">${r.name}${!isNaN(t) ? html`<span class="t">${formatNumber(t)}°</span>` : nothing}</span>
               </div>`;
             })}
             ${Object.values(config.plan?.lights ?? {}).flat().map((l) => {
@@ -1051,7 +1431,8 @@ export class KhPlan3d extends LitElement {
             })}`
           : nothing}
       </div>
-      <div class="hint">Glisser pour tourner, pincer ou molette pour zoomer ; toucher une pièce pour s'en approcher</div>`;
+      <div class="hint">Glisser pour tourner, pincer ou molette pour zoomer ; toucher une pièce pour s'en approcher</div>
+    </div>`;
   }
 }
 customElements.define("kh-plan3d", KhPlan3d);

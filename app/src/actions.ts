@@ -130,6 +130,12 @@ export async function media(entityId: string, command: MediaCommand): Promise<vo
   await call("media_player", command, {}, { entity_id: entityId });
 }
 
+/** Moves playback to a position (seconds) in the current track. */
+export async function seek(entityId: string, position: number): Promise<void> {
+  if (!store.hass || !entityId.startsWith("media_player.")) return;
+  await call("media_player", "media_seek", { seek_position: Math.max(0, Math.round(position)) }, { entity_id: entityId });
+}
+
 export async function setVolume(entityId: string, level: number): Promise<void> {
   const hass = store.hass;
   if (!hass || !entityId.startsWith("media_player.")) return;

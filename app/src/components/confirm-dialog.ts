@@ -1,6 +1,8 @@
 import { LitElement, css, html } from "lit";
 import { store } from "../store.ts";
-import { base, tokens } from "../styles.ts";
+import { tokens } from "../styles.ts";
+import { ui } from "../v3/theme.ts";
+import { glyph, overlayTokens, toneCss } from "./toast.ts";
 
 export interface ConfirmOptions {
   title: string;
@@ -9,6 +11,7 @@ export interface ConfirmOptions {
   danger?: boolean;
 }
 
+/** A question before a sensitive action, in the V3 style (V1/V2 fall back to their colours). */
 class KhConfirmDialog extends LitElement {
   static properties = { options: { attribute: false } };
   declare options: ConfirmOptions;
@@ -16,51 +19,100 @@ class KhConfirmDialog extends LitElement {
 
   static styles = [
     tokens,
-    base,
+    overlayTokens,
+    ui,
+    toneCss,
     css`
+      :host {
+        font-family: var(--kh-font);
+      }
       dialog {
         border: 0;
-        border-radius: 20px;
-        background: var(--kh-dialog);
-        color: var(--kh-text);
-        padding: 24px;
+        border-radius: 26px;
+        background: var(--surf);
+        color: var(--ink);
+        padding: 22px;
         width: min(420px, calc(100vw - 32px));
-        box-sizing: border-box;
+        box-shadow: 0 24px 60px rgb(0 0 0 / 0.35);
       }
       dialog::backdrop {
-        background: rgb(0 0 0 / 0.5);
-        backdrop-filter: blur(4px);
+        background: rgb(8 10 20 / 0.5);
+        animation: fade 180ms ease-out;
+      }
+      dialog[open] {
+        animation: pop 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      @keyframes pop {
+        from {
+          opacity: 0;
+          transform: scale(0.97);
+        }
+      }
+      @keyframes fade {
+        from {
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        dialog[open],
+        dialog::backdrop {
+          animation: none;
+        }
+      }
+      .head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .head .ico {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+      }
+      .head .ico svg {
+        width: 22px;
+        height: 22px;
       }
       h2 {
-        margin: 0 0 8px;
-        font-size: 1.25rem;
+        font-family: "Bricolage Grotesque", system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 20px;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
       }
       p {
-        margin: 0 0 24px;
-        color: var(--kh-text-2);
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 15px;
         line-height: 1.45;
       }
       .actions {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
       }
       .actions button {
-        min-height: var(--kh-tap);
-        padding: 0 20px;
-        border-radius: var(--kh-radius-icon);
+        min-height: 48px;
+        padding: 0 16px;
+        border-radius: 14px;
         font-weight: 700;
+        font-size: 14px;
+        transition: transform 0.12s;
+      }
+      .actions button:active {
+        transform: scale(0.97);
       }
       .cancel {
-        background: var(--kh-card-2);
+        background: var(--surf2);
       }
       .confirm {
-        background: var(--kh-accent);
-        color: var(--kh-on-accent);
+        background: var(--blue);
+        color: var(--surf);
       }
       .confirm.danger {
-        background: var(--kh-alert);
-        color: var(--kh-on-alert);
+        background: var(--red);
+        color: var(--surf);
       }
     `,
   ];
@@ -106,7 +158,10 @@ class KhConfirmDialog extends LitElement {
         aria-describedby="kh-confirm-body"
         @cancel=${(e: Event) => (e.preventDefault(), this.close(false))}
       >
-        <h2 id="kh-confirm-title">${o.title}</h2>
+        <div class="head">
+          <span class="ico ${o.danger ? "t-red" : "t-blue"}">${glyph(o.danger ? "alert" : "question", 22)}</span>
+          <h2 id="kh-confirm-title">${o.title}</h2>
+        </div>
         <p id="kh-confirm-body">${o.body}</p>
         <div class="actions">
           <button class="cancel" @click=${() => this.close(false)}>Annuler</button>

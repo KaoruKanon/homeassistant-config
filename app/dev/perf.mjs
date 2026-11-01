@@ -17,11 +17,12 @@ const runs = Number(process.argv[3] ?? 3);
 const only = process.env.ONLY;
 const allTargets = {
   lovelace: { path: "/lovelace/home", ready: ["MUSHROOM-TEMPLATE-CARD", "MUSHROOM-CHIPS-CARD", "HUI-ENTITIES-CARD"] },
-  "kaoru-home": { path: "/maison", ready: ["KH-LIGHT-CARD"] },
+  "kaoru-home": { path: "/maison-v1", ready: ["KH-LIGHT-CARD"] },
   "kaoru-home-v2": { path: "/maison-v2", ready: ["KH-LIGHT-PILL"] },
+  "kaoru-home-v3": { path: "/maison", ready: ["KH3-HOME"] },
 };
 
-const targets = only ? { [only]: allTargets[only] } : allTargets;
+const targets = only ? Object.fromEntries(only.split(",").map((n) => [n, allTargets[n]])) : allTargets;
 
 const observe = `
   window.__kh = { tbt: 0, longTasks: 0 };

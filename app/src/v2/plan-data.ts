@@ -52,6 +52,37 @@ export const ROOMS: Record<string, PlanRoom> = {
   salle_de_bain: { points: "80,1130 280,1130 280,1315 80,1315", label: [180, 1266] },
 };
 
+/**
+ * Maison V3: each room's own hue, a calm set of distinct colours mixed softly
+ * into the theme's tiles (2D) and the floors (3D) so rooms tell apart at a
+ * glance. No amber or red here: amber means "lit", red "open".
+ */
+export const ROOM_HUES: Record<string, string> = {
+  salon: "#E8765C", // coral
+  cuisine: "#4FAE6A", // green
+  chambre_william: "#3F86E8", // blue
+  chambre_papa: "#8D6BE6", // violet
+  couloir: "#B39A72", // sand
+  toilette: "#E0679D", // pink
+  salle_de_bain: "#22AFA6", // teal
+};
+
+/** Whether a plan point lies inside a room's outline (even-odd rule). */
+function inside(points: string, x: number, y: number): boolean {
+  const pts = points.split(" ").map((p) => p.split(",").map(Number));
+  let hit = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
+}
+
+/** The room a plan point belongs to, if any. */
+export function roomAt(x: number, y: number): string | undefined {
+  return Object.entries(ROOMS).find(([, p]) => inside(p.points, x, y))?.[0];
+}
+
 /** Doors: hinge, then the leaf's closed and open angles (degrees, 0 = +x, 90 = down). */
 export const DOORS: [number, number, number, number][] = [
   [180, 445, 0, -90], [640, 445, 180, 270], [75, 530, 90, 0], [285, 540, 90, 0], [285, 870, -90, 0],
