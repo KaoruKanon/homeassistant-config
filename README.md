@@ -22,7 +22,7 @@ T'aimes mon repo ? Laisse une ⭐.
 
 Un panneau Home Assistant écrit en Lit + TypeScript, compilé avec Vite. Les pièces viennent des zones de Home Assistant ; `app/src/config.ts` ajoute seulement ce que le registre ne sait pas : noms, ordre des pièces, favoris par personne, confirmations, plan de l'appartement.
 
-Le panneau **Maison** (`/maison`), déclaré en `panel_custom` dans `configuration.yaml`, est le tableau de bord par défaut (réglé dans Paramètres › Tableaux de bord). Les anciennes versions restent déclarées pendant la transition (`/maison-v2`, `/maison-v1`).
+Le panneau **Maison** (`/maison`), déclaré en `panel_custom` dans `configuration.yaml`, est le tableau de bord par défaut (réglé dans Paramètres › Tableaux de bord). La V1 reste déclarée pendant la transition (`/maison-v1`) ; la V2 n'est plus déployée.
 
 Il n'y a plus de dashboard Lovelace en YAML ni de carte HACS : Lovelace reste disponible en mode stockage (« Aperçu » de Home Assistant).
 
