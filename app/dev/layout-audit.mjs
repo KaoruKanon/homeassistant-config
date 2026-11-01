@@ -22,9 +22,9 @@ const SIZES = {
   "macbook-16": { viewport: { width: 1728, height: 1117 } },
   "full-hd": { viewport: { width: 1920, height: 1080 } },
 };
-// V1 under /maison, V2 (separate panel) under /maison-v2.
+// V1 under /maison-v1, V2 under /maison-v2 (V3, under /maison, has its own pages).
 const SUBPAGES = ["", "/pieces", "/pieces/chambre_william", "/medias", "/meteo", "/energie", "/systeme"];
-const PAGES = (process.env.PANELS ?? "/maison,/maison-v2").split(",").flatMap((panel) => SUBPAGES.map((p) => panel + p));
+const PAGES = (process.env.PANELS ?? "/maison-v1,/maison-v2").split(",").flatMap((panel) => SUBPAGES.map((p) => panel + p));
 // Minimum widths (px) below which a component is unusable.
 const MIN = { "KH-LIGHT-CARD": 165, "KH-MEDIA-CARD": 260, "KH-WEATHER-CARD": 300, "KH-BOX-REMOTE": 280, "KH-ENERGY-CARD": 280, "KH-TILE": 160, "KH-COMPUTER": 150, "KH-LIGHT-PILL": 150 };
 

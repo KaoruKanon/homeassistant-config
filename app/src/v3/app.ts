@@ -11,6 +11,7 @@ import type { PanelRoute } from "../types.ts";
 import { f0, f1, num } from "./data.ts";
 import "./home.ts";
 import { icon } from "./icons.ts";
+import { isKiosk } from "../kiosk.ts";
 import { goTo, installDragScroll } from "./nav.ts";
 import { isDark, loadFonts, loadTheme, themeShared, themeStyle, ui, type ThemeChoice } from "./theme.ts";
 
@@ -268,29 +269,12 @@ export class Kh3App extends LitElement {
     installPressFeedback(this.renderRoot as ShadowRoot);
     this.documentMeta(true);
     this.undrag = installDragScroll();
-    this.kiosk();
   }
 
   /**
    * While V3 is shown: pinch-zoom allowed (HA's page forbids it) and a page
    * description; HA's own values come back when leaving the panel.
    */
-  /**
-   * `?kiosk` hides Home Assistant's sidebar on this screen (wall tablet),
-   * `?kiosk=0` brings it back; HA remembers the choice per browser.
-   */
-  private kiosk(): void {
-    const v = new URLSearchParams(location.search).get("kiosk");
-    if (v === null) return;
-    const dock = v === "0" ? "docked" : "always_hidden";
-    try {
-      localStorage.setItem("dockedSidebar", JSON.stringify(dock));
-    } catch {
-      /* still applied for this visit */
-    }
-    this.dispatchEvent(new CustomEvent("hass-dock-sidebar", { detail: { dock }, bubbles: true, composed: true }));
-  }
-
   private savedViewport?: string;
   private undrag?: () => void;
   private documentMeta(on: boolean): void {
@@ -462,7 +446,7 @@ export class Kh3App extends LitElement {
 
   render() {
     if (!store.hass) return nothing;
-    const prefix = this.route?.prefix ?? "/maison-v3";
+    const prefix = this.route?.prefix ?? "/maison";
     let [section = "", sub] = (this.route?.path ?? "").replace(/^\//, "").split("/");
     // The plan (shared with V2) opens rooms under /pieces.
     if (section === "pieces") section = "maison";
@@ -492,7 +476,7 @@ export class Kh3App extends LitElement {
               </nav>
             </dialog>`
           : html`<nav class="rail" aria-label="Navigation">
-              ${this.narrow ? html`<button aria-label="Menu Home Assistant" @click=${this.toggleMenu}>${icon("logs", 22)}Menu</button>` : nothing}
+              ${this.narrow || isKiosk() ? html`<button aria-label="Menu Home Assistant" @click=${this.toggleMenu}>${icon("logs", 22)}Menu</button>` : nothing}
               ${NAV.filter((n) => n.path !== "systeme").map((n) => this.link(n, prefix, section))}
               <span class="spacer"></span>
               ${this.link(NAV.find((n) => n.path === "systeme")!, prefix, section)}

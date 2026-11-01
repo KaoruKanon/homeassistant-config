@@ -20,13 +20,15 @@ T'aimes mon repo ? Laisse une ⭐.
 
 Un panneau Home Assistant écrit en Lit + TypeScript, compilé avec Vite. Les pièces viennent des zones de Home Assistant ; `app/src/config.ts` ajoute seulement ce que le registre ne sait pas : noms, ordre des pièces, favoris par personne, confirmations, plan de l'appartement.
 
-Deux panneaux, déclarés en `panel_custom` dans `configuration.yaml` et servis par le même bundle :
+Trois panneaux, déclarés en `panel_custom` dans `configuration.yaml` et servis par le même bundle :
 
 | Panneau | URL | Contenu |
 |---|---|---|
-| Maison V3 | `/maison-v3` | la nouvelle version, en préparation sur l'instance de dev : nouveau design, pages Climat, Bourse et Famille |
-| Maison | `/maison-v2` | le front-end principal (V2) : tuiles « bento », scènes illustrées, plan 2D / 3D |
-| Maison V1 | `/maison` | l'accueil Mushroom refait, gardé temporairement avant d'être retiré |
+| Maison | `/maison` | le front-end principal (V3) et le tableau de bord par défaut : nouveau design, pages Climat, Bourse et Famille |
+| Maison V2 | `/maison-v2` | la V2 : tuiles « bento », scènes illustrées, plan 2D / 3D ; gardée pendant la transition |
+| Maison V1 | `/maison-v1` | l'accueil Mushroom refait, gardé temporairement avant d'être retiré |
+
+Le tableau de bord par défaut (ce qu'ouvre `/`) se règle dans Home Assistant, Paramètres › Tableaux de bord, sur « Maison ».
 
 Il n'y a plus de dashboard Lovelace en YAML ni de carte HACS : Lovelace reste disponible en mode stockage (« Aperçu » de Home Assistant).
 
@@ -42,7 +44,7 @@ La carte des positions et l'agenda sont floutés sur les captures.
 
 ### Maison V3
 
-Une réécriture du design, page par page, d'après des maquettes validées avant d'écrire le code. Même organisation et mêmes fonctions que la V2, en Lit natif, sans aucun composant `ha-*` de Home Assistant. Mode kiosque pour la tablette : `/maison-v3?kiosk` (cache la barre latérale de Home Assistant), `?kiosk=0` pour en sortir.
+Une réécriture du design, page par page, d'après des maquettes validées avant d'écrire le code. Même organisation et mêmes fonctions que la V2, en Lit natif, sans aucun composant `ha-*` de Home Assistant. Mode kiosque pour la tablette : `/maison?kiosk` (cache la barre latérale et l'en-tête de Home Assistant, le menu reste accessible par le bouton « Menu » du rail), `?kiosk=0` pour en sortir. Après 5 minutes sur une autre page, la tablette revient à l'accueil.
 
 <img src="/images/kaoru-home/v3/tablet-accueil.jpg" width="100%">
 

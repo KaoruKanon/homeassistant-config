@@ -253,7 +253,7 @@ export class KhV1App extends LitElement {
     const model = house(hass);
     const person = currentPerson(hass)?.replace("person.", "");
     const rooms = roomsFor(model, (person && config.people[person]?.favoriteRooms) || []);
-    const prefix = this.route?.prefix ?? "/maison";
+    const prefix = this.route?.prefix ?? "/maison-v1";
     const [section = "", sub] = (this.route?.path ?? "").replace(/^\//, "").split("/");
     const room = section === "pieces" && sub ? rooms.find((r) => r.id === sub) : undefined;
 
