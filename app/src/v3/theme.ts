@@ -281,7 +281,7 @@ export const ui = css`
     background: var(--amberTint);
     transition: width 0.25s;
   }
-  .tile > :not(.fill) {
+  .tile > :not(.fill, .busy) {
     position: relative;
   }
   .tile[aria-disabled="true"] {
