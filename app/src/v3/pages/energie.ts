@@ -23,6 +23,8 @@ interface Flow {
   /** Sensor opened on a tap of its label. */
   entity?: string;
   rest?: boolean;
+  /** Plugs behind this one (Shiro behind the homelab): a second level. */
+  children?: Flow[];
 }
 
 const REFRESH_MS = 5 * 60_000;
@@ -279,10 +281,31 @@ export class Kh3Energie extends Page {
         justify-content: center;
         gap: 2px;
       }
+      .plot {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+      }
       .flow svg {
         width: 100%;
         height: 100%;
         display: block;
+      }
+      /* A parent's name above its middle node (Homelab, above Shiro and the rest). */
+      .mid {
+        position: absolute;
+        transform: translate(-50%, calc(-100% - 4px));
+        display: flex;
+        gap: 6px;
+        align-items: baseline;
+        padding: 2px 8px;
+        border-radius: 8px;
+        background: var(--surf2);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .mid .n {
+        font-weight: 700;
       }
       .labels {
         position: relative;
@@ -596,14 +619,20 @@ export class Kh3Energie extends Page {
     const meters = config.energyPage.meters ?? [];
     const now = this.mode === "now";
     const read = (power: string) => (now ? (num(power) ?? 0) : (this.split[power] ?? 0));
-    // A plug behind another one is counted once: the upstream one keeps only the rest.
+    const color = (power: string) => COLORS[meters.findIndex((m) => m.power === power) % COLORS.length];
+    // A plug behind another one is drawn as its child: counted once, inside its parent.
     const measured: Flow[] = meters
-      .map((m, i) => {
-        const inside = meters.filter((c) => c.within === m.power).reduce((s, c) => s + read(c.power), 0);
-        const value = Math.max(0, read(m.power) - inside);
-        const parent = meters.find((p) => p.power === m.within);
-        const name = parent ? `${m.name} (${parent.name})` : inside > 0 ? `${m.name}, le reste` : m.name;
-        return { name, value, color: COLORS[i % COLORS.length], entity: m.power };
+      .filter((m) => !m.within)
+      .map((m) => {
+        const children: Flow[] = meters
+          .filter((c) => c.within === m.power)
+          .map((c) => ({ name: c.name, value: read(c.power), color: color(c.power), entity: c.power }))
+          .filter((f) => f.value > 0);
+        const inside = children.reduce((s, c) => s + c.value, 0);
+        const value = Math.max(read(m.power), inside);
+        children.sort((x, y) => y.value - x.value);
+        if (children.length && value - inside > 0) children.push({ name: "Autres appareils", value: value - inside, color: color(m.power), rest: true, entity: m.power });
+        return { name: m.name, value, color: color(m.power), entity: m.power, children: children.length ? children : undefined };
       })
       .filter((f) => f.value > 0);
     const sum = measured.reduce((s, f) => s + f.value, 0);
@@ -626,52 +655,90 @@ export class Kh3Energie extends Page {
     const { total, flows, unit } = this.flowsData();
     const now = this.mode === "now";
     if (total <= 0 || !flows.length) return html`<p class="empty" style="flex:1">${now ? "Pas de mesure de puissance pour le moment." : "Pas encore de mesure depuis minuit."}</p>`;
-    // Ribbons as thick as their share; every destination at least MIN high for its label.
-    const W = 464, H = 236, pad = 6, gap = 14, MIN = this.p?.phone ? 46 : 30, x0 = 12, x1 = W - 12, mid = (x0 + x1) / 2;
-    const room = H - 2 * pad - gap * (flows.length - 1);
+    // Ribbons as thick as their share; every end at least MIN high for its label.
+    // A flow with children stops at a middle node, then splits towards them.
+    const leaves = flows.flatMap((f) => (f.children ?? [f]).map((leaf) => ({ leaf, parent: f.children ? f : undefined })));
+    const W = 464, H = 236, pad = 6, gap = 14, MIN = this.p?.phone ? 46 : 30, x0 = 12, x1 = W - 12, xm = (x0 + x1) / 2;
+    const room = H - 2 * pad - gap * (leaves.length - 1);
     let scale = room / total;
     for (let k = 0; k < 4; k++) {
-      const small = flows.filter((f) => f.value * scale < MIN);
-      const big = flows.filter((f) => f.value * scale >= MIN).reduce((s, f) => s + f.value, 0);
+      const small = leaves.filter((l) => l.leaf.value * scale < MIN);
+      const big = leaves.filter((l) => l.leaf.value * scale >= MIN).reduce((s, l) => s + l.leaf.value, 0);
       if (!big) break;
       scale = Math.min(room / total, (room - small.length * MIN) / big);
     }
     let y = pad;
-    const nodes = flows.map((f) => {
-      const h = Math.max(3, f.value * scale);
+    const nodes = leaves.map(({ leaf, parent }) => {
+      const h = Math.max(3, leaf.value * scale);
       const slot = Math.max(MIN, h);
-      const node = { f, top: y + (slot - h) / 2, h, center: y + slot / 2 };
+      const node = { f: leaf, parent, top: y + (slot - h) / 2, h, center: y + slot / 2 };
       y += slot + gap;
       return node;
     });
     const used = y - gap + pad;
-    const srcH = nodes.reduce((s, n) => s + n.h, 0);
-    let sy = (used - srcH) / 2;
-    const ribbons = nodes.map((n, i) => {
-      const a = sy, b = sy + n.h, c = n.top, d = n.top + n.h;
-      sy = b;
-      return svg`<defs><linearGradient id="kh3f${i}" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0" style="stop-color:var(--yellow);stop-opacity:.55"></stop>
-          <stop offset="1" style="stop-color:${n.f.color};stop-opacity:${n.f.rest ? 0.35 : 0.7}"></stop></linearGradient></defs>
-        <path d="M${x0} ${a} C${mid} ${a} ${mid} ${c} ${x1} ${c} L${x1} ${d} C${mid} ${d} ${mid} ${b} ${x0} ${b} Z" fill="url(#kh3f${i})"></path>
-        <rect x=${x1} y=${c} width="12" height=${n.h} rx="3" style="fill:${n.f.color}"></rect>`;
+    // What leaves the source, one band per top-level flow.
+    const bands = flows.map((f) => {
+      const own = nodes.filter((n) => (n.parent ?? n.f) === f);
+      const h = own.reduce((s, n) => s + n.h, 0);
+      const first = own[0], last = own[own.length - 1];
+      return { f, own, h, center: (first.top + last.top + last.h) / 2 };
     });
-    const summary = flows.map((f) => `${f.name} ${unit(f.value)}`).join(", ");
+    const srcH = bands.reduce((s, b) => s + b.h, 0);
+    const ribbon = (xa: number, a: number, b: number, xb: number, c: number, d: number, fill: string) => {
+      const m = (xa + xb) / 2;
+      return svg`<path d="M${xa} ${a} C${m} ${a} ${m} ${c} ${xb} ${c} L${xb} ${d} C${m} ${d} ${m} ${b} ${xa} ${b} Z" fill=${fill}></path>`;
+    };
+    const grad = (id: string, from: string, to: string, o: number) => svg`<defs><linearGradient id=${id} x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" style="stop-color:${from};stop-opacity:.55"></stop>
+        <stop offset="1" style="stop-color:${to};stop-opacity:${o}"></stop></linearGradient></defs>`;
+    let sy = (used - srcH) / 2;
+    const mids: { f: Flow; top: number; h: number }[] = [];
+    const ribbons = bands.map((b, i) => {
+      const a = sy;
+      sy += b.h;
+      if (!b.f.children) {
+        const n = b.own[0];
+        return svg`${grad(`kh3f${i}`, "var(--yellow)", n.f.color, n.f.rest ? 0.35 : 0.7)}
+          ${ribbon(x0, a, a + b.h, x1, n.top, n.top + n.h, `url(#kh3f${i})`)}
+          <rect x=${x1} y=${n.top} width="12" height=${n.h} rx="3" style="fill:${n.f.color}"></rect>`;
+      }
+      // The parent's node in the middle, then one ribbon per child.
+      const top = Math.max(pad, Math.min(used - pad - b.h, b.center - b.h / 2));
+      mids.push({ f: b.f, top, h: b.h });
+      let cy = top;
+      return svg`${grad(`kh3f${i}`, "var(--yellow)", b.f.color, 0.7)}
+        ${ribbon(x0, a, a + b.h, xm, top, top + b.h, `url(#kh3f${i})`)}
+        <rect x=${xm - 6} y=${top} width="12" height=${b.h} rx="3" style="fill:${b.f.color}"></rect>
+        ${b.own.map((n, j) => {
+          const c = cy;
+          cy += n.h;
+          return svg`${grad(`kh3f${i}-${j}`, b.f.color, n.f.color, n.f.rest ? 0.35 : 0.7)}
+            ${ribbon(xm + 6, c, c + n.h, x1, n.top, n.top + n.h, `url(#kh3f${i}-${j})`)}
+            <rect x=${x1} y=${n.top} width="12" height=${n.h} rx="3" style="fill:${n.f.color}"></rect>`;
+        })}`;
+    });
+    const summary = flows
+      .map((f) => `${f.name} ${unit(f.value)}${f.children ? ` (dont ${f.children.map((c) => `${c.name} ${unit(c.value)}`).join(", ")})` : ""}`)
+      .join(", ");
     return html`<div class="flow">
       <div class="src">
         <span class="st" style="font-weight:600">Linky</span>
         <span class="num" style="font-size:24px;font-weight:700;white-space:nowrap">${unit(total)}</span>
         <span class="st">${now ? "maintenant" : "depuis minuit"}</span>
       </div>
-      <svg viewBox="0 0 ${W} ${used}" preserveAspectRatio="none" role="img" aria-label="Répartition : ${summary}">
-        <rect x="0" y=${(used - srcH) / 2} width="12" height=${srcH} rx="4" style="fill:var(--yellow)"></rect>
-        ${ribbons}
-      </svg>
+      <div class="plot">
+        <svg viewBox="0 0 ${W} ${used}" preserveAspectRatio="none" role="img" aria-label="Répartition : ${summary}">
+          <rect x="0" y=${(used - srcH) / 2} width="12" height=${srcH} rx="4" style="fill:var(--yellow)"></rect>
+          ${ribbons}
+        </svg>
+        ${mids.map((m) => html`<button type="button" class="mid" style="left:${(xm / W) * 100}%;top:${(m.top / used) * 100}%"
+          @click=${() => m.f.entity && openMoreInfo(this, m.f.entity)}><span class="n">${m.f.name}</span><span class="num">${unit(m.f.value)}</span></button>`)}
+      </div>
       <div class="labels" role="group" aria-label="Répartition">
         ${nodes.map((n) => {
           const share = Math.round((n.f.value / total) * 100);
           const body = html`<i style="background:${n.f.color}"></i>
-            <span style="flex:1;min-width:0"><span class="n ell">${n.f.name}</span><span class="st num" style="display:block">${share} % du total</span></span>
+            <span style="flex:1;min-width:0"><span class="n ell">${n.f.name}</span><span class="st num ell" style="display:block">${n.parent ? `${share} % · ${n.parent.name}` : `${share} % du total`}</span></span>
             <span class="w num">${unit(n.f.value)}</span>`;
           return n.f.entity
             ? html`<button type="button" class="lab" style="top:${(n.center / used) * 100}%" @click=${() => openMoreInfo(this, n.f.entity!)}>${body}</button>`
