@@ -212,6 +212,8 @@ export interface ToastSpec {
   action?: { text: string; run: () => void };
   /** Milliseconds; 0 keeps it until closed. */
   duration?: number;
+  /** Home Assistant's toast id: the same id updates the toast in place. */
+  id?: string;
 }
 
 // Home Assistant's own messages are in English: the ones met in this house, in French.
@@ -341,9 +343,20 @@ class KhToast extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.arm();
+    requestAnimationFrame(() => (this.live = true));
+  }
+
+  /** New text for the same toast (a countdown...): no new entrance, the timer restarts. */
+  refresh(spec: ToastSpec): void {
+    this.spec = spec;
+    this.arm();
+  }
+
+  private arm(): void {
+    window.clearTimeout(this.timer);
     const d = this.spec.duration ?? (this.spec.action ? 8000 : 4500);
     if (d) this.timer = window.setTimeout(() => this.close(), d);
-    requestAnimationFrame(() => (this.live = true));
   }
 
   close(): void {
@@ -375,6 +388,7 @@ customElements.define("kh-toast", KhToast);
 let current: KhToast | undefined;
 
 export function showToast(spec: ToastSpec): void {
+  if (current?.isConnected && !current.leaving && spec.id && current.spec.id === spec.id) return current.refresh(spec);
   current?.close();
   const el = document.createElement("kh-toast") as KhToast;
   el.spec = spec;
@@ -395,15 +409,25 @@ export function showToast(spec: ToastSpec): void {
  * (bottom, English) show as our toast instead (top, French).
  */
 let panels = 0;
+const PERSISTENT_MAX = 120_000;
 const onHassNotification = (e: Event) => {
-  const d = (e as CustomEvent).detail as { message?: string; action?: { text: string; action: () => void }; duration?: number } | undefined;
-  if (!d?.message) return;
+  const d = (e as CustomEvent).detail as
+    | { id?: string; message?: string; action?: { text: string; action: () => void }; duration?: number }
+    | undefined;
+  if (!d) return;
   e.stopPropagation();
+  // An empty message is how Home Assistant takes its toast back (e.g. reconnected).
+  if (!d.message) {
+    if (current && !current.leaving && (!d.id || current.spec.id === d.id)) current.close();
+    return;
+  }
   showToast({
+    id: d.id,
     message: inFrench(String(d.message)),
     kind: /fail|error|invalid|unable|échou/i.test(String(d.message)) ? "error" : "info",
     action: d.action ? { text: d.action.text === "Restart" ? "Redémarrer" : d.action.text, run: d.action.action } : undefined,
-    duration: d.duration === -1 ? 0 : d.duration,
+    // Kept until Home Assistant takes it back, but never more than 2 minutes.
+    duration: d.duration === -1 || d.duration === 0 ? PERSISTENT_MAX : d.duration,
   });
 };
 
