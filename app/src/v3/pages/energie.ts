@@ -595,8 +595,16 @@ export class Kh3Energie extends Page {
     const e = config.home.energy;
     const meters = config.energyPage.meters ?? [];
     const now = this.mode === "now";
+    const read = (power: string) => (now ? (num(power) ?? 0) : (this.split[power] ?? 0));
+    // A plug behind another one is counted once: the upstream one keeps only the rest.
     const measured: Flow[] = meters
-      .map((m, i) => ({ name: m.name, value: now ? (num(m.power) ?? 0) : (this.split[m.power] ?? 0), color: COLORS[i % COLORS.length], entity: m.power }))
+      .map((m, i) => {
+        const inside = meters.filter((c) => c.within === m.power).reduce((s, c) => s + read(c.power), 0);
+        const value = Math.max(0, read(m.power) - inside);
+        const parent = meters.find((p) => p.power === m.within);
+        const name = parent ? `${m.name} (${parent.name})` : inside > 0 ? `${m.name}, le reste` : m.name;
+        return { name, value, color: COLORS[i % COLORS.length], entity: m.power };
+      })
       .filter((f) => f.value > 0);
     const sum = measured.reduce((s, f) => s + f.value, 0);
     // Since midnight: the Linky's completed hours, the same hours as the meters' means.

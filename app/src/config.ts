@@ -122,9 +122,11 @@ export interface KaoruHomeConfig {
     plugs: string[];
     /**
      * What the measuring plugs feed, for "Où part l'électricité": a name, the
-     * power sensor, and whether it is often unplugged (shown only while it draws).
+     * power sensor, whether it is often unplugged (shown only while it draws),
+     * and the meter upstream when this plug sits behind another one (counted
+     * once: the upstream meter shows only what is left).
      */
-    meters?: { name: string; power: string; occasional?: boolean }[];
+    meters?: { name: string; power: string; occasional?: boolean; within?: string }[];
     spare?: {
       plug: string;
       name: string;
@@ -371,7 +373,8 @@ export const config: KaoruHomeConfig = {
       { name: "Bureau de Kaoru (RIG)", power: "sensor.smart_plug_kaoru_active_power_2" },
       { name: "Homelab", power: "sensor.smart_plug_homelab_active_power" },
       { name: "Trottinette", power: "sensor.smart_plug_spare_active_power", occasional: true },
-      { name: "Shiro", power: "sensor.smart_plug_shiro_active_power", occasional: true },
+      // Shiro is plugged behind the homelab's power strip: part of « Homelab ».
+      { name: "Shiro", power: "sensor.smart_plug_shiro_active_power", occasional: true, within: "sensor.smart_plug_homelab_active_power" },
     ],
     spare: {
       plug: "switch.smart_plug_spare_switch",
