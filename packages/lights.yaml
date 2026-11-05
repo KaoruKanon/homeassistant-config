@@ -145,33 +145,6 @@ automation:
         target:
           entity_id: light.chambre
 
-  - alias: auto_turn_off_cuisine
-    description: ""
-    triggers:
-      - trigger: state
-        entity_id:
-          - light.switch_wall_cuisine
-        from: "off"
-        to: "on"
-        for:
-          hours: 0
-          minutes: 20
-          seconds: 0
-    conditions:
-      - condition: time
-        after: "22:00:00"
-        before: "07:00:00"
-      - condition: state
-        entity_id: light.switch_wall_cuisine
-        state: "on"
-    actions:
-      - action: light.turn_off
-        metadata: {}
-        data: {}
-        target:
-          entity_id: light.switch_wall_cuisine
-    mode: single
-
   - alias: auto_turn_off_chambre_papa
     description: ""
     triggers:
@@ -197,21 +170,4 @@ automation:
         data: {}
         target:
           entity_id: light.switch_wall_chambre_papa
-    mode: single
-
-  - alias: toggle_cuisine
-    description: ""
-    triggers:
-      - device_id: 631a266451fd7ad699e580f912b7fbf9
-        domain: zha
-        type: remote_button_short_press
-        subtype: left
-        trigger: device
-    conditions: []
-    actions:
-      - action: light.toggle
-        metadata: {}
-        data: {}
-        target:
-          entity_id: light.switch_wall_cuisine
     mode: single

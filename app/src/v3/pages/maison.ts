@@ -20,6 +20,10 @@ const lit = (r: Room) => visibleLights(r).filter((id) => store.get(id)?.state ==
  * Maison: the live plan of the flat (2D or 3D) and every room with its
  * temperature, what is on and what is open. A room opens its own page.
  */
+
+/** The light timer and its warning of a room, when it has some (salle de bain, toilettes, cuisine). */
+const lightTimers = (room: string) => [`timer.lumiere_${room}`, `timer.avertissement_${room}`];
+
 export class Kh3Maison extends Page {
   constructor() {
     super();
@@ -180,8 +184,36 @@ export class Kh3Piece extends Page {
     this.series = {};
     new EntitiesController(this, () => {
       const r = this.room();
-      return r ? [...r.lights, ...r.switches, ...r.fans, ...r.media, ...r.openings, ...r.motion, r.temperature, r.humidity].filter((x): x is string => !!x) : [];
+      return r ? [...r.lights, ...r.switches, ...r.fans, ...r.media, ...r.openings, ...r.motion, r.temperature, r.humidity, ...lightTimers(r.id)].filter((x): x is string => !!x) : [];
     });
+  }
+
+  private tick = 0;
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    // The « S'éteint dans » line counts down while a light timer runs.
+    this.tick = window.setInterval(() => {
+      const r = this.room();
+      if (r && lightTimers(r.id).some((id) => store.get(id)?.state === "active")) this.requestUpdate();
+    }, 15000);
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.clearInterval(this.tick);
+  }
+
+  /** « S'éteint dans 6 min » while the room's light timer runs (packages/motion_lights.yaml). */
+  private offIn(r: Room) {
+    const [main, warn] = lightTimers(r.id).map((id) => store.get(id));
+    const t = warn?.state === "active" ? warn : main?.state === "active" ? main : undefined;
+    const end = Date.parse(t?.attributes.finishes_at ?? "");
+    if (!t || isNaN(end)) return nothing;
+    const left = Math.max(0, Math.round((end - Date.now()) / 1000));
+    const soon = t === warn;
+    const text = soon ? `S'éteint dans ${left < 60 ? `${left} s` : `${Math.floor(left / 60)} min ${String(left % 60).padStart(2, "0")}`}` : `S'éteint dans ${Math.max(1, Math.ceil(left / 60))} min`;
+    return html`<span class="st" style="display:flex;align-items:center;gap:6px;${soon ? "color:var(--amberInk);font-weight:600" : ""}">${icon("timer", 14)}${text}</span>`;
   }
 
   private room(): Room | undefined {
@@ -515,7 +547,8 @@ export class Kh3Piece extends Page {
       <div class="grid">
         <div class="col">
         <section class="card lights" aria-label="Lumières">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><h2 class="h" style="margin:0">Lumières</h2>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><h2 class="h" style="margin:0">Lumières</h2>
+            ${anyOn ? this.offIn(r) : nothing}<span style="flex:1"></span>
             ${anyOn ? html`<button class="btn" style="background:var(--amberTint);color:var(--amberInk)" @click=${() => setLights(lights, false)}>Tout éteindre</button>` : nothing}</div>
           <div class="rows">${lights.length ? lights.map((id) => this.lightRow(id, r)) : html`<p class="empty">Pas de lumière dans cette pièce.</p>`}</div>
         </section>
