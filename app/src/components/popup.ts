@@ -885,6 +885,9 @@ export function refreshPopup(): void {
   current?.requestUpdate();
 }
 
-export function closePopup(): void {
+/** True when this goes back in history (the popup's entry): wait for popstate before navigating. */
+export function closePopup(): boolean {
+  const back = !!current?.pushed;
   current?.close();
+  return back;
 }

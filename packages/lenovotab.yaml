@@ -68,26 +68,6 @@ automation:
         message: >
           Batterie {{ states(trigger.entity_id) }}%
 
-  - alias: back_home_tablet
-    description: "Après 5 min sur une autre page, la tablette revient à l'accueil de Maison (V3)."
-    description: "Après 5 min sur une autre page, la tablette revient à l'accueil de Maison (V2)."
-    triggers:
-      - trigger: state
-        entity_id:
-          - sensor.tablet_browser_path
-        for:
-          minutes: 5
-    conditions:
-      - condition: template
-        value_template: "{{ states('sensor.tablet_browser_path') not in ['/maison', '/maison/', 'unavailable', 'unknown'] }}"
-    actions:
-      - action: browser_mod.navigate
-        data:
-          browser_id:
-            - tablet # the tablet's browser_mod ID (sensor.tablet_browser_path)
-          path: /maison?kiosk
-    mode: single
-
   - alias: tablet_screen_motion
     id: kh_tablet_screen_motion
     description: >-
