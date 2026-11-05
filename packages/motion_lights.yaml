@@ -45,8 +45,18 @@ input_number:
     step: 1
     unit_of_measurement: min
     initial: 20
+  # Kitchen: by daylight the light is often forgotten (short), after sunset
+  # it is cooking and dinner (long), from 22 h to 7 h the night (short).
   lumiere_delai_cuisine_jour:
-    name: Extinction cuisine, de 7 h à 22 h
+    name: Extinction cuisine, en plein jour
+    icon: mdi:timer-outline
+    min: 5
+    max: 120
+    step: 5
+    unit_of_measurement: min
+    initial: 15
+  lumiere_delai_cuisine_soir:
+    name: Extinction cuisine, après le coucher du soleil
     icon: mdi:timer-outline
     min: 5
     max: 120
@@ -315,8 +325,8 @@ automation:
   - alias: cuisine_light_timer
     id: kh_cuisine_light_timer
     description: >-
-      Cuisine (sans détecteur) : minuteur dès que la lumière s'allume (45 min le
-      jour, 20 min la nuit), jamais d'extinction pendant le minuteur du Google
+      Cuisine (sans détecteur) : minuteur dès que la lumière s'allume (15 min en
+      plein jour, 45 min après le coucher du soleil, 20 min de 22 h à 7 h), jamais d'extinction pendant le minuteur du Google
       Home ; clignotement puis 1 min 30 pour appuyer sur le bouton sans fil ;
       rallumée dans les 2 min, minuteur long. Le bouton allume ou éteint, sauf
       pendant l'avertissement où il garde la lumière.
@@ -326,10 +336,13 @@ automation:
       main: timer.lumiere_cuisine
       warn: timer.avertissement_cuisine
       catch: timer.rattrapage_cuisine
+      # Daylight: the sun higher than 3° (dusk and dawn count as evening).
       normal: >-
         {% set night = now().hour >= 22 or now().hour < 7 %}
+        {% set day = state_attr('sun.sun', 'elevation') | float(0) > 3 %}
         {{ (states('input_number.lumiere_delai_cuisine_nuit') | int(20) if night
-            else states('input_number.lumiere_delai_cuisine_jour') | int(45)) * 60 }}
+            else states('input_number.lumiere_delai_cuisine_jour') | int(15) if day
+            else states('input_number.lumiere_delai_cuisine_soir') | int(45)) * 60 }}
       long: "{{ states('input_number.lumiere_encore_la_cuisine') | int(30) * 60 }}"
     triggers:
       - trigger: device
