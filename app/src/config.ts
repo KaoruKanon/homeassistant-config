@@ -139,6 +139,8 @@ export interface KaoruHomeConfig {
     };
     fans: string[];
   };
+  /** Wall tablet (`?kiosk`): back to the home page after this long without a touch. */
+  kiosk?: { homeAfterMinutes: number };
   /** The flat's plan (Maison page): which TV and PC sit in which room, by area id. */
   plan?: {
     tvs: Record<string, string>;
@@ -388,6 +390,7 @@ export const config: KaoruHomeConfig = {
     },
     fans: ["fan.xiaomi_smart_fan_2"],
   },
+  kiosk: { homeAfterMinutes: 5 },
   plan: {
     tvs: { salon: "media_player.samsung_tv_salon", chambre_papa: "media_player.samsung_tv_papa" },
     computers: { salon: "switch.computer_papa", chambre_william: "switch.computer_rig_kaoru" },

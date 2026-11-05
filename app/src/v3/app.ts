@@ -11,7 +11,7 @@ import type { PanelRoute } from "../types.ts";
 import { f0, f1, num } from "./data.ts";
 import "./home.ts";
 import { icon } from "./icons.ts";
-import { isKiosk } from "../kiosk.ts";
+import { installIdleReturn, isKiosk } from "../kiosk.ts";
 import { goTo, installDragScroll } from "./nav.ts";
 import { isDark, loadFonts, loadTheme, themeShared, themeStyle, ui, type ThemeChoice } from "./theme.ts";
 
@@ -269,7 +269,24 @@ export class Kh3App extends LitElement {
     installPressFeedback(this.renderRoot as ShadowRoot);
     this.documentMeta(true);
     this.undrag = installDragScroll();
+    const minutes = config.kiosk?.homeAfterMinutes;
+    if (isKiosk() && minutes) this.unidle = installIdleReturn(minutes * 60_000, this.backHome);
   }
+
+  /** Wall tablet left alone: popup and question closed, home page from the top. */
+  private unidle?: () => void;
+  private backHome = (): void => {
+    cancelConfirmation();
+    const home = () => {
+      const prefix = this.route?.prefix ?? "/maison";
+      if (location.pathname !== prefix) goTo(prefix);
+      window.scrollTo({ top: 0 });
+    };
+    void import("../components/popup.ts").then(({ closePopup }) => {
+      if (closePopup()) window.addEventListener("popstate", () => setTimeout(home), { once: true });
+      else home();
+    });
+  };
 
   /**
    * While V3 is shown: pinch-zoom allowed (HA's page forbids it) and a page
@@ -302,6 +319,7 @@ export class Kh3App extends LitElement {
     themeShared(undefined, false);
     this.documentMeta(false);
     this.undrag?.();
+    this.unidle?.();
     cancelConfirmation();
   }
 

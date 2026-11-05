@@ -28,7 +28,7 @@ Il n'y a plus de dashboard Lovelace en YAML ni de carte HACS : Lovelace reste di
 
 ### Maison V3
 
-Une réécriture du design, page par page, d'après des maquettes validées avant d'écrire le code. Même organisation et mêmes fonctions que la V2, en Lit natif, sans aucun composant `ha-*` de Home Assistant. Mode kiosque pour la tablette : `/maison?kiosk` (cache la barre latérale et l'en-tête de Home Assistant, le menu reste accessible par le bouton « Menu » du rail), `?kiosk=0` pour en sortir. Après 5 minutes sur une autre page, la tablette revient à l'accueil.
+Une réécriture du design, page par page, d'après des maquettes validées avant d'écrire le code. Même organisation et mêmes fonctions que la V2, en Lit natif, sans aucun composant `ha-*` de Home Assistant. Mode kiosque pour la tablette : `/maison?kiosk` (cache la barre latérale et l'en-tête de Home Assistant, le menu reste accessible par le bouton « Menu » du rail), `?kiosk=0` pour en sortir. Après 5 minutes sans qu'on touche l'écran, la tablette ferme la popup ouverte et revient à l'accueil (`kiosk.homeAfterMinutes` dans `app/src/config.ts`).
 
 <img src="/images/kaoru-home/v3/tablet-accueil.jpg" width="100%">
 
