@@ -1,16 +1,26 @@
-# Lights driven by the PIR sensors (salle de bain, toilettes).
-# The countdown before switching off starts once the sensor sees nobody and is
-# restarted by every new detection; its length is set below (minutes).
+# Lights switched off by a timer: salle de bain and toilettes (PIR sensors),
+# cuisine (no sensor: its wireless button stands in for one).
+#
+# Each room has a timer, timer.lumiere_<room>: it starts when the light comes
+# on, and every detection (or, in the kitchen, a press during the warning)
+# gives it its full length again. When it ends, the light blinks once and
+# timer.avertissement_<room> gives 1 min 30 to show up (the PIR sensors pause
+# 60 to 90 s after each detection); then the light goes off. Turned back on
+# within 2 min of that (timer.rattrapage_<room> running), the room is still in
+# use: the next timer is the long one. A light switched off by hand stops it all.
+#
+# The automations only react to what people do: a change of the light made by
+# an automation (the blink, the button) carries a parent context and is ignored.
 
 input_number:
   motion_delay_salle_de_bain:
     name: Extinction salle de bain
     icon: mdi:timer-outline
-    min: 1
-    max: 30
+    min: 20
+    max: 45
     step: 1
     unit_of_measurement: min
-    initial: 10
+    initial: 20
   motion_delay_toilette:
     name: Extinction toilettes
     icon: mdi:timer-outline
@@ -19,76 +29,425 @@ input_number:
     step: 1
     unit_of_measurement: min
     initial: 5
+  lumiere_encore_la_salle_de_bain:
+    name: Salle de bain, rallumée après extinction
+    icon: mdi:timer-plus-outline
+    min: 5
+    max: 45
+    step: 1
+    unit_of_measurement: min
+    initial: 20
+  lumiere_encore_la_toilette:
+    name: Toilettes, rallumées après extinction
+    icon: mdi:timer-plus-outline
+    min: 5
+    max: 45
+    step: 1
+    unit_of_measurement: min
+    initial: 20
+  # Kitchen: by daylight the light is often forgotten (short), after sunset
+  # it is cooking and dinner (long), from input_datetime.lumiere_cuisine_nuit
+  # (20 h) to 7 h the night (short).
+  lumiere_delai_cuisine_jour:
+    name: Extinction cuisine, en plein jour
+    icon: mdi:timer-outline
+    min: 5
+    max: 120
+    step: 5
+    unit_of_measurement: min
+    initial: 15
+  lumiere_delai_cuisine_soir:
+    name: Extinction cuisine, après le coucher du soleil
+    icon: mdi:timer-outline
+    min: 5
+    max: 120
+    step: 5
+    unit_of_measurement: min
+    initial: 45
+  lumiere_delai_cuisine_nuit:
+    name: Extinction cuisine, la nuit
+    icon: mdi:timer-outline
+    min: 5
+    max: 60
+    step: 5
+    unit_of_measurement: min
+    initial: 20
+  lumiere_encore_la_cuisine:
+    name: Cuisine, rallumée après extinction
+    icon: mdi:timer-plus-outline
+    min: 5
+    max: 90
+    step: 5
+    unit_of_measurement: min
+    initial: 30
+  lumiere_avertissement:
+    name: Avertissement avant extinction
+    icon: mdi:timer-alert-outline
+    min: 30
+    max: 180
+    step: 10
+    unit_of_measurement: s
+    initial: 90
+
+input_datetime:
+  lumiere_cuisine_nuit:
+    name: Cuisine, début de la nuit
+    icon: mdi:weather-night
+    has_date: false
+    has_time: true
+    initial: "20:00:00"
+
+input_boolean:
+  # Someone was detected since the light came on (salle de bain, toilettes).
+  lumiere_presence_salle_de_bain:
+    name: Présence vue, salle de bain
+    icon: mdi:motion-sensor
+  lumiere_presence_toilette:
+    name: Présence vue, toilettes
+    icon: mdi:motion-sensor
+
+timer:
+  lumiere_salle_de_bain:
+    name: Lumière salle de bain
+    icon: mdi:lightbulb-auto-outline
+    restore: true
+  avertissement_salle_de_bain:
+    name: Avertissement salle de bain
+    icon: mdi:timer-alert-outline
+    restore: true
+  rattrapage_salle_de_bain:
+    name: Rattrapage salle de bain
+    duration: "00:02:00"
+  lumiere_toilette:
+    name: Lumière toilettes
+    icon: mdi:lightbulb-auto-outline
+    restore: true
+  avertissement_toilette:
+    name: Avertissement toilettes
+    icon: mdi:timer-alert-outline
+    restore: true
+  rattrapage_toilette:
+    name: Rattrapage toilettes
+    duration: "00:02:00"
+  lumiere_cuisine:
+    name: Lumière cuisine
+    icon: mdi:lightbulb-auto-outline
+    restore: true
+  avertissement_cuisine:
+    name: Avertissement cuisine
+    icon: mdi:timer-alert-outline
+    restore: true
+  rattrapage_cuisine:
+    name: Rattrapage cuisine
+    duration: "00:02:00"
+
+script:
+  # One blink of a light that is on: off, then on again a second later.
+  lumiere_clignote:
+    alias: Lumière, un clignotement
+    mode: parallel
+    fields:
+      light:
+        description: The light (on).
+    sequence:
+      - action: light.turn_off
+        target:
+          entity_id: "{{ light }}"
+      - delay: "00:00:01"
+      - action: light.turn_on
+        target:
+          entity_id: "{{ light }}"
 
 automation:
   - alias: salle_de_bain_motion_light
     id: kh_salle_de_bain_motion_light
     description: >-
-      Salle de bain : allumée à chaque détection, éteinte quand le détecteur ne voit
-      plus personne depuis input_number.motion_delay_salle_de_bain minutes. Le
-      détecteur ne renvoie « on » qu'après sa pause (1 à 2 min) : chaque
-      nouvelle détection relance le compte à rebours (mode restart).
-    mode: restart
+      Salle de bain (20 min au moins) : allumée à chaque détection, minuteur relancé à chaque
+      détection, clignotement puis 1 min 30 pour bouger avant l'extinction ;
+      rallumée dans les 2 min après une détection, minuteur long.
+    mode: queued
+    variables:
+      light: light.switch_wall_salle_de_bain
+      main: timer.lumiere_salle_de_bain
+      warn: timer.avertissement_salle_de_bain
+      catch: timer.rattrapage_salle_de_bain
+      seen: input_boolean.lumiere_presence_salle_de_bain
+      # Full length of the timer, never shorter than what is left.
+      normal: >-
+        {% set d = states('input_number.motion_delay_salle_de_bain') | int(10) * 60 %}
+        {% set t = states[main] %}
+        {% set left = (as_timestamp(t.attributes.finishes_at) - as_timestamp(now())) | int(0)
+           if t is not none and t.state == 'active' and t.attributes.finishes_at is defined else 0 %}
+        {{ [d, left] | max }}
+      long: "{{ states('input_number.lumiere_encore_la_salle_de_bain') | int(20) * 60 }}"
     triggers:
       - trigger: state
         entity_id: binary_sensor.pir_salle_de_bain
         to: "on"
-      # Allumée à la main : même extinction automatique.
+        id: motion
       - trigger: state
         entity_id: light.switch_wall_salle_de_bain
         from: "off"
         to: "on"
-    actions:
-      - if:
-          - condition: state
-            entity_id: light.switch_wall_salle_de_bain
-            state: "off"
-        then:
-          - action: light.turn_on
-            target:
-              entity_id: light.switch_wall_salle_de_bain
-      - wait_template: "{{ is_state('binary_sensor.pir_salle_de_bain', 'off') }}"
-      - delay:
-          minutes: "{{ states('input_number.motion_delay_salle_de_bain') | int(10) }}"
-      - condition: state
-        entity_id: binary_sensor.pir_salle_de_bain
-        state: "off"
-      - action: light.turn_off
-        target:
-          entity_id: light.switch_wall_salle_de_bain
+        id: "on"
+      - trigger: state
+        entity_id: light.switch_wall_salle_de_bain
+        from: "on"
+        to: "off"
+        id: "off"
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.lumiere_salle_de_bain
+        id: main_end
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.avertissement_salle_de_bain
+        id: warn_end
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.rattrapage_salle_de_bain
+        id: catch_end
+    conditions: &by_people
+      # Light changes made by an automation (the blink...) are not people.
+      - condition: template
+        value_template: "{{ trigger.id not in ['on', 'off'] or trigger.to_state.context.parent_id is none }}"
+    actions: &room_actions
+      - choose:
+          - conditions: "{{ trigger.id == 'motion' }}"
+            sequence:
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: "{{ seen }}"
+              - action: timer.cancel
+                target:
+                  entity_id: "{{ [warn, catch] }}"
+              - if: "{{ is_state(light, 'off') }}"
+                then:
+                  - action: light.turn_on
+                    target:
+                      entity_id: "{{ light }}"
+              - action: timer.start
+                target:
+                  entity_id: "{{ main }}"
+                data:
+                  duration: "{{ normal | int }}"
+          - conditions: "{{ trigger.id == 'on' }}"
+            sequence:
+              - variables:
+                  again: "{{ is_state(catch, 'active') and is_state(seen, 'on') }}"
+              - action: timer.cancel
+                target:
+                  entity_id: "{{ [warn, catch] }}"
+              - action: timer.start
+                target:
+                  entity_id: "{{ main }}"
+                data:
+                  duration: "{{ long if again else normal | int }}"
+          - conditions: "{{ trigger.id == 'off' }}"
+            sequence:
+              - action: timer.cancel
+                target:
+                  entity_id: "{{ [main, warn, catch] }}"
+              - action: input_boolean.turn_off
+                target:
+                  entity_id: "{{ seen }}"
+          - conditions: "{{ trigger.id == 'main_end' and is_state(light, 'on') }}"
+            sequence:
+              - action: timer.start
+                target:
+                  entity_id: "{{ warn }}"
+                data:
+                  duration: "{{ states('input_number.lumiere_avertissement') | int(90) }}"
+              - action: script.lumiere_clignote
+                data:
+                  light: "{{ light }}"
+          - conditions: "{{ trigger.id == 'warn_end' and is_state(light, 'on') }}"
+            sequence:
+              - action: light.turn_off
+                target:
+                  entity_id: "{{ light }}"
+              - action: timer.start
+                target:
+                  entity_id: "{{ catch }}"
+          - conditions: "{{ trigger.id == 'catch_end' }}"
+            sequence:
+              - action: input_boolean.turn_off
+                target:
+                  entity_id: "{{ seen }}"
 
   - alias: toilette_motion_light
     id: kh_toilette_motion_light
     description: >-
-      Toilettes : allumée à chaque détection, éteinte quand le détecteur ne voit
-      plus personne depuis input_number.motion_delay_toilette minutes. Le
-      détecteur ne renvoie « on » qu'après sa pause (1 à 2 min) : chaque
-      nouvelle détection relance le compte à rebours (mode restart).
-    mode: restart
+      Toilettes : allumée à chaque détection, minuteur relancé à chaque
+      détection, clignotement puis 1 min 30 pour bouger avant l'extinction ;
+      rallumée dans les 2 min après une détection, minuteur long.
+    mode: queued
+    variables:
+      light: light.switch_wall_toilette
+      main: timer.lumiere_toilette
+      warn: timer.avertissement_toilette
+      catch: timer.rattrapage_toilette
+      seen: input_boolean.lumiere_presence_toilette
+      normal: >-
+        {% set d = states('input_number.motion_delay_toilette') | int(5) * 60 %}
+        {% set t = states[main] %}
+        {% set left = (as_timestamp(t.attributes.finishes_at) - as_timestamp(now())) | int(0)
+           if t is not none and t.state == 'active' and t.attributes.finishes_at is defined else 0 %}
+        {{ [d, left] | max }}
+      long: "{{ states('input_number.lumiere_encore_la_toilette') | int(20) * 60 }}"
     triggers:
       - trigger: state
         entity_id: binary_sensor.pir_wc
         to: "on"
-      # Allumée à la main : même extinction automatique.
+        id: motion
       - trigger: state
         entity_id: light.switch_wall_toilette
         from: "off"
         to: "on"
+        id: "on"
+      - trigger: state
+        entity_id: light.switch_wall_toilette
+        from: "on"
+        to: "off"
+        id: "off"
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.lumiere_toilette
+        id: main_end
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.avertissement_toilette
+        id: warn_end
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.rattrapage_toilette
+        id: catch_end
+    conditions: *by_people
+    actions: *room_actions
+
+  - alias: cuisine_light_timer
+    id: kh_cuisine_light_timer
+    description: >-
+      Cuisine (sans détecteur) : minuteur dès que la lumière s'allume (15 min en
+      plein jour, 45 min après le coucher du soleil, 20 min de 20 h à 7 h), jamais d'extinction pendant le minuteur du Google
+      Home ; clignotement puis 1 min 30 pour appuyer sur le bouton sans fil ;
+      rallumée dans les 2 min, minuteur long. Le bouton allume ou éteint, sauf
+      pendant l'avertissement où il garde la lumière.
+    mode: queued
+    variables:
+      light: light.switch_wall_cuisine
+      main: timer.lumiere_cuisine
+      warn: timer.avertissement_cuisine
+      catch: timer.rattrapage_cuisine
+      # Daylight: the sun higher than 3° (dusk and dawn count as evening).
+      normal: >-
+        {% set start = today_at(states('input_datetime.lumiere_cuisine_nuit') if has_value('input_datetime.lumiere_cuisine_nuit') else '20:00') %}
+        {% set night = now() >= start or now().hour < 7 %}
+        {% set day = state_attr('sun.sun', 'elevation') | float(0) > 3 %}
+        {{ (states('input_number.lumiere_delai_cuisine_nuit') | int(20) if night
+            else states('input_number.lumiere_delai_cuisine_jour') | int(15) if day
+            else states('input_number.lumiere_delai_cuisine_soir') | int(45)) * 60 }}
+      long: "{{ states('input_number.lumiere_encore_la_cuisine') | int(30) * 60 }}"
+    triggers:
+      - trigger: device
+        device_id: 631a266451fd7ad699e580f912b7fbf9
+        domain: zha
+        type: remote_button_short_press
+        subtype: left
+        id: button
+      - trigger: state
+        entity_id: light.switch_wall_cuisine
+        from: "off"
+        to: "on"
+        id: "on"
+      - trigger: state
+        entity_id: light.switch_wall_cuisine
+        from: "on"
+        to: "off"
+        id: "off"
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.lumiere_cuisine
+        id: main_end
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.avertissement_cuisine
+        id: warn_end
+    conditions: *by_people
     actions:
-      - if:
-          - condition: state
-            entity_id: light.switch_wall_toilette
-            state: "off"
-        then:
-          - action: light.turn_on
-            target:
-              entity_id: light.switch_wall_toilette
-      - wait_template: "{{ is_state('binary_sensor.pir_wc', 'off') }}"
-      - delay:
-          minutes: "{{ states('input_number.motion_delay_toilette') | int(5) }}"
-      - condition: state
-        entity_id: binary_sensor.pir_wc
-        state: "off"
-      - action: light.turn_off
-        target:
-          entity_id: light.switch_wall_toilette
+      - variables:
+          again: "{{ is_state(catch, 'active') }}"
+      - choose:
+          # The button during the warning: keep the light on.
+          - conditions: "{{ trigger.id == 'button' and is_state(warn, 'active') }}"
+            sequence:
+              - action: timer.cancel
+                target:
+                  entity_id: "{{ warn }}"
+              - action: timer.start
+                target:
+                  entity_id: "{{ main }}"
+                data:
+                  duration: "{{ normal | int }}"
+          - conditions: "{{ trigger.id == 'button' and is_state(light, 'on') }}"
+            sequence:
+              - action: timer.cancel
+                target:
+                  entity_id: "{{ [main, warn, catch] }}"
+              - action: light.turn_off
+                target:
+                  entity_id: "{{ light }}"
+          - conditions: "{{ trigger.id in ['button', 'on'] }}"
+            sequence:
+              - if: "{{ is_state(light, 'off') }}"
+                then:
+                  - action: light.turn_on
+                    target:
+                      entity_id: "{{ light }}"
+              - action: timer.cancel
+                target:
+                  entity_id: "{{ [warn, catch] }}"
+              - action: timer.start
+                target:
+                  entity_id: "{{ main }}"
+                data:
+                  duration: "{{ long if again else normal | int }}"
+          - conditions: "{{ trigger.id == 'off' }}"
+            sequence:
+              - action: timer.cancel
+                target:
+                  entity_id: "{{ [main, warn, catch] }}"
+          # Cooking (the Google Home's timer runs): not now, a full timer again.
+          - conditions: "{{ trigger.id == 'main_end' and is_state(light, 'on') and is_state('timer.timer_cuisine', 'active') }}"
+            sequence:
+              - action: timer.start
+                target:
+                  entity_id: "{{ main }}"
+                data:
+                  duration: "{{ normal | int }}"
+          - conditions: "{{ trigger.id == 'main_end' and is_state(light, 'on') }}"
+            sequence:
+              - action: timer.start
+                target:
+                  entity_id: "{{ warn }}"
+                data:
+                  duration: "{{ states('input_number.lumiere_avertissement') | int(90) }}"
+              - action: script.lumiere_clignote
+                data:
+                  light: "{{ light }}"
+          - conditions: "{{ trigger.id == 'warn_end' and is_state(light, 'on') }}"
+            sequence:
+              - action: light.turn_off
+                target:
+                  entity_id: "{{ light }}"
+              - action: timer.start
+                target:
+                  entity_id: "{{ catch }}"
