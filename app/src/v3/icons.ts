@@ -45,6 +45,7 @@ const STROKE: Record<string, SVGTemplateResult> = {
   mute: S("M4 9h4l5-4v14l-5-4H4zM17 9l4 6M21 9l-4 6"),
   speaker: svg`<rect x="6" y="3" width="12" height="18" rx="3"></rect><circle cx="12" cy="14" r="3"></circle><circle cx="12" cy="7.5" r="1"></circle>`,
   fan: S("M12 10c0-4 1-7 4-7s2 4-2 7M14 12c4 0 7 1 7 4s-4 2-7-2M12 14c0 4-1 7-4 7s-2-4 2-7M10 12c-4 0-7-1-7-4s4-2 7 2"),
+  bus: svg`<rect x="4" y="3" width="16" height="15" rx="3"></rect><path d="M4 11h16M8 18v3M16 18v3"></path><circle cx="8" cy="14.5" r=".9"></circle><circle cx="16" cy="14.5" r=".9"></circle>`,
   scooter: svg`<circle cx="5" cy="18" r="2.5"></circle><circle cx="19" cy="18" r="2.5"></circle><path d="M7.5 18h9M16 18l-3-12h3"></path>`,
   calendar: svg`<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path>`,
   leave: S("M14 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l4-4-4-4M14 12H4"),
