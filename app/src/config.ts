@@ -96,6 +96,12 @@ export interface KaoruHomeConfig {
     /** Fan → its off-timer (input_number, minutes), applied by an automation. */
     fanTimers?: Record<string, string>;
     wifiQr?: string;
+    /**
+     * Next buses and a V'Lille station (packages/ilevia.yaml; which ones is
+     * its secret): one card, shown while a bus is due within the hour or the
+     * station is in service.
+     */
+    transit?: { bus?: string; vlille?: string };
   };
   media: {
     speakers: string[];
@@ -339,6 +345,7 @@ export const config: KaoruHomeConfig = {
     guestMode: "input_boolean.guest_mode",
     fanTimers: { "fan.xiaomi_smart_fan_2": "input_number.fan_timer" },
     wifiQr: "/local/qr_wifi.jpg",
+    transit: { bus: "sensor.prochains_bus", vlille: "sensor.v_lille" },
   },
   media: {
     speakers: ["media_player.google_home_cuisine", "media_player.google_home_chambre"],

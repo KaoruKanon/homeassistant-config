@@ -13,6 +13,7 @@ import { Gesture } from "./page.ts";
 import { ui } from "./theme.ts";
 import { playerCard, playerStyles } from "./player.ts";
 import { jellyfinLogo } from "../components/brand-icons.ts";
+import { bikeStation, busDepartures, busWaits } from "../bus.ts";
 
 const openLight = (id: string) => void import("../popups/details.ts").then((m) => m.openLight(id));
 
@@ -94,7 +95,7 @@ export class Kh3Home extends LitElement {
       ...h.tvs,
       ...rooms.flatMap((r) => [...r.lights, ...r.openings, r.temperature, r.humidity]).filter((x): x is string => !!x),
       ...(this.model?.unassignedLights ?? []),
-      h.spotify, h.jellyfin, h.energy?.power, h.energy?.today, h.outdoorTemperature, h.nextRain, h.guestMode,
+      h.spotify, h.jellyfin, h.transit?.bus, h.transit?.vlille, h.energy?.power, h.energy?.today, h.outdoorTemperature, h.nextRain, h.guestMode,
       h.frog?.image, h.frog?.status, h.forecast?.sensor, ...config.weather, "sun.sun",
       ...config.media.speakers,
       ...config.energyPage.fans, ...Object.values(h.fanTimers ?? {}),
@@ -348,6 +349,50 @@ export class Kh3Home extends LitElement {
       }
 
       /* « En ce moment ». */
+      .bus {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .bus .ell {
+        min-width: 0;
+      }
+      .bus .num {
+        flex: none;
+      }
+      .bus .line {
+        flex: none;
+        align-self: center;
+        min-width: 30px;
+        padding: 1px 6px;
+        border-radius: 6px;
+        background: var(--blue);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+      }
+      .bus .line.vl {
+        display: inline-flex;
+        justify-content: center;
+        padding: 2px 6px;
+        background: var(--red);
+      }
+      .bus b {
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .bus b.next {
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .bus i {
+        font-style: normal;
+        margin: 0 4px;
+        color: var(--muted);
+      }
       .now {
         display: flex;
         flex-direction: column;
@@ -1211,7 +1256,29 @@ export class Kh3Home extends LitElement {
       });
     }
 
-    // 5. A TV on (already a tile; the card adds the volume).
+    // 5. The next buses (while one is due within the hour) and the V'Lille station.
+    if (h.transit) {
+      const { stop, rows } = busDepartures(h.transit.bus ? store.get(h.transit.bus)?.attributes.features : undefined, this.now);
+      const soon = this.now.getTime() + 3600_000;
+      const buses = rows.filter((r) => r.at[0].getTime() < soon).slice(0, 2);
+      const bikes = bikeStation(h.transit.vlille ? store.get(h.transit.vlille) : undefined);
+      if (buses.length || bikes?.ok) {
+        cards.push({
+          key: "transit", w: 2, h: 1,
+          body: () => html`<div class="top"><span class="ico" style="background:var(--blueTint);color:var(--blue)">${icon("bus")}</span>
+              <span style="min-width:0"><span class="nm ell">${stop ?? "Transports"}</span><span class="st ell" style="display:block">${buses.length ? "Prochains bus" : "Plus de bus dans l'heure"}</span></span></div>
+            <span class="grow"></span>
+            ${buses.map((r) => html`<div class="bus"><span class="line">${r.line}</span><span class="ell grow">${r.to}</span>
+              <span class="num">${busWaits(r.at, this.now, timeFmt).map((w, i) => html`${i ? html`<i>·</i>` : nothing}<b class=${i ? "" : "next"}>${w}</b>`)}</span></div>`)}
+            ${bikes ? html`<div class="bus"><span class="line vl" aria-label="V'Lille">${icon("bike", 14)}</span><span class="ell grow">${bikes.name}</span>
+              <span class="num">${bikes.ok
+                ? html`<b class="next">${bikes.bikes}</b> vélo${bikes.bikes > 1 ? "s" : ""}<i>·</i><b>${bikes.docks}</b> place${bikes.docks > 1 ? "s" : ""}`
+                : html`<b>hors service</b>`}</span></div>` : nothing}`,
+        });
+      }
+    }
+
+    // 6. A TV on (already a tile; the card adds the volume).
     for (const tv of h.tvs) {
       const s = store.get(tv);
       if (!s || ["off", "unavailable", "standby", "unknown"].includes(s.state)) continue;

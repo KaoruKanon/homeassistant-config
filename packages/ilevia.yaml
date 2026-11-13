@@ -1,0 +1,46 @@
+# Next buses at a stop and a V'Lille station nearby, for the « En ce moment »
+# card of Kaoru Home.
+#
+# Ilévia's real-time departures (MEL open data, refreshed every minute):
+# https://www.data.gouv.fr/datasets/ilevia-prochains-passages-bus-et-tramway
+# The whole request is the secret ilevia_bus_url (stop, lines and API key stay
+# out of this public repo): the OGC API Features items of
+# dsp_ilevia:prochains_passages, f=json, with a cql-text filter on
+# code_arret_physique (the platform, which sets the direction) and code_ligne.
+# The panel groups the rows by line and direction (app/src/bus.ts).
+# Same for the V'Lille station, secret ilevia_vlille_url: the items of
+# dsp_ilevia:vlille_temps_reel, f=json, filtered on identifiant_station.
+
+rest:
+  - resource: !secret ilevia_bus_url
+    scan_interval: 60
+    timeout: 20
+    sensor:
+      - name: Prochains bus
+        unique_id: ilevia_prochains_bus
+        icon: mdi:bus
+        value_template: "{{ value_json.numberReturned }}"
+        json_attributes:
+          - features
+
+  - resource: !secret ilevia_vlille_url
+    scan_interval: 60
+    timeout: 20
+    sensor:
+      - name: V'Lille
+        unique_id: ilevia_vlille
+        icon: mdi:bicycle
+        unit_of_measurement: vélos
+        value_template: "{{ value_json.features[0].properties.nb_velos_dispo if value_json.features else none }}"
+        json_attributes_path: "$.features[0].properties"
+        json_attributes:
+          - nom
+          - nb_places_dispo
+          - etat
+          - etat_connexion
+
+# A new list every minute: not worth keeping in the history.
+recorder:
+  exclude:
+    entities:
+      - sensor.prochains_bus
